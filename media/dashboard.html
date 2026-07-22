@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src {{CSP_SOURCE}}; img-src {{CSP_SOURCE}}; style-src {{CSP_SOURCE}} 'unsafe-inline'; script-src 'nonce-{{NONCE}}'; font-src {{CSP_SOURCE}};">
+  <link rel="stylesheet" href="{{STYLES_URI}}">
+  <title>Teloverge LLM Usage Monitor</title>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><img class="brand-mark" src="./Teloverge-lum-logo.svg" alt="Teloverge LLM Usage Monitor"><div><strong>LLM Usage Monitor</strong><span>Powered by Teloverge</span></div></div>
+      <nav aria-label="Dashboard sections">
+        <button class="nav-item active" data-view="overview">Overview</button>
+        <button class="nav-item" data-view="history">History</button>
+        <button class="nav-item" data-view="analysis">Analysis</button>
+        <button class="nav-item" data-view="pricing">Pricing</button>
+        <button class="nav-item" data-view="settings">Settings</button>
+      </nav>
+      <div class="actions"><button class="button ghost" id="importButton">Import Codex</button><button class="button primary" id="exportButton">Export report</button></div>
+    </header>
+
+    <main>
+      <section class="hero-row">
+        <div><div class="eyebrow">USAGE ANALYTICS</div><h1 id="viewTitle">Your model spend, in focus.</h1><p id="viewSubtitle">Token and API-equivalent cost estimates, grouped around the work that created them.</p></div>
+        <div class="updated" id="importStatus"><span class="dot"></span>Waiting for local import</div>
+      </section>
+
+      <section class="filters" id="filterBar">
+        <label><span>Timeframe</span><select id="timeframe"><option value="today">Today</option><option value="reset">Since Reset</option><option value="weekly">Since Weekly Reset</option><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="all">All retained</option><option value="custom">Custom</option></select></label>
+        <label class="custom-date hidden"><span>From</span><input id="fromDate" type="date"></label>
+        <label class="custom-date hidden"><span>To</span><input id="toDate" type="date"></label>
+        <label><span>Provider</span><select id="providerFilter"><option value="">All providers</option></select></label>
+        <label><span>Model</span><select id="modelFilter"><option value="">All models</option></select></label>
+        <label><span>Reasoning</span><select id="reasoningFilter"><option value="">All levels</option></select></label>
+        <label class="search"><span>Task</span><input id="taskSearch" type="search" placeholder="Search task names"></label>
+      </section>
+
+      <section id="overviewView" class="view active">
+        <div class="metric-grid">
+          <article class="metric featured"><span>Estimated cost</span><strong id="costMetric">$0.00</strong><small>Published API-equivalent</small></article>
+          <article class="metric"><span>Total tokens</span><strong id="tokensMetric">0</strong><small id="recordsMetric">0 usage records</small></article>
+          <article class="metric"><span>Cache efficiency</span><strong id="cacheMetric">0%</strong><small>Share of input tokens cached</small></article>
+          <article class="metric"><span>Active tasks</span><strong id="tasksMetric">0</strong><small id="modelsMetric">0 models</small></article>
+        </div>
+        <div class="notice" id="estimateNotice"><span>i</span><p><strong>API-equivalent estimate.</strong> ChatGPT-plan Codex usage usually consumes included limits or credits; this dollar value may not be an amount billed.</p></div>
+        <div class="overview-grid">
+          <article class="card chart-card"><div class="card-title"><div><h2>Cost over time</h2><p>Daily estimated cost and token volume</p></div><div class="legend"><span><i class="cost-key"></i>Cost</span><span><i class="token-key"></i>Tokens</span></div></div><div id="timelineChart" class="timeline empty-state">Import Codex history to see a timeline.</div></article>
+          <article class="card"><div class="card-title"><div><h2>Spend by model</h2><p>Estimated cost contribution</p></div></div><div id="modelBreakdown" class="breakdown empty-state">No priced usage in this timeframe.</div></article>
+        </div>
+        <div class="overview-grid lower">
+          <article class="card"><div class="card-title"><div><h2>Top tasks</h2><p>Work with the highest estimated cost</p></div></div><div id="taskBreakdown" class="rank-list empty-state">No task usage yet.</div></article>
+          <article class="card"><div class="card-title"><div><h2>Token composition</h2><p>Input, cache, output, and reasoning</p></div></div><div id="tokenComposition" class="composition empty-state">No token usage yet.</div></article>
+        </div>
+      </section>
+
+      <section id="historyView" class="view">
+        <article class="card table-card"><div class="card-title"><div><h2>Usage history</h2><p id="historyCount">0 records</p></div><button class="button ghost" id="importFileButton">Import JSON</button></div><div class="table-scroll"><table class="usage-table"><thead><tr>
+          <th data-sort="timestamp">Date</th><th data-sort="taskName">Task name</th><th data-sort="provider">Provider</th><th data-sort="model">Model</th><th data-sort="reasoningLevel">Reasoning</th>
+          <th class="number" data-sort="inputTokens">Input</th><th class="number" data-sort="cachedInputTokens">Cached</th><th class="number" data-sort="outputTokens">Output</th><th class="number" data-sort="reasoningOutputTokens">Reasoning output</th><th class="number" data-sort="totalTokens">Total</th>
+          <th class="number" data-sort="lastInputTokens">Last input</th><th class="number" data-sort="lastCachedInputTokens">Last cached</th><th class="number" data-sort="lastOutputTokens">Last output</th><th class="number" data-sort="lastReasoningOutputTokens">Last reasoning</th><th class="number" data-sort="lastTotalTokens">Last total</th>
+          <th class="number" data-sort="modelContextWindowTokens">Context window</th><th class="number" data-sort="contextUsedPercent">Context used</th>
+          <th data-sort="limitName">Limit</th><th data-sort="planType">Plan</th><th class="number" data-sort="primaryUsedPercent">Primary limit</th><th class="number" data-sort="secondaryUsedPercent">Secondary limit</th><th data-sort="creditsBalance">Credits</th><th data-sort="individualLimitUsedPercent">Individual limit</th><th data-sort="rateLimitReachedType">Reached</th>
+          <th class="number" data-sort="estimatedCost">Est. cost</th>
+        </tr></thead><tbody id="historyBody"></tbody></table></div></article>
+      </section>
+
+      <section id="analysisView" class="view">
+        <div class="split-heading"><div><h2>Pivot analysis</h2><p>Arrange the filtered usage records into a custom summary table.</p></div></div>
+        <div class="analysis-controls card">
+          <label><span>Rows</span><select id="pivotRows"></select></label>
+          <label><span>Columns</span><select id="pivotColumns"></select></label>
+          <label><span>Values</span><select id="pivotValues"></select></label>
+          <label><span>Calculation</span><select id="pivotCalculation"><option value="sum">Sum</option><option value="average">Average</option><option value="min">Minimum</option><option value="max">Maximum</option><option value="count">Count</option></select></label>
+        </div>
+        <article class="card analysis-chart-card">
+          <div class="card-title"><div><h2 id="pivotChartTitle">Usage analysis graph</h2><p id="pivotChartSubtitle">The graph follows the pivot configuration.</p></div><div id="pivotChartLegend" class="pivot-chart-legend" aria-label="Chart legend"></div></div>
+          <div id="pivotChart" class="pivot-chart empty-state" role="img" aria-label="Pivot analysis graph">No usage matches these filters.</div>
+        </article>
+        <article class="card table-card analysis-table-card"><div class="card-title"><div><h2 id="pivotTitle">Usage analysis</h2><p id="pivotCount">0 source records</p></div></div><div class="table-scroll"><table class="pivot-table"><thead id="pivotHead"></thead><tbody id="pivotBody"></tbody><tfoot id="pivotFoot"></tfoot></table></div></article>
+      </section>
+
+      <section id="pricingView" class="view">
+        <div class="split-heading"><div><h2>Model price catalog</h2><p>USD per one million tokens. Edit rates when providers publish changes.</p></div><div><button class="button ghost" id="addPriceButton">Add model</button><button class="button primary" id="savePricesButton">Save prices</button></div></div>
+        <div class="notice"><span>i</span><p>OpenAI defaults were checked against official standard API pricing on July 10, 2026. Unrecognized models remain visible in usage history with cost shown as “—” until you add a rate.</p></div>
+        <article class="card table-card"><div class="table-scroll"><table class="price-table"><thead><tr><th>Provider</th><th>Model</th><th class="number">Input (M)</th><th class="number">Cached input (M)</th><th class="number">Output (M)</th><th class="date-column">Effective</th><th></th></tr></thead><tbody id="priceBody"></tbody></table></div></article>
+        <button class="text-button" id="resetPricesButton">Restore bundled OpenAI prices</button>
+      </section>
+
+      <section id="settingsView" class="view">
+        <div class="settings-grid">
+          <article class="card settings-card"><h2>Data retention</h2><p>Usage records stay in VS Code's local extension storage.</p><label><span>History duration (days)</span><input id="historyDays" type="number" min="1" max="3650"></label></article>
+          <article class="card settings-card"><h2>Codex import</h2><p>Only task names and usage metadata are read. Conversation content is ignored.</p><label><span>Codex home <small>Leave blank for CODEX_HOME or ~/.codex</small></span><input id="codexHome" type="text" placeholder="~/.codex"></label><label class="check"><input id="autoImport" type="checkbox"><span>Import automatically</span></label><label><span>Scan interval (minutes)</span><input id="importInterval" type="number" min="1" max="1440"></label></article>
+          <article class="card settings-card"><h2>Display</h2><label class="check"><input id="showStatusBar" type="checkbox"><span>Show today's estimate in status bar</span></label></article>
+          <article class="card settings-card danger"><h2>Local data</h2><p>Clear stored records and the import cache. Source Codex sessions are not modified.</p><button class="button danger-button" id="clearButton">Clear monitor data</button></article>
+        </div>
+        <button class="button primary save-settings" id="saveSettingsButton">Save settings</button>
+      </section>
+    </main>
+    <footer><span>A Teloverge application · All analysis stays local.</span><span id="footerStats">0 records retained</span></footer>
+  </div>
+  <script nonce="{{NONCE}}" src="./pivot.js"></script>
+  <script nonce="{{NONCE}}" src="./timeframe.js"></script>
+  <script nonce="{{NONCE}}" src="{{SCRIPT_URI}}"></script>
+</body>
+</html>

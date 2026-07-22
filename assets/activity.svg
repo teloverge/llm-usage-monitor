@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 893 893" role="img" aria-label="Teloverge LLM Usage Monitor">
+  <defs>
+    <mask id="teloverge-lum-icon" maskUnits="userSpaceOnUse" x="0" y="0" width="893" height="893">
+      <rect width="893" height="893" fill="black" />
+      <circle cx="446.5" cy="446.5" r="445.5" fill="white" />
+      <path fill="black" d="M 62 223 C 99 164 166 136 251 136 L 736 136 C 749 136 758 132 762 132 C 767 147 763 184 751 215 C 732 264 693 294 637 294 L 548 294 C 525 294 510 308 504 332 C 478 437 453 548 453 638 C 453 720 479 779 548 779 C 579 779 603 766 625 751 C 640 741 657 749 655 766 C 649 819 602 867 530 892 C 502 899 474 903 446.5 900 C 326 880 247 824 231 724 C 214 611 252 428 306 294 L 232 294 C 151 294 100 327 66 376 C 58 389 48 401 36 398 C 27 396 25 388 25 377 L 24 316 C 24 279 36 248 58 228 Q 58 223 62 223 Z" />
+      <circle cx="655" cy="780" r="116" fill="black" transform="translate(98.0439453125 -233.71484375) scale(0.8720703125)" />
+    </mask>
+  </defs>
+  <rect width="893" height="893" fill="currentColor" mask="url(#teloverge-lum-icon)" />
+  <g fill="currentColor" stroke="currentColor" transform="translate(98.0439453125 -233.71484375) scale(0.8720703125)">
+    <circle cx="655" cy="780" r="112" fill="none" stroke-width="8" />
+    <path d="M 590 840 H 724" fill="none" stroke-width="10" stroke-linecap="round" />
+    <rect x="600" y="784" width="26" height="48" rx="8" stroke="none" />
+    <rect x="642" y="752" width="26" height="80" rx="8" stroke="none" />
+    <rect x="684" y="710" width="26" height="122" rx="8" stroke="none" />
+  </g>
+</svg>
