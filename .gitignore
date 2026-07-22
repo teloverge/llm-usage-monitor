@@ -1,0 +1,9 @@
+node_modules/
+*.vsix
+*.tgz
+.DS_Store
+.vscode-test/
+.vscode-test-web/
+npm-debug.log*
+debug.log
+llm-usage-report.html
