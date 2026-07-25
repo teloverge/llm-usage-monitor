@@ -3337,44 +3337,84 @@ git commit -m "feat: add single-hue rank list component"
 
 **Files:**
 
+- Create: `apps/web/src/model/token-mix.ts` (added during execution)
 - Create: `apps/web/src/components/token-mix.tsx`
 - Modify: `apps/web/src/styles.css`
+- Test: `apps/web/test/token-mix.test.ts` (added during execution)
+
+> **`fresh = inputTokens - cachedInputTokens` mixes two populations.** `summarize`
+> accumulates `cachedInputTokens` over only the records that reported caching, while
+> `inputTokens` covers every record. The difference therefore sweeps a silent source's entire
+> input into a segment labelled "Fresh input" — a measurement claim the data does not support,
+> and the same unavailable-is-not-zero error `cacheEfficiency` was fixed for in Task 12. It is
+> worse here, because a labelled chart segment reads as a measurement rather than a ratio.
+>
+> `cacheReportingInputTokens` exists precisely for this. Step 0 uses it and gives the
+> unaccounted-for input its own segment.
+
+- [ ] **Step 0: Put the arithmetic somewhere testable (added during execution)**
+
+Create `apps/web/src/model/token-mix.ts` exporting `tokenMixSegments(totals)` →
+`Array<{ key, tokens, percent }>`, with `apps/web/test/token-mix.test.ts` covering it. Two rules:
+
+**Segment on the reporting population.** `fresh` is `cacheReportingInputTokens - cachedInputTokens`;
+the remainder, `inputTokens - cacheReportingInputTokens`, becomes a fourth `unreported` segment.
+Today Codex reports caching on every record so that segment is 0 and the bar looks unchanged — it
+becomes non-zero the moment a source that does not report caching lands, which is the point of the
+multi-harness work. Clamp every segment at 0 so no arithmetic surprise can produce a negative width.
+
+**Allocate the displayed percentages by largest remainder.** Rounding each share independently
+gives 33/33/33 = 99% for an even three-way split, and a "Token mix" panel whose parts visibly fail
+to make a whole undermines every number around it. A segment with zero tokens can never be bumped
+to 1%: the leftover to distribute is always smaller than the count of segments with a fractional
+part.
+
+`TokenMixKey` derives from `TOKEN_MIX_ORDER` rather than restating the keys, so the palette stays
+the single source of stacking order and this task remains its consumer.
 
 - [ ] **Step 1: Write the component**
 
-Create `apps/web/src/components/token-mix.tsx`:
+Create `apps/web/src/components/token-mix.tsx` as a thin renderer over that module:
 
 ```tsx
 import type { UsageTotals } from "@llm-usage-monitor/contracts";
-import { TOKEN_MIX, TOKEN_MIX_ORDER } from "../theme/palette.ts";
+import { CHART_INK, TOKEN_MIX } from "../theme/palette.ts";
 import { formatTokens } from "../model/format.ts";
+import { tokenMixSegments, type TokenMixKey } from "../model/token-mix.ts";
+
+const SEGMENTS: Record<TokenMixKey, { label: string; color: string }> = {
+  ...TOKEN_MIX,
+  unreported: { label: "Cache not reported", color: CHART_INK.track },
+};
 
 export function TokenMix({ totals }: { totals: UsageTotals }) {
-  const cached = totals.cachedInputTokens;
-  const values = {
-    fresh: Math.max(0, totals.inputTokens - cached),
-    cached,
-    output: totals.outputTokens,
-  };
-  const total = TOKEN_MIX_ORDER.reduce((sum, key) => sum + values[key], 0);
+  const segments = tokenMixSegments(totals);
+  const total = segments.reduce((sum, segment) => sum + segment.tokens, 0);
   if (!total) return <p className="empty-state">No tokens in this period</p>;
+
+  const drawn = segments.filter((segment) => segment.tokens > 0);
+  const listed = segments.filter((segment) => segment.key !== "unreported" || segment.tokens > 0);
+
   return (
     <>
       <div className="stack" role="img" aria-label="Token composition">
-        {TOKEN_MIX_ORDER.map((key) => (
+        {drawn.map((segment) => (
           <span
-            key={key}
-            style={{ width: `${(values[key] / total) * 100}%`, background: TOKEN_MIX[key].color }}
+            key={segment.key}
+            style={{
+              width: `${(segment.tokens / total) * 100}%`,
+              background: SEGMENTS[segment.key].color,
+            }}
           />
         ))}
       </div>
       <ul className="legend">
-        {TOKEN_MIX_ORDER.map((key) => (
-          <li key={key}>
-            <i className="dot" style={{ background: TOKEN_MIX[key].color }} />
-            <span>{TOKEN_MIX[key].label}</span>
-            <span className="legend-count">{formatTokens(values[key])}</span>
-            <span className="legend-share">{`${Math.round((values[key] / total) * 100)}%`}</span>
+        {listed.map((segment) => (
+          <li key={segment.key}>
+            <i className="dot" style={{ background: SEGMENTS[segment.key].color }} />
+            <span>{SEGMENTS[segment.key].label}</span>
+            <span className="legend-count">{formatTokens(segment.tokens)}</span>
+            <span className="legend-share">{`${segment.percent}%`}</span>
           </li>
         ))}
       </ul>
@@ -3382,6 +3422,17 @@ export function TokenMix({ totals }: { totals: UsageTotals }) {
   );
 }
 ```
+
+**`unreported` borrows the track colour, not a fourth series slot.** It is an absence, not a
+category: a data hue would put it in the same visual language as measured values, and the three
+series colours are validated as a categorical set that a fourth would change — which would also
+mean a new row in the `tokens.css`/`palette.ts` agreement table. `CHART_INK.track` is already
+twinned and already means "empty".
+
+**Zero-token segments are dropped from the bar but kept in the legend.** A zero-width flex child
+still draws its 2px gap, leaving a stray seam. The legend row is informative in a way the bar
+segment is not — "Cached 0" says caching was measured and found none. The `unreported` row is the
+exception, listed only when non-zero: otherwise it is noise disclosing nothing.
 
 - [ ] **Step 2: Add the styles**
 
@@ -3427,13 +3478,15 @@ Append to `apps/web/src/styles.css`:
 ```
 
 The 2px `gap` on `.stack` is the surface gap between fills. Do not replace it with a border.
+Insert these before the `@media` blocks, not at EOF — see Task 19 Step 2.
 
 - [ ] **Step 3: Typecheck and commit**
 
-Run: `vp run typecheck`
+Run: `vp run check`
 
 ```bash
-git add apps/web/src/components/token-mix.tsx apps/web/src/styles.css
+git add apps/web/src/components/token-mix.tsx apps/web/src/model/token-mix.ts \
+  apps/web/test/token-mix.test.ts apps/web/src/styles.css
 git commit -m "feat: replace token composition donut with a stacked bar"
 ```
 
