@@ -76,9 +76,9 @@ describe("Usage Ledger", () => {
 });
 
 describe("Ledger import idempotency", () => {
-  const sample = (id: string): UsageRecord => ({
+  const sample = (id: string, sourceHostId = "host:a"): UsageRecord => ({
     id,
-    sourceHostId: "host:a",
+    sourceHostId,
     timestamp: "2026-07-20T09:00:00.000Z",
     taskName: "portable-usage-host",
     provider: "openai",
@@ -97,7 +97,7 @@ describe("Ledger import idempotency", () => {
   });
 
   it("re-importing the same records does not duplicate them", () => {
-    const ledger = new UsageLedger(":memory:");
+    const ledger = create();
     ledger.upsertSourceHost(
       {
         id: "host:a",
@@ -112,8 +112,11 @@ describe("Ledger import idempotency", () => {
     ledger.commitProviderImport("codex-local", [sample("a"), sample("b")], { v: 1 });
     ledger.commitProviderImport("codex-local", [sample("a"), sample("b")], { v: 2 });
     assert.equal(ledger.records().length, 2);
+    assert.deepEqual(
+      ledger.records().find((record) => record.id === "a"),
+      sample("a"),
+    );
     assert.deepEqual(ledger.importState("codex-local"), { v: 2 });
-    ledger.close();
   });
 
   // CURRENT LIMITATION, not a requirement: commitProviderImport never removes
@@ -123,7 +126,7 @@ describe("Ledger import idempotency", () => {
   // when that happens, this test should be updated/removed, not treated as a
   // regression to "fix" back to the old behavior.
   it("records absent from a later import are retained, not removed (current limitation, no reconciliation yet)", () => {
-    const ledger = new UsageLedger(":memory:");
+    const ledger = create();
     ledger.upsertSourceHost(
       {
         id: "host:a",
@@ -138,6 +141,42 @@ describe("Ledger import idempotency", () => {
     ledger.commitProviderImport("codex-local", [sample("a"), sample("b")], {});
     ledger.commitProviderImport("codex-local", [sample("a")], {});
     assert.equal(ledger.records().length, 2);
-    ledger.close();
+  });
+
+  // CURRENT BEHAVIOR, not a requirement: commitProviderImport's upsert sets
+  // source_host_id=excluded.source_host_id on conflict, so re-importing the
+  // same record id under a different sourceHostId silently reassigns
+  // ownership rather than rejecting it or keeping the original host. This is
+  // arguably wrong — Slice 7's atomic source-ownership work is expected to
+  // deliberately change this — but it is what the ledger does today, so it
+  // is pinned here rather than left to be "discovered" mid-refactor.
+  it("re-importing a record id under a different sourceHostId silently reassigns ownership (current behavior, expected to change with atomic source ownership)", () => {
+    const ledger = create();
+    ledger.upsertSourceHost(
+      {
+        id: "host:a",
+        hostname: "workstation-a",
+        platform: "win32",
+        architecture: "x64",
+        firstSeenAt: "2026-01-01T00:00:00.000Z",
+        lastSeenAt: "2026-07-20T09:00:00.000Z",
+      },
+      [],
+    );
+    ledger.upsertSourceHost(
+      {
+        id: "host:b",
+        hostname: "workstation-b",
+        platform: "win32",
+        architecture: "x64",
+        firstSeenAt: "2026-01-01T00:00:00.000Z",
+        lastSeenAt: "2026-07-20T09:00:00.000Z",
+      },
+      [],
+    );
+    ledger.commitProviderImport("codex-local", [sample("a", "host:a")], {});
+    ledger.commitProviderImport("codex-local", [sample("a", "host:b")], {});
+    assert.equal(ledger.records().length, 1);
+    assert.equal(ledger.records().find((record) => record.id === "a")?.sourceHostId, "host:b");
   });
 });
