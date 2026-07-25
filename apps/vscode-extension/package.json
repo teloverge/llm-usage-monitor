@@ -1,0 +1,104 @@
+{
+  "name": "llm-usage-monitor",
+  "displayName": "Teloverge LLM Usage Monitor",
+  "version": "0.2.1",
+  "private": true,
+  "description": "Launch and control the portable local LLM Usage Monitor from VS Code.",
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "codex",
+    "cost",
+    "llm",
+    "tokens",
+    "usage"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/teloverge/llm-usage-monitor.git"
+  },
+  "publisher": "local",
+  "files": [
+    "dist/**",
+    "package.json",
+    "LICENSE"
+  ],
+  "type": "commonjs",
+  "main": "./dist/extension.cjs",
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.cjs && node scripts/stage-runtime.mjs",
+    "package": "vsce package --no-dependencies --out ../../llm-usage-monitor-0.2.1.vsix"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.95.0"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "llmUsageMonitor",
+          "title": "Teloverge Usage Monitor",
+          "icon": "dist/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "llmUsageMonitor": [
+        {
+          "id": "llmUsageMonitor.home",
+          "name": "Usage Monitor",
+          "icon": "dist/activity.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "llmUsageMonitor.home",
+        "contents": "Open the shared local usage dashboard.\n[Open Dashboard](command:llmUsageMonitor.openDashboard)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "llmUsageMonitor.openDashboard",
+        "title": "LLM Usage Monitor: Open Dashboard"
+      },
+      {
+        "command": "llmUsageMonitor.importCodexHistory",
+        "title": "LLM Usage Monitor: Refresh Codex History"
+      }
+    ],
+    "configuration": {
+      "title": "LLM Usage Monitor",
+      "properties": {
+        "llmUsageMonitor.codexHome": {
+          "type": "string",
+          "default": "",
+          "description": "Optional Codex home directory."
+        },
+        "llmUsageMonitor.nodePath": {
+          "type": "string",
+          "default": "node",
+          "description": "Node.js 24+ executable used to start the shared Usage Monitor Server."
+        },
+        "llmUsageMonitor.autoImport": {
+          "type": "boolean",
+          "default": true
+        },
+        "llmUsageMonitor.showStatusBar": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "icon": "dist/logo.png",
+  "engines": {
+    "vscode": "^1.95.0"
+  }
+}

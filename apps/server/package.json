@@ -1,0 +1,18 @@
+{
+  "name": "@llm-usage-monitor/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=dist/cli.mjs",
+    "dev": "bun src/cli.ts start"
+  },
+  "dependencies": {
+    "@llm-usage-monitor/contracts": "workspace:*",
+    "@llm-usage-monitor/dashboard-actions": "workspace:*",
+    "@llm-usage-monitor/usage-analysis": "workspace:*",
+    "@llm-usage-monitor/usage-ledger": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -2,174 +2,95 @@
   <img src="assets/Teloverge-lum-logo.png" width="144" alt="Teloverge LLM Usage Monitor logo">
 </p>
 
-<h1 align="center">Teloverge LLM Usage Monitor for VS Code</h1>
+<h1 align="center">Teloverge LLM Usage Monitor</h1>
 
-<p align="center"><strong>Local token intelligence, forged for focused development.</strong></p>
+<p align="center"><strong>Local token intelligence for Codex, the browser, and eventually a fleet of hosts.</strong></p>
 
-Teloverge LLM Usage Monitor is a local-first VS Code extension that turns Codex session metadata into a task-keyed token and cost ledger. It tracks every statistic exposed by Codex token-count events, estimates cost using a dated price catalog, keeps configurable history, and exports a standalone HTML report that can be printed to PDF.
+LLM Usage Monitor reads local Codex history, stores normalized usage in SQLite, and presents automatic cost-first charts in a React browser app. The VS Code extension is a thin client for the same shared local server and starts it when necessary.
 
-## What it does
+The dollar total is an **API-equivalent estimate**: what the selected token usage would cost at configured standard API rates. It is useful for comparing subscription usage with API pricing, but it is not a billing claim.
 
-- Imports existing and new Codex sessions from `CODEX_HOME` or `~/.codex`.
-- Reads only session IDs, task names, timestamps, provider/model/reasoning metadata, token/context counters, and rate-limit/credit status.
-- Never imports prompts, model responses, reasoning text, tool calls, file contents, or credentials.
-- Groups usage by task name, timeframe, provider, model, and reasoning level.
-- Records per-turn and final-call token counters, context-window utilization, rate-limit windows and resets, plan/credit status, individual limits, and limit-reached state when Codex provides them.
-- Makes every column in the usage ledger sortable by clicking its heading or focusing it and pressing Enter/Space.
-- Shows daily cost/token trends, cache efficiency, token composition, and top tasks.
-- Stores records in VS Code's local `globalState` and enforces a configurable retention window.
-- Exports the current filters as one self-contained `.html` file with a **Print / Save PDF** action.
-- Accepts canonical usage JSON for Anthropic, OpenRouter, or any future source.
-- Exposes a small extension API so another extension can register a live provider adapter.
+## Current capabilities
 
-## Important cost semantics
+- Imports metadata from local Codex history files; it does not call ChatGPT or OpenAI account servers.
+- Never imports prompts, responses, reasoning text, tool calls, file contents, or credentials.
+- Shows API-equivalent spend, tokens, cache efficiency, model/task rankings, token composition, and plan-limit snapshots without requiring chart configuration.
+- Filters Today, rolling Last 24 hours, 7/30/90 days, all retained history, task name, and Source Host.
+- Uses hostname as the preferred Source Host label and retains IP addresses as informative observations.
+- Stores canonical Usage Records, Source Hosts, effective-dated Host Group membership, prices, and import state in SQLite.
+- Runs the browser and VS Code surfaces against one loopback-only Usage Monitor Server.
 
-The dollar figure is an **API-equivalent estimate**, calculated from standard published per-token API rates. If Codex is authenticated through a ChatGPT plan, usage normally consumes included limits or credits and the estimate may not be an amount actually billed. Models without a configured price remain in token totals and display `—` for cost.
-
-The bundled OpenAI rates were checked against [official API pricing](https://platform.openai.com/docs/pricing) on July 10, 2026. Prices are deliberately editable because model catalogs and provider rates change.
-
-## Install and run
-
-Prerequisites for development/package creation: Node.js 20+ and VS Code 1.95+.
-
-1. Open this folder in VS Code.
-2. Press `F5` and choose **Run Extension** if prompted.
-3. In the Extension Development Host, run **LLM Usage Monitor: Open Dashboard** from the Command Palette.
-
-After installation, select the **LLM Usage Monitor** chart icon in the Activity Bar and choose **Open Dashboard**. The status-bar estimate and Command Palette command open the same interactive dashboard in your default system browser. The dashboard is served only on the local loopback interface while VS Code is running.
-
-To create an installable VSIX:
-
-```bash
-bun install
-bun run check
-bun test
-bun run package
-```
-
-The package command fingerprints the extension's runtime source files and automatically increments the patch version once when those sources change. Repackaging unchanged sources keeps the same version. Then install the generated `.vsix` with **Extensions: Install from VSIX...**.
-
-No production dependencies are used. Node is needed only for checks, tests, and VSIX packaging; VS Code supplies the extension-host runtime after installation.
-
-## Codex historical import
-
-Run **LLM Usage Monitor: Import Codex History**, or leave automatic import enabled. The adapter reads:
-
-- `~/.codex/session_index.jsonl` for task names;
-- `~/.codex/sessions/**/*.jsonl` for active session metadata;
-- `~/.codex/archived_sessions/*.jsonl` for archived session metadata.
-
-Codex token-count events are cumulative within a session. The importer takes the final cumulative counter for each turn and subtracts the preceding turn, producing one stable, deduplicated record per `session ID + turn ID`. Changed session files are re-read; unchanged files use an import cache.
-
-Set `llmUsageMonitor.codexHome` if the extension host's home directory differs from the Codex home. This is common when switching between local Windows, WSL, containers, and SSH hosts—the setting applies where the VS Code extension host runs.
-
-## Import format for other providers
-
-Use **LLM Usage Monitor: Import Usage JSON** with either an array of records or an object containing `records` and optionally `prices`:
-
-```json
-{
-  "records": [
-    {
-      "id": "openrouter:req_01J...",
-      "timestamp": "2026-07-10T18:30:00.000Z",
-      "taskName": "Refactor authentication middleware",
-      "provider": "openrouter",
-      "model": "provider/model-name",
-      "reasoningLevel": "high",
-      "inputTokens": 12000,
-      "cachedInputTokens": 8000,
-      "outputTokens": 1800,
-      "reasoningOutputTokens": 900,
-      "totalTokens": 13800,
-      "lastTokenUsage": {
-        "inputTokens": 12000,
-        "cachedInputTokens": 8000,
-        "outputTokens": 1800,
-        "reasoningOutputTokens": 900,
-        "totalTokens": 13800
-      },
-      "modelContextWindowTokens": 400000,
-      "rateLimits": {
-        "limitId": "provider-limit",
-        "planType": "example-plan",
-        "primary": { "usedPercent": 24, "windowMinutes": 300, "resetsAt": 1783738955 },
-        "secondary": null,
-        "credits": null,
-        "individualLimit": null,
-        "rateLimitReachedType": ""
-      },
-      "source": "openrouter-export"
-    }
-  ],
-  "prices": [
-    {
-      "provider": "openrouter",
-      "model": "provider/model-name",
-      "input": 1.5,
-      "cachedInput": 0.15,
-      "output": 8,
-      "effectiveDate": "2026-07-10",
-      "source": "https://openrouter.ai/models"
-    }
-  ]
-}
-```
-
-Rates are USD per one million tokens. `reasoningOutputTokens` is treated as a subset of `outputTokens`, matching Codex metadata, so it is not billed twice.
-
-## Extension API
-
-The activated extension returns:
-
-```js
-const api = await vscode.extensions
-  .getExtension('local.llm-usage-monitor')
-  .activate();
-
-const disposable = api.registerProvider({
-  id: 'anthropic-local',
-  label: 'Anthropic local export',
-  async collect(previousState, onProgress) {
-    return {
-      records: [], // canonical records shown above
-      state: previousState,
-      stats: { records: 0 }
-    };
-  }
-});
-
-await api.addUsageRecords(records);
-```
-
-Provider adapters own source-specific authentication and parsing. The monitor owns normalization, retention, pricing, presentation, and reporting.
-
-## Commands
-
-- **LLM Usage Monitor: Open Dashboard**
-- **LLM Usage Monitor: Import Codex History**
-- **LLM Usage Monitor: Import Usage JSON**
-- **LLM Usage Monitor: Export HTML Report**
-
-## Data and limitations
-
-- VS Code does not provide a public cross-extension API for intercepting token usage from the Codex extension. This project therefore consumes Codex's local session metadata format, which may change in future Codex releases.
-- Task names come from Codex's local session index. Sessions missing from that index receive a stable fallback name.
-- The bundled catalog uses standard API rates, not Batch, Flex, Priority, regional uplift, tool-call charges, subscription fees, or plan-specific credit rates.
-- `codex-auto-review` is retained as its reported model name but has no bundled dollar rate because it is an internal routing label rather than a published billable model ID.
-- HTML export is the portable source of truth. Use the report's print button to save a PDF with the browser/OS print engine.
-
-## Development
-
-The extension is plain CommonJS JavaScript with no runtime packages:
+## Workspace structure
 
 ```text
-src/extension.js       VS Code lifecycle, commands, provider registry
-src/dashboardServer.js loopback-only browser dashboard host
-src/codexImporter.js   metadata-only Codex adapter
-src/storage.js         normalization, deduplication, retention
-src/pricing.js         price catalog and cost calculation
-src/report.js          standalone HTML report generator
-media/                 dashboard webview
-test/                  Node built-in tests
+apps/
+  server/              authoritative local HTTP server and Codex importer
+  web/                 React and Vite browser dashboard
+  vscode-extension/    thin VS Code lifecycle and migration adapter
+  source-host-agent/   future secondary-host collector and startup plans
+packages/
+  contracts/           strict versioned transport and domain schemas
+  dashboard-actions/   one typed mutation interface
+  usage-analysis/      canonical filtering, costing, and chart projections
+  usage-ledger/        SQLite persistence and atomic imports
+docs/architecture/     runtime and fleet design
+CONTEXT.md             accepted domain vocabulary
 ```
+
+## Develop and run
+
+Prerequisites are native Node.js 24 or newer, Bun 1.3 or newer, and the Vite+ `vp` CLI. Bun remains the pinned package manager; use `vp` as the workflow entry point so dependency and task commands delegate consistently.
+
+```powershell
+vp install
+vp run check
+```
+
+To build the React app and start the standalone server:
+
+```powershell
+vp run build:web
+vp run build:server
+node apps/server/dist/cli.mjs start --open
+```
+
+The server writes its discovery record and SQLite ledger beneath the current user's application-data directory. Set `LLM_USAGE_MONITOR_HOME` to use an isolated data directory, and `LLM_USAGE_MONITOR_WEB_DIR` to serve a different built web directory.
+
+## VS Code extension
+
+Build the complete runtime with `vp run build`. The extension bundle stages the server and built web app under `apps/vscode-extension/dist/runtime`.
+
+When activated, the extension:
+
+1. checks the per-user server discovery record;
+2. reuses a healthy server if one exists;
+3. otherwise starts the bundled server without a visible console using the configured Node.js 24+ executable;
+4. creates a Windows system-tray menu for **Open Dashboard** and **Exit**;
+5. performs a one-time, non-destructive migration of legacy VS Code `globalState` records;
+6. opens the same browser dashboard used by the standalone server.
+
+Set `llmUsageMonitor.nodePath` if `node` on `PATH` is not Node.js 24 or newer. The server is independent of the VS Code extension once running. Choosing **Exit** from the tray stops it and prevents background restart; **Open Dashboard** or **Refresh Codex History** explicitly starts it again.
+
+## Source Host Agent
+
+`apps/source-host-agent` reserves the secondary-host boundary. Its eventual startup mechanisms are per-user and non-elevated:
+
+- Windows: Task Scheduler at user logon
+- macOS: LaunchAgent
+- Linux: systemd user service
+
+Remote enrollment and upload intentionally fail closed in this branch. Before those commands are enabled, the agent needs authenticated enrollment, encrypted transport, replay protection, revocation, and bounded retry behavior. It will send normalized usage metadata to the primary Usage Monitor Server, never raw Codex JSONL.
+
+See [portable-usage-host.md](docs/architecture/portable-usage-host.md) for the runtime and future fleet topology.
+
+## Privacy and security boundary
+
+The server binds only to `127.0.0.1`, uses a random unguessable route prefix, rejects cross-origin Dashboard Actions, limits request bodies, validates strict schemas, and uses parameterized SQLite statements. Local Codex files remain local. Future remote ingestion is not enabled merely because fleet-shaped storage exists.
+
+## Cost semantics
+
+Rates are USD per one million tokens and are editable in the dashboard. Cached input is priced separately when a rate exists. Reasoning output is a subset of output in Codex metadata and is not billed twice. Models without a configured price remain in token totals but contribute no estimated dollar amount.
+
+## AI-Development Summary
+
+Aside from a bit of manual tweaking, this application was generated by AI mostly using OpenAI GPT-5.6-Sol Medium and then redesigned with Claude Opus 5. Revision 0.2.0 was refactored using Matt Pocock's `codebase-design` skill. The sample images depict these AI-assisted tasks:

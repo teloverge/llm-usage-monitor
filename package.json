@@ -1,158 +1,45 @@
 {
-  "name": "llm-usage-monitor",
-  "displayName": "Teloverge LLM Usage Monitor",
-  "description": "A Teloverge application for tracking Codex and extensible LLM token usage, API-equivalent cost, and task history locally.",
-  "version": "0.1.9",
-  "packageManager": "bun@1.3.13",
-  "publisher": "local",
-  "icon": "assets/Teloverge-lum-logo.png",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://codeberg.org/PsiForge/llm-usage-monitor.git"
-  },
-  "homepage": "https://codeberg.org/PsiForge/llm-usage-monitor",
-  "engines": {
-    "vscode": "^1.95.0"
-  },
-  "categories": [
-    "Other",
-    "Visualization"
+  "name": "llm-usage-monitor-workspace",
+  "version": "0.2.1",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
   ],
-  "keywords": [
-    "codex",
-    "llm",
-    "tokens",
-    "usage",
-    "cost"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
-  "main": "./src/extension.js",
-  "files": [
-    "assets/**",
-    "src/**",
-    "media/**",
-    "README.md",
-    "CHANGELOG.md",
-    "LICENSE"
-  ],
-  "contributes": {
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "llmUsageMonitor",
-          "title": "Teloverge Usage Monitor",
-          "icon": "assets/activity.svg"
-        }
-      ]
-    },
-    "views": {
-      "llmUsageMonitor": [
-        {
-          "id": "llmUsageMonitor.home",
-          "name": "Usage Monitor",
-          "icon": "assets/activity.svg"
-        }
-      ]
-    },
-    "viewsWelcome": [
-      {
-        "view": "llmUsageMonitor.home",
-        "contents": "Open the full local usage dashboard.\n[Open Dashboard](command:llmUsageMonitor.openDashboard)\n\nRefresh usage from your Codex session metadata.\n[Import Codex History](command:llmUsageMonitor.importCodexHistory)"
-      }
-    ],
-    "commands": [
-      {
-        "command": "llmUsageMonitor.openDashboard",
-        "title": "LLM Usage Monitor: Open Dashboard",
-        "icon": "$(graph)"
-      },
-      {
-        "command": "llmUsageMonitor.importCodexHistory",
-        "title": "LLM Usage Monitor: Import Codex History",
-        "icon": "$(sync)"
-      },
-      {
-        "command": "llmUsageMonitor.importUsageFile",
-        "title": "LLM Usage Monitor: Import Usage JSON"
-      },
-      {
-        "command": "llmUsageMonitor.exportReport",
-        "title": "LLM Usage Monitor: Export HTML Report"
-      }
-    ],
-    "menus": {
-      "view/title": [
-        {
-          "command": "llmUsageMonitor.openDashboard",
-          "when": "view == llmUsageMonitor.home",
-          "group": "navigation@1"
-        },
-        {
-          "command": "llmUsageMonitor.importCodexHistory",
-          "when": "view == llmUsageMonitor.home",
-          "group": "navigation@2"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "llmUsageMonitor.openDashboard"
-        },
-        {
-          "command": "llmUsageMonitor.importCodexHistory"
-        },
-        {
-          "command": "llmUsageMonitor.importUsageFile"
-        },
-        {
-          "command": "llmUsageMonitor.exportReport"
-        }
-      ]
-    },
-    "configuration": {
-      "title": "LLM Usage Monitor",
-      "properties": {
-        "llmUsageMonitor.historyDurationDays": {
-          "type": "number",
-          "default": 90,
-          "minimum": 1,
-          "maximum": 3650,
-          "description": "Number of days of usage history to retain."
-        },
-        "llmUsageMonitor.codexHome": {
-          "type": "string",
-          "default": "",
-          "description": "Optional Codex home directory. Empty uses CODEX_HOME or ~/.codex."
-        },
-        "llmUsageMonitor.autoImport": {
-          "type": "boolean",
-          "default": true,
-          "description": "Import changed Codex session metadata automatically."
-        },
-        "llmUsageMonitor.autoImportIntervalMinutes": {
-          "type": "number",
-          "default": 5,
-          "minimum": 1,
-          "maximum": 1440,
-          "description": "How often to scan local Codex metadata when automatic import is enabled."
-        },
-        "llmUsageMonitor.showStatusBar": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show today's estimated usage cost in the status bar."
-        }
-      }
-    }
-  },
   "scripts": {
-    "test": "node --test test/*.test.js",
-    "check": "node --check src/extension.js && node --check src/browserLauncher.js && node --check src/dashboardServer.js && node --check src/codexImporter.js && node --check src/storage.js && node --check src/pricing.js && node --check src/report.js && node --check media/pivot.js && node --check media/timeframe.js && node --check media/main.js && node --check scripts/update-version.js",
-    "version:auto": "node scripts/update-version.js",
-    "package": "bun run version:auto && bunx --bun vsce package --no-dependencies --baseContentUrl https://codeberg.org/PsiForge/llm-usage-monitor/src/branch/main/ --baseImagesUrl https://codeberg.org/PsiForge/llm-usage-monitor/raw/branch/main/"
+    "build": "bun run build:packages && bun run build:web && bun run build:server && bun run build:agent && bun run build:extension",
+    "build:packages": "tsc --noEmit",
+    "build:web": "bun run --filter '@llm-usage-monitor/web' build",
+    "build:server": "bun run --filter '@llm-usage-monitor/server' build",
+    "build:agent": "bun run --filter '@llm-usage-monitor/source-host-agent' build",
+    "build:extension": "bun run --filter 'llm-usage-monitor' build",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test && bun run build",
+    "dev": "bun run --filter '@llm-usage-monitor/web' build && bun run --filter '@llm-usage-monitor/server' dev",
+    "package:extension": "bun run build && bun run --filter 'llm-usage-monitor' package",
+    "format": "oxfmt . --write",
+    "format:check": "oxfmt . --check",
+    "lint": "oxlint .",
+    "test": "node --experimental-strip-types --test apps/*/test/*.test.ts packages/*/test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^3.0.0",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@vscode/vsce": "^3.6.0"
-  }
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/vscode": "^1.95.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.0",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0"
+  },
+  "packageManager": "bun@1.3.14"
 }
