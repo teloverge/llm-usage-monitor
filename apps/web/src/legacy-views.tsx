@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -18,16 +18,12 @@ import type {
   ModelPrice,
   OverviewView,
   RankedUsage,
-  SourceHost,
-  UsageFilters,
   UsageHistoryRecord,
   UsageModeFlags,
 } from "@llm-usage-monitor/contracts";
-import { executeAction, getCatalog, getHistory, getOverview } from "./api.ts";
+import { executeAction } from "./api.ts";
 import { groupHistoryByTask, groupModelsByProvider, type HistorySession } from "./usage-groups.ts";
-import logoUrl from "../../../assets/Teloverge-lum-logo.svg?url";
 
-type View = "overview" | "history" | "advanced" | "pricing";
 const money = new Intl.NumberFormat(undefined, {
   style: "currency",
   currency: "USD",
@@ -37,160 +33,7 @@ const number = new Intl.NumberFormat();
 const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
 const colors = ["#16c79a", "#4d8dff", "#f4b942", "#ed6a8b"];
 
-export function App() {
-  const [view, setView] = useState<View>("overview");
-  const [filters, setFilters] = useState<UsageFilters>({ timeframe: "30" });
-  const [overview, setOverview] = useState<OverviewView | null>(null);
-  const [history, setHistory] = useState<UsageHistoryRecord[]>([]);
-  const [prices, setPrices] = useState<ModelPrice[]>([]);
-  const [sourceHosts, setSourceHosts] = useState<SourceHost[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const refresh = useCallback(async () => {
-    try {
-      setError("");
-      const [nextOverview, nextHistory, catalog] = await Promise.all([
-        getOverview(filters),
-        getHistory(),
-        getCatalog(),
-      ]);
-      setOverview(nextOverview);
-      setHistory(nextHistory);
-      setPrices(catalog.prices);
-      setSourceHosts(catalog.sourceHosts);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
-    }
-  }, [filters]);
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-  const refreshCodex = async () => {
-    setBusy(true);
-    try {
-      await executeAction({ version: 1, type: "import-codex" });
-      await refresh();
-    } finally {
-      setBusy(false);
-    }
-  };
-  const sourceHostCount = sourceHosts.length || 1;
-
-  return (
-    <>
-      <link rel="icon" href={logoUrl} />
-      <div className="app-shell">
-        <header className="topbar">
-          <div className="brand">
-            <img className="brand-mark" src={logoUrl} alt="Teloverge LLM Usage Monitor" />
-            <div>
-              <strong>LLM Usage Monitor</strong>
-              <small>Powered by Teloverge</small>
-            </div>
-          </div>
-          <nav aria-label="Dashboard sections">
-            {(["overview", "history", "advanced", "pricing"] as View[]).map((item) => (
-              <button
-                key={item}
-                className={view === item ? "active" : ""}
-                onClick={() => setView(item)}
-              >
-                {item === "advanced" ? "Advanced" : title(item)}
-              </button>
-            ))}
-          </nav>
-          <button className="primary" disabled={busy} onClick={refreshCodex}>
-            {busy ? "Refreshing…" : "Refresh Codex"}
-          </button>
-        </header>
-        <main>
-          <section className={`hero ${view === "pricing" ? "pricing-hero" : ""}`}>
-            <div>
-              <span className="eyebrow">LOCAL USAGE INTELLIGENCE</span>
-              <h1>{view === "overview" ? "Your API-equivalent spend, in focus." : title(view)}</h1>
-              <p>
-                {view === "pricing"
-                  ? "Edit the local rate catalog used for API-equivalent estimates."
-                  : `Canonical analysis across ${sourceHostCount} Source Host${sourceHostCount === 1 ? "" : "s"}.`}
-              </p>
-            </div>
-            {error && (
-              <p role="alert" className="error">
-                {error}
-              </p>
-            )}
-          </section>
-          {view !== "pricing" && (
-            <FilterBar filters={filters} sourceHosts={sourceHosts} onChange={setFilters} />
-          )}
-          {view === "overview" && overview && <Overview data={overview} />}
-          {view === "history" && <History records={history} />}
-          {view === "advanced" && overview && <Advanced data={overview} />}
-          {view === "pricing" && <Pricing prices={prices} onSaved={refresh} />}
-        </main>
-        <footer>
-          All usage analysis stays local · API-equivalent estimates are not billing claims.
-        </footer>
-      </div>
-    </>
-  );
-}
-
-function FilterBar({
-  filters,
-  sourceHosts,
-  onChange,
-}: {
-  filters: UsageFilters;
-  sourceHosts: SourceHost[];
-  onChange: (value: UsageFilters) => void;
-}) {
-  const change = (key: keyof UsageFilters, value: string) =>
-    onChange({ ...filters, [key]: value || undefined });
-  return (
-    <section className="filters" aria-label="Usage filters">
-      <label>
-        Timeframe
-        <select
-          value={filters.timeframe}
-          onChange={(event) => change("timeframe", event.target.value)}
-        >
-          <option value="today">Today</option>
-          <option value="last24">Last 24 hours</option>
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-          <option value="90">Last 90 days</option>
-          <option value="all">All retained</option>
-        </select>
-      </label>
-      <label>
-        Source Host
-        <select
-          value={filters.sourceHostId ?? ""}
-          onChange={(event) => change("sourceHostId", event.target.value)}
-        >
-          <option value="">Entire Fleet</option>
-          {sourceHosts.map((host, index) => (
-            <option key={host.id} value={host.id}>
-              {safeSourceHostLabel(host, index)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Task search
-        <input
-          type="search"
-          value={filters.query ?? ""}
-          placeholder="Filter task names"
-          onChange={(event) => change("query", event.target.value)}
-        />
-      </label>
-    </section>
-  );
-}
-
-function Overview({ data }: { data: OverviewView }) {
+export function Overview({ data }: { data: OverviewView }) {
   const tokenComposition = [
     { name: "Uncached input", value: data.totals.inputTokens - data.totals.cachedInputTokens },
     { name: "Cached input", value: data.totals.cachedInputTokens },
@@ -221,10 +64,6 @@ function Overview({ data }: { data: OverviewView }) {
           note={`${data.totals.models} models`}
         />
       </section>
-      <p className="notice">
-        <strong>API-equivalent estimate.</strong> This shows what the selected usage would cost at
-        configured standard API token rates; it may not be an amount billed under a subscription.
-      </p>
       <section className="chart-grid">
         <ChartCard
           title="API-equivalent estimate over time"
@@ -377,7 +216,7 @@ function LimitsCard({ data }: { data: OverviewView }) {
     </ChartCard>
   );
 }
-function History({ records }: { records: UsageHistoryRecord[] }) {
+export function History({ records }: { records: UsageHistoryRecord[] }) {
   const groups = useMemo(() => groupHistoryByTask(records), [records]);
   const sessionCount = groups.reduce((sum, group) => sum + group.sessions.length, 0);
   return (
@@ -456,7 +295,7 @@ function HistorySessionTable({ sessions }: { sessions: HistorySession[] }) {
     </div>
   );
 }
-function Advanced({ data }: { data: OverviewView }) {
+export function Advanced({ data }: { data: OverviewView }) {
   const [dimension, setDimension] = useState<"byModel" | "byTask" | "bySourceHost" | "byHostGroup">(
     "byModel",
   );
@@ -574,13 +413,13 @@ function formatOptionalEstimate(value: number | null) {
 function formatRecordCount(value: number) {
   return `${value} record${value === 1 ? "" : "s"}`;
 }
-function safeSourceHostLabel(host: SourceHost, index: number) {
-  const name = host.hostname?.trim();
-  return name && !/^(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}$/i.test(name) && !/^[0-9a-f]{12}$/i.test(name)
-    ? name
-    : `Source Host ${index + 1}`;
-}
-function Pricing({ prices, onSaved }: { prices: ModelPrice[]; onSaved: () => Promise<void> }) {
+export function Pricing({
+  prices,
+  onSaved,
+}: {
+  prices: ModelPrice[];
+  onSaved: () => Promise<void>;
+}) {
   const [draft, setDraft] = useState(prices);
   const [saving, setSaving] = useState(false);
   useEffect(() => setDraft(prices), [prices]);

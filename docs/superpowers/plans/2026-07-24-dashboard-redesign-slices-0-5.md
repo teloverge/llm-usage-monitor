@@ -693,17 +693,109 @@ Add as the first line of `apps/web/src/styles.css`:
 
 Then delete the existing `:root { ... }` block at the top of `styles.css` (lines 1–11 in the current file), because `tokens.css` now owns it.
 
-- [ ] **Step 3: Verify the build still runs**
+- [ ] **Step 2b: Migrate the renamed custom property**
+
+The old `:root` declared `--border`; `tokens.css` calls it `--line` and does not define `--border` at all. CSS custom properties fail **silently** — an unset value produces no error and the build still succeeds, so this would ship a visibly broken page with a green test suite.
+
+`styles.css` references `var(--border)` in **11** places. Rewrite every one to `var(--line)`:
+
+```bash
+# verify the count first, then confirm zero remain afterward
+grep -c "var(--border)" apps/web/src/styles.css
+```
+
+Then confirm no reference is left dangling — every property `styles.css` uses must exist in `tokens.css`:
+
+```bash
+grep -o "var(--[a-z-]*)" apps/web/src/styles.css | sort -u
+grep -o "^\s*--[a-z0-9-]*" apps/web/src/theme/tokens.css | tr -d ' ' | sort -u
+```
+
+The first list must be a subset of the second. After this task the referenced set is exactly `--accent`, `--line`, `--muted`, `--panel`, `--raised`.
+
+- [ ] **Step 3: Guard the tokens.css / palette.ts twin values**
+
+`tokens.css` and `palette.ts` now encode the same 13 colours, and nothing enforces agreement. `palette.ts` is self-protecting — it is thick with "re-run the validator" warnings. `tokens.css` reads like an ordinary tokens file that invites a casual "make panels a bit darker" edit, and that edit would silently desynchronise the chart marks from the chrome.
+
+This is not hypothetical by Slice 4: Task 21's quota meter colours its text label with `var(--status-warning)` and its fill bar with `STATUS.warning` from `palette.ts`, side by side in one widget. Drift renders as two different oranges.
+
+Create `apps/web/test/token-agreement.test.ts`:
+
+```ts
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
+import {
+  CHART_INK,
+  CHART_SURFACE,
+  PAGE_SURFACE,
+  SERIES,
+  STATUS,
+  UI_ACCENT,
+} from "../src/theme/palette.ts";
+
+const source = readFileSync(
+  fileURLToPath(new URL("../src/theme/tokens.css", import.meta.url)),
+  "utf8",
+);
+
+/**
+ * Only tokens that have a TypeScript twin. The other 16 (sizes, radii, gap, rail,
+ * and UI-only colours with no chart-side counterpart) are deliberately excluded —
+ * there is nothing to compare them against, and layout drift fails loudly on screen
+ * rather than quietly shifting a colour.
+ *
+ * Twinning a new token means adding a row here. That is the point: the table is the
+ * registry of what must stay in sync.
+ */
+const TWINNED: Array<[string, string]> = [
+  ["--page", PAGE_SURFACE],
+  ["--panel", CHART_SURFACE],
+  ["--accent", UI_ACCENT],
+  ["--series-1", SERIES.teal],
+  ["--series-2", SERIES.blue],
+  ["--series-3", SERIES.orange],
+  ["--status-good", STATUS.good],
+  ["--status-warning", STATUS.warning],
+  ["--status-critical", STATUS.critical],
+  ["--grid", CHART_INK.grid],
+  ["--axis", CHART_INK.axis],
+  ["--muted", CHART_INK.muted],
+  ["--track", CHART_INK.track],
+];
+
+function declaredValue(token: string): string {
+  // Anchored to line start so `--panel` cannot match inside `--pad-panel`.
+  const match = source.match(new RegExp(`^\\s*${token}:\\s*(#[0-9a-fA-F]{3,8})\\s*;`, "m"));
+  assert.ok(match, `${token} is not declared in tokens.css`);
+  return match[1]!.toLowerCase();
+}
+
+describe("Token and palette agreement", () => {
+  for (const [token, expected] of TWINNED) {
+    it(`${token} matches its palette.ts twin`, () => {
+      assert.equal(declaredValue(token), expected.toLowerCase());
+    });
+  }
+});
+```
+
+Verify the guard is load-bearing: temporarily change one value in `tokens.css`, confirm the suite fails naming that token, then restore.
+
+Rejected alternatives: generating `tokens.css` from `palette.ts` (16 of 29 tokens have no TS counterpart, so it adds a build step for a 13-value problem), and CSS-in-JS injection (trades a static stylesheet for runtime cost and contradicts `tokens.css` being the single home for CSS colour literals).
+
+- [ ] **Step 4: Verify the build still runs**
 
 Run: `vp run build:web`
 
 Expected: build succeeds, `apps/web/dist/assets/` is regenerated.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add apps/web/src/theme/tokens.css apps/web/src/styles.css
-git commit -m "feat: extract design tokens into a single stylesheet"
+git add apps/web/src/theme/tokens.css apps/web/src/styles.css apps/web/test/token-agreement.test.ts
+git commit -m "feat: extract design tokens and guard their agreement with the palette"
 ```
 
 ---
@@ -724,16 +816,29 @@ import type { ReactNode } from "react";
 
 export function Panel({
   label,
+  meta,
   children,
   className = "",
 }: {
   label?: string;
+  /**
+   * Optional trailing metric, e.g. "1.2M" in "Token mix · 1.2M". Separate from
+   * `label` so the value stays markable — callers cannot smuggle a pre-formatted
+   * number into the title and bypass `model/format.ts`, and the metric can be
+   * styled or hidden independently of the heading text.
+   */
+  meta?: string;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <section className={`panel ${className}`.trim()}>
-      {label && <p className="panel-label">{label}</p>}
+      {label && (
+        <h3 className="panel-label">
+          {label}
+          {meta && <span className="panel-meta"> · {meta}</span>}
+        </h3>
+      )}
       {children}
     </section>
   );
@@ -821,12 +926,82 @@ git commit -m "feat: add panel, zone, and filter chip primitives"
 - Modify: `apps/web/src/main.tsx`
 - Modify: `apps/web/src/styles.css`
 
+- [ ] **Step 0: Give the Source Host label rule a testable home**
+
+The topbar's Host chip must not re-derive this inline. `legacy-views.tsx` has `safeSourceHostLabel`, which exists because some machines report a MAC address as their hostname — showing that raw in a dropdown is both ugly and a mild information leak. `legacy-views.tsx` is deleted in Task 28, so the rule needs a permanent home, and unlike the components it is pure logic that CAN be tested.
+
+Create `apps/web/src/model/source-host.ts`:
+
+```ts
+import type { SourceHost } from "@llm-usage-monitor/contracts";
+
+const MAC_ADDRESS = /^(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}$/i;
+const BARE_HEX_ID = /^[0-9a-f]{12}$/i;
+
+/**
+ * Hostname is the preferred label, but some machines report a MAC address or a
+ * bare hex identifier as their hostname. Those are meaningless to a reader and
+ * mildly identifying, so they fall back to a positional label.
+ */
+export function sourceHostLabel(host: SourceHost, index: number): string {
+  const name = host.hostname?.trim();
+  return name && !MAC_ADDRESS.test(name) && !BARE_HEX_ID.test(name)
+    ? name
+    : `Source Host ${index + 1}`;
+}
+```
+
+Create `apps/web/test/source-host.test.ts`:
+
+```ts
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import type { SourceHost } from "@llm-usage-monitor/contracts";
+import { sourceHostLabel } from "../src/model/source-host.ts";
+
+const host = (hostname: string | null): SourceHost => ({
+  id: "host:a",
+  hostname,
+  platform: "win32",
+  architecture: "x64",
+  firstSeenAt: "2026-01-01T00:00:00.000Z",
+  lastSeenAt: "2026-07-20T09:00:00.000Z",
+});
+
+describe("Source Host labels", () => {
+  it("prefers a real hostname", () => {
+    assert.equal(sourceHostLabel(host("workstation"), 0), "workstation");
+  });
+
+  it("falls back when the hostname is a colon-separated MAC address", () => {
+    assert.equal(sourceHostLabel(host("a1:b2:c3:d4:e5:f6"), 0), "Source Host 1");
+  });
+
+  it("falls back when the hostname is a hyphen-separated MAC address", () => {
+    assert.equal(sourceHostLabel(host("A1-B2-C3-D4-E5-F6"), 1), "Source Host 2");
+  });
+
+  it("falls back when the hostname is a bare 12-digit hex identifier", () => {
+    assert.equal(sourceHostLabel(host("a1b2c3d4e5f6"), 2), "Source Host 3");
+  });
+
+  it("falls back when the hostname is missing or blank", () => {
+    assert.equal(sourceHostLabel(host(null), 0), "Source Host 1");
+    assert.equal(sourceHostLabel(host("   "), 0), "Source Host 1");
+  });
+
+  it("keeps a hostname that merely contains hex characters", () => {
+    assert.equal(sourceHostLabel(host("dead-beef-laptop"), 0), "dead-beef-laptop");
+  });
+});
+```
+
 - [ ] **Step 1: Write the shell**
 
 Create `apps/web/src/app.tsx`. This holds the shell only — the four view components are still imported from `App.tsx` until Slices 4 and 5 replace them.
 
 ```tsx
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ModelPrice,
   OverviewView,
@@ -835,6 +1010,7 @@ import type {
   UsageHistoryRecord,
 } from "@llm-usage-monitor/contracts";
 import { SearchChip, SelectChip } from "./components/chip.tsx";
+import { sourceHostLabel } from "./model/source-host.ts";
 import { executeAction, getCatalog, getHistory, getOverview } from "./api.ts";
 import logoUrl from "../../../assets/Teloverge-lum-logo.svg?url";
 
@@ -867,7 +1043,21 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  /**
+   * Guards against a stale response overwriting a newer one. The search chip fires
+   * on every keystroke, so typing a five-character query launches five overlapping
+   * refetches with no ordering guarantee — and switching Period from "all" (a full
+   * history scan) to "today" (cheap) is exactly the shape where the slow response
+   * lands last. Whichever finishes last would otherwise win, silently showing
+   * results for a query the user has already moved past.
+   *
+   * A useEffect cleanup flag is not sufficient on its own: refresh() is also called
+   * directly by the Refresh-sources button and after a price save, and those call
+   * sites must participate in the same sequence.
+   */
+  const requestId = useRef(0);
   const refresh = useCallback(async () => {
+    const id = ++requestId.current;
     setStale(true);
     try {
       setError("");
@@ -876,14 +1066,17 @@ export function App() {
         getHistory(),
         getCatalog(),
       ]);
+      if (id !== requestId.current) return;
       setOverview(nextOverview);
       setHistory(nextHistory);
       setPrices(catalog.prices);
       setSourceHosts(catalog.sourceHosts);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
+      if (id === requestId.current) {
+        setError(reason instanceof Error ? reason.message : String(reason));
+      }
     } finally {
-      setStale(false);
+      if (id === requestId.current) setStale(false);
     }
   }, [filters]);
 
@@ -896,6 +1089,11 @@ export function App() {
     try {
       await executeAction({ version: 1, type: "import-codex" });
       await refresh();
+    } catch (reason) {
+      // Without this the import failure is an unhandled rejection: refresh() never
+      // runs, no error state is ever set, and the button quietly returns to normal
+      // as though the import had succeeded.
+      setError(reason instanceof Error ? reason.message : String(reason));
     } finally {
       setBusy(false);
     }
@@ -912,16 +1110,26 @@ export function App() {
           <img className="brand-mark" src={logoUrl} alt="" />
           <strong className="brand-name">Usage Monitor</strong>
           <nav aria-label="Dashboard sections">
-            {VIEWS.map((item) => (
-              <button
-                key={item.value}
-                className={view === item.value ? "active" : ""}
-                aria-current={view === item.value ? "page" : undefined}
-                onClick={() => setView(item.value)}
-              >
-                {item.label}
-              </button>
-            ))}
+            {VIEWS.map((item) => {
+              // Settings renders over the top of whichever view is selected, so while
+              // it is open no nav item is current. Without this the nav would keep
+              // highlighting Overview — visually and to assistive tech — while
+              // Settings is on screen.
+              const current = !settingsOpen && view === item.value;
+              return (
+                <button
+                  key={item.value}
+                  className={current ? "active" : ""}
+                  aria-current={current ? "true" : undefined}
+                  onClick={() => {
+                    setSettingsOpen(false);
+                    setView(item.value);
+                  }}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
           </nav>
           <div className="chips">
             <SelectChip
@@ -937,7 +1145,9 @@ export function App() {
                 { value: "", label: "All" },
                 ...sourceHosts.map((host, index) => ({
                   value: host.id,
-                  label: host.hostname?.trim() || `Source Host ${index + 1}`,
+                  // Must go through sourceHostLabel, not host.hostname directly —
+                  // some machines report a MAC address as their hostname.
+                  label: sourceHostLabel(host, index),
                 })),
               ]}
               onChange={(value) => change("sourceHostId", value)}
@@ -961,6 +1171,21 @@ export function App() {
           </div>
         </header>
         <main className={stale ? "stale" : ""}>
+          {/*
+            The page's only <h1>. Task 8 deletes the hero that currently holds one,
+            and the brand in the topbar is deliberately NOT a heading — it is chrome,
+            identical across every view. Without this, the heading outline would start
+            at <h2> with no root: a headings-list scan (NVDA Insert+F7, JAWS Insert+F6)
+            would have nothing to land on, and every Panel/Zone call site in Tasks
+            19–28 would inherit the gap.
+
+            It names the CURRENT VIEW rather than the product, because switching views
+            re-renders without a navigation, so there is no page-load announcement.
+            This heading changing is what tells an assistive-tech user the view changed.
+          */}
+          <h1 className="sr-only">
+            Usage Monitor — {VIEWS.find((item) => item.value === view)?.label ?? "Overview"}
+          </h1>
           {error && (
             <p role="alert" className="error">
               {error}
@@ -3228,10 +3453,21 @@ Append to `apps/web/src/styles.css`:
   line-height: 1.02;
   color: var(--accent);
 }
+/*
+ * Worn by two different elements: the <h3> a Panel renders for its label, and the
+ * <p> the headline uses for descriptive lines. The font-weight and margin resets
+ * exist so both render identically — without them the <h3> inherits browser-default
+ * bold and vertical margins and the two drift apart visually.
+ */
 .panel-label {
   margin: 0;
   color: var(--muted);
   font-size: var(--size-meta);
+  font-weight: 400;
+}
+.panel-meta {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 .segmented {
   display: inline-flex;
@@ -3358,6 +3594,7 @@ Create `apps/web/src/views/overview.tsx`:
 
 ```tsx
 import type { OverviewView } from "@llm-usage-monitor/contracts";
+import { formatTokens } from "../model/format.ts";
 import { Headline } from "../components/headline.tsx";
 import { Panel, Zone } from "../components/panel.tsx";
 import { QuotaMeters } from "../components/quota-meters.tsx";
@@ -3397,7 +3634,7 @@ export function Overview({
       </div>
       <div className="cockpit-rail">
         <Zone>Context</Zone>
-        <Panel label={`Token mix · ${data.totals.totalTokens.toLocaleString()}`}>
+        <Panel label="Token mix" meta={formatTokens(data.totals.totalTokens)}>
           <TokenMix totals={data.totals} />
         </Panel>
         <Panel label="Plan limits">
@@ -4222,6 +4459,7 @@ Add to the `Unreleased` section of `CHANGELOG.md`:
 ### Fixed
 
 - Cache efficiency no longer counts records whose source does not report caching, which previously understated the ratio.
+- `vp run dev` starts the server again. It ran the server under Bun, which does not implement `node:sqlite`, so the documented development command failed on every machine.
 ```
 
 - [ ] **Step 4: Commit**
