@@ -39,16 +39,20 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
       timelineBucket(record.timestamp, input.filters.timeframe),
     ).map(({ key, items }) => ({ bucket: key, ...summarize(items) })),
     byModel: rankModels(priced),
-    byTask: rank(priced, ({ record }) => record.taskName),
+    byTask: rankTasks(priced),
     bySourceHost: rank(
       priced,
       ({ record }) => hostNames.get(record.sourceHostId) ?? "Unknown Source Host",
     ),
     byHostGroup: rank(priced, ({ record }) => groupFor(record)),
-    latestRateLimits:
-      [...selected]
-        .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))
-        .find((record) => record.rateLimits)?.rateLimits ?? null,
+    byHarness: rank(priced, ({ record }) => record.harnessId),
+    // PLACEHOLDER (Task 9/10 of the 2026-07-24 dashboard-redesign plan): `rateLimits`
+    // was removed from UsageRecord because it conflated per-record evidence with a
+    // point-in-time plan-quota snapshot. There is nowhere left to read a rate-limit
+    // snapshot from until Tasks 15-18 land normalized quota snapshots in the ledger
+    // and thread them through here. Hardcoding `null` is the honest placeholder —
+    // it does not fabricate a snapshot the ledger no longer has.
+    latestRateLimits: null,
   };
 }
 
@@ -71,6 +75,8 @@ export function filterUsageRecords(
       (!filters.reasoningLevel || record.reasoningLevel === filters.reasoningLevel) &&
       (!filters.sourceHostId || record.sourceHostId === filters.sourceHostId) &&
       (!filters.hostGroupId || groupId === filters.hostGroupId) &&
+      (!filters.harnessId || record.harnessId === filters.harnessId) &&
+      (!filters.usageSourceId || record.usageSourceId === filters.usageSourceId) &&
       (!query || record.taskName.toLocaleLowerCase().includes(query))
     );
   });
@@ -101,7 +107,15 @@ export function calculateCost(record: UsageRecord, prices: ModelPrice[]): number
       normalize(item.model) === normalize(record.model),
   );
   if (!price) return null;
-  const cached = Math.min(record.inputTokens, record.cachedInputTokens);
+  // A source that does not report caching is costed as if nothing were cached, so
+  // all input bills at the full rate. This is a deliberate assumption, not an
+  // oversight: it is the conservative direction (over- rather than under-stating
+  // an estimate the user reads as a spend figure), and the alternative — refusing
+  // to price the record at all — would hide real usage entirely. Ratios get the
+  // opposite treatment: cacheEfficiency EXCLUDES non-reporting records rather than
+  // counting them as zero, because a ratio can honestly say "not measured" where a
+  // total cannot.
+  const cached = Math.min(record.inputTokens, record.cachedInputTokens ?? 0);
   return (
     ((record.inputTokens - cached) * price.input +
       cached * price.cachedInput +
@@ -143,9 +157,14 @@ function summarize(items: PricedRecord[]): UsageTotals {
       pricedRecords: sum.pricedRecords + (estimatedCost === null ? 0 : 1),
       records: sum.records + 1,
       inputTokens: sum.inputTokens + record.inputTokens,
-      cachedInputTokens: sum.cachedInputTokens + record.cachedInputTokens,
+      cachedInputTokens: sum.cachedInputTokens + (record.cachedInputTokens ?? 0),
+      cacheReportingRecords:
+        sum.cacheReportingRecords + (record.cachedInputTokens === undefined ? 0 : 1),
+      cacheReportingInputTokens:
+        sum.cacheReportingInputTokens +
+        (record.cachedInputTokens === undefined ? 0 : record.inputTokens),
       outputTokens: sum.outputTokens + record.outputTokens,
-      reasoningOutputTokens: sum.reasoningOutputTokens + record.reasoningOutputTokens,
+      reasoningOutputTokens: sum.reasoningOutputTokens + (record.reasoningOutputTokens ?? 0),
       totalTokens: sum.totalTokens + record.totalTokens,
     }),
     {
@@ -154,6 +173,8 @@ function summarize(items: PricedRecord[]): UsageTotals {
       records: 0,
       inputTokens: 0,
       cachedInputTokens: 0,
+      cacheReportingRecords: 0,
+      cacheReportingInputTokens: 0,
       outputTokens: 0,
       reasoningOutputTokens: 0,
       totalTokens: 0,
@@ -163,7 +184,11 @@ function summarize(items: PricedRecord[]): UsageTotals {
     ...totals,
     tasks: new Set(items.map(({ record }) => record.taskName)).size,
     models: new Set(items.map(({ record }) => `${record.provider}/${record.model}`)).size,
-    cacheEfficiency: totals.inputTokens ? totals.cachedInputTokens / totals.inputTokens : 0,
+    // Denominator is the reporting records' input tokens, never the grand total —
+    // counting a silent source's input as uncached would understate the ratio.
+    cacheEfficiency: totals.cacheReportingInputTokens
+      ? totals.cachedInputTokens / totals.cacheReportingInputTokens
+      : 0,
   };
 }
 
@@ -189,7 +214,7 @@ function rankModels(items: PricedRecord[]): RankedUsage[] {
     .map(({ items: values }) => {
       const first = values[0]!.record;
       const total = summarize(values);
-      const children = rank(values, ({ record }) => record.reasoningLevel || "unknown")
+      const children = rank(values, ({ record }) => record.reasoningLevel ?? "not reported")
         .map((child) => ({ ...child, reasoningLevel: child.key }))
         .sort(
           (left, right) =>
@@ -205,6 +230,24 @@ function rankModels(items: PricedRecord[]): RankedUsage[] {
         records: total.records,
         modeFlags: summarizeModes(values),
         children,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.estimatedCost - left.estimatedCost || right.totalTokens - left.totalTokens,
+    );
+}
+function rankTasks(items: PricedRecord[]): RankedUsage[] {
+  return group(items, ({ record }) => record.taskName)
+    .map(({ key, items: values }) => {
+      const total = summarize(values);
+      return {
+        key,
+        estimatedCost: total.estimatedCost,
+        totalTokens: total.totalTokens,
+        records: total.records,
+        modeFlags: summarizeModes(values),
+        children: rank(values, ({ record }) => record.sessionId?.trim() || record.id),
       };
     })
     .sort(
@@ -228,7 +271,7 @@ function reasoningOrder(value: string): number {
     "low",
     "minimal",
     "none",
-    "unknown",
+    "not reported",
   ];
   const index = order.indexOf(value.trim().toLocaleLowerCase());
   return index === -1 ? order.length : index;
@@ -237,7 +280,13 @@ function group<T>(items: T[], key: (item: T) => string): Array<{ key: string; it
   const values = new Map<string, T[]>();
   for (const item of items) {
     const label = key(item);
-    values.set(label, [...(values.get(label) ?? []), item]);
+    // Push into the existing array rather than rebuilding it. Spreading on every
+    // item makes this O(n²): with 6,600 records collapsing into a single group —
+    // the ordinary case for bySourceHost on a one-machine ledger — the spread
+    // form measures ~40ms against ~0.2ms for push.
+    const bucket = values.get(label);
+    if (bucket) bucket.push(item);
+    else values.set(label, [item]);
   }
   return [...values]
     .map(([label, grouped]) => ({ key: label, items: grouped }))

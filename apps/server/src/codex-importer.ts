@@ -7,12 +7,22 @@ import type { RateLimits, UsageRecord } from "@llm-usage-monitor/contracts";
 const CACHE_SCHEMA_VERSION = 4;
 const MAX_FILES = 100_000;
 
+/**
+ * PLACEHOLDER (2026-07-24 dashboard-redesign plan): the per-turn shape parseSession
+ * produces internally, before rate limits are discarded for storage. Distinct from
+ * UsageRecord because UsageRecord no longer carries `rateLimits` — Task 9 removed it
+ * from the contract as a field that conflated per-record evidence with a
+ * point-in-time plan snapshot.
+ *
+ * TASK 17 replaces this discard with a real conversion into a normalized
+ * UsageQuotaSnapshot. Until then the parsed rate limits are deliberately dropped
+ * rather than stored somewhere they do not belong.
+ */
+type ParsedTurnRecord = Omit<UsageRecord, "sourceHostId"> & { rateLimits: RateLimits | null };
+
 type ImportState = {
   schemaVersion?: number;
-  files?: Record<
-    string,
-    { fingerprint: string; records: Array<Omit<UsageRecord, "sourceHostId">> }
-  >;
+  files?: Record<string, { fingerprint: string; records: ParsedTurnRecord[] }>;
   home?: string;
 };
 export class CodexSessionProvider {
@@ -43,7 +53,7 @@ export class CodexSessionProvider {
       }
       const fingerprint = `${stat.size}:${stat.mtimeMs}`;
       const prior = state.schemaVersion === CACHE_SCHEMA_VERSION ? state.files?.[file] : undefined;
-      let parsed: Array<Omit<UsageRecord, "sourceHostId">>;
+      let parsed: ParsedTurnRecord[];
       if (prior?.fingerprint === fingerprint)
         parsed = prior.records.map((record) => ({
           ...record,
@@ -54,7 +64,15 @@ export class CodexSessionProvider {
         parsedFiles += 1;
       }
       nextFiles[file] = { fingerprint, records: parsed };
-      records.push(...parsed.map((record) => ({ ...record, sourceHostId })));
+      // `rateLimits` is dropped here, not carried into the UsageRecord handed to the
+      // ledger — see the ParsedTurnRecord placeholder note above.
+      records.push(
+        ...parsed.map((record) => {
+          const { rateLimits, ...usageFields } = record;
+          void rateLimits;
+          return { ...usageFields, sourceHostId };
+        }),
+      );
     }
     return {
       records,
@@ -72,7 +90,7 @@ export class CodexSessionProvider {
 export async function parseSession(
   file: string,
   taskNames: Map<string, string>,
-): Promise<Array<Omit<UsageRecord, "sourceHostId">>> {
+): Promise<ParsedTurnRecord[]> {
   const lines = createInterface({
     input: createReadStream(file, { encoding: "utf8" }),
     crlfDelay: Infinity,
@@ -97,12 +115,12 @@ export async function parseSession(
       provider = normalizeProvider(payload.model_provider);
       sessionTimestamp = payload.timestamp || event.timestamp || sessionTimestamp;
     } else if (event.type === "turn_context") {
-      const reasoningLevel = String(payload.effort || "unknown");
+      const reasoningLevel = payload.effort ? String(payload.effort) : undefined;
       currentTurn = {
         turnId: String(payload.turn_id || `turn-${turns.length + 1}`),
         model: String(payload.model || "unknown"),
         reasoningLevel,
-        modeFlags: usageModeFlags(payload, reasoningLevel),
+        modeFlags: usageModeFlags(payload, reasoningLevel ?? ""),
         timestamp: event.timestamp || sessionTimestamp || new Date().toISOString(),
         total: null,
         last: null,
@@ -135,11 +153,16 @@ export async function parseSession(
     return [
       {
         id: `codex:${sessionId}:${turn.turnId}`,
+        // Hardcoded, not a placeholder: this importer only ever produces Codex-local
+        // records. Task 14 is expected to source these from a usage-source registry
+        // once other harnesses exist, but the values themselves are already correct.
+        usageSourceId: "codex-local",
+        harnessId: "codex",
         timestamp: new Date(turn.timestamp).toISOString(),
         taskName,
         provider,
         model: turn.model,
-        reasoningLevel: turn.reasoningLevel,
+        ...(turn.reasoningLevel ? { reasoningLevel: turn.reasoningLevel } : {}),
         modeFlags: turn.modeFlags,
         ...delta,
         lastTokenUsage: turn.last,
@@ -163,7 +186,7 @@ type Tokens = {
 type Turn = {
   turnId: string;
   model: string;
-  reasoningLevel: string;
+  reasoningLevel: string | undefined;
   modeFlags: { ultra: boolean; fast: boolean };
   timestamp: string;
   total: Tokens | null;

@@ -3,6 +3,7 @@ import { afterEach, describe, it } from "node:test";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { OverviewView } from "@llm-usage-monitor/contracts";
 import { startUsageMonitorServer } from "../src/server.ts";
 
 const cleanup: Array<() => Promise<void>> = [];
@@ -71,5 +72,57 @@ describe("Usage Monitor Server", () => {
     assert.equal(response.status, 202);
     await running.close();
     await assert.rejects(fetch(running.discovery.healthUrl));
+  });
+});
+
+describe("Harness filter transport", () => {
+  it("echoes a harness filter back in the overview response", async () => {
+    const root = await mkdtemp(join(tmpdir(), "usage-monitor-server-"));
+    const web = join(root, "web");
+    await mkdir(web);
+    await writeFile(join(web, "index.html"), "<!doctype html><title>test</title>");
+    const running = await startUsageMonitorServer({
+      dataDirectory: join(root, "data"),
+      webDirectory: web,
+    });
+    cleanup.push(async () => {
+      await running.close();
+      await rm(root, { recursive: true, force: true });
+    });
+    const response = await fetch(
+      new URL("api/overview?timeframe=all&harnessId=codex", running.discovery.dashboardUrl),
+    );
+    const view = (await response.json()) as OverviewView;
+    assert.equal(response.status, 200);
+    assert.equal(view.filters.harnessId, "codex");
+    assert.deepEqual(view.byHarness, []);
+  });
+
+  it("rejects an over-long harness filter", async () => {
+    const root = await mkdtemp(join(tmpdir(), "usage-monitor-server-"));
+    const web = join(root, "web");
+    await mkdir(web);
+    await writeFile(join(web, "index.html"), "<!doctype html><title>test</title>");
+    const running = await startUsageMonitorServer({
+      dataDirectory: join(root, "data"),
+      webDirectory: web,
+    });
+    cleanup.push(async () => {
+      await running.close();
+      await rm(root, { recursive: true, force: true });
+    });
+    const response = await fetch(
+      new URL(
+        `api/overview?timeframe=all&harnessId=${"x".repeat(300)}`,
+        running.discovery.dashboardUrl,
+      ),
+    );
+    // parseFilters calls filtersSchema.parse, which throws a ZodError on a
+    // string over the 200-char max. The route handler has no per-route try/catch
+    // for api/overview — it relies on the server-wide wrapper
+    // (`route(request, response).catch(() => sendJson(response, 500, ...))`) to
+    // turn that throw into a response. Verified by running this test: the actual
+    // status is 500, matching the plan.
+    assert.equal(response.status, 500);
   });
 });

@@ -16,6 +16,15 @@ const session = join(
 // through CodexSessionProvider.collect, by later tasks in this refactor.
 const taskNames = new Map([["11111111-2222-3333-4444-555555555555", "portable-usage-host"]]);
 
+// Separate fixture (Task 14): a turn_context payload with no `effort` field at all,
+// proving the importer stops fabricating "unknown" when the source didn't report one.
+const noEffortSession = join(
+  fixtures,
+  "sessions/2026/07",
+  "rollout-2026-07-21T09-00-00-66666666-7777-8888-9999-aaaaaaaaaaaa.jsonl",
+);
+const noEffortTaskNames = new Map<string, string>();
+
 describe("Codex parser characterization", () => {
   it("emits one record per turn with cumulative counters converted to deltas", async () => {
     const records = await parseSession(session, taskNames);
@@ -78,5 +87,12 @@ describe("Codex parser characterization", () => {
     assert.equal(records[0]?.rateLimits?.planType, "plus");
     assert.equal(records[0]?.rateLimits?.primary?.usedPercent, 41.5);
     assert.equal(records[1]?.rateLimits?.secondary?.usedPercent, 78.25);
+  });
+
+  it("omits reasoningLevel entirely when the source turn_context has no effort field", async () => {
+    const records = await parseSession(noEffortSession, noEffortTaskNames);
+    assert.equal(records.length, 1);
+    assert.equal("reasoningLevel" in records[0]!, false);
+    assert.equal(records[0]?.reasoningLevel, undefined);
   });
 });

@@ -18,6 +18,8 @@ describe("dashboard contracts", () => {
     const parsed = usageRecordSchema.parse({
       id: "record:1",
       sourceHostId: "host:1",
+      usageSourceId: "codex-local",
+      harnessId: "codex",
       timestamp: "2026-07-23T12:00:00.000Z",
       taskName: "Task",
       provider: "openai",
@@ -30,7 +32,6 @@ describe("dashboard contracts", () => {
       totalTokens: 2,
       lastTokenUsage: null,
       modelContextWindowTokens: 0,
-      rateLimits: null,
       source: "test",
     });
     assert.deepEqual(parsed.modeFlags, { ultra: false, fast: false });

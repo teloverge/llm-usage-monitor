@@ -1410,6 +1410,18 @@ git commit -m "refactor: remove marketing hero and full-width disclaimer banner"
 
 # Slice 2 — Canonical identities
 
+> **Tasks 9 and 10 must land together — do not commit between them.**
+>
+> `UsageLedger.records()` parses every stored row with the strict `usageRecordSchema`.
+> Task 9 makes `usageSourceId` and `harnessId` required and drops `rateLimits`, so the
+> instant it lands every pre-existing row fails to parse and the app cannot read its own
+> ledger. Task 10's decode-on-read is the repair. A commit containing only Task 9 is a
+> commit that cannot open an existing database.
+>
+> The unit tests do not catch this, because they construct records in the _new_ shape.
+> Only real stored data exposes it — which is exactly why Task 10 includes a test that
+> writes a pre-identity payload with raw SQL and reads it back through `records()`.
+
 ### Task 9: Add usage source and harness identities to the contract
 
 **Files:**
@@ -1823,7 +1835,9 @@ Expected: FAIL — `view.byHarness` is undefined.
 
 - [ ] **Step 3: Extend the contract**
 
-In `packages/contracts/src/index.ts`, add `harnessId?: string;` to the `RankedUsage` interface, add `harnessId?: string;` and `usageSourceId?: string;` to `UsageFilters`, and add `byHarness: RankedUsage[];` to `OverviewView`. Also add both keys to `filtersSchema`:
+In `packages/contracts/src/index.ts`, add `harnessId?: string;` and `usageSourceId?: string;` to `UsageFilters`, and add `byHarness: RankedUsage[];` to `OverviewView`. Also add both keys to `filtersSchema`:
+
+Do **not** add `harnessId` to `RankedUsage`. `rankModels` populates `provider`/`model`/`reasoningLevel` because those are structured sub-fields distinct from a model row's key — but a `byHarness` row's key already IS the harness id, so the field would only ever hold `row.key` again. Every consumer reads `row.key` for the label.
 
 ```ts
     harnessId: z.string().max(200).optional(),
@@ -3518,14 +3532,20 @@ import type { UsageTotals } from "@llm-usage-monitor/contracts";
 import { formatPercent, formatTokens } from "../model/format.ts";
 
 export function StatStrip({ totals }: { totals: UsageTotals }) {
+  // Coverage is disclosed in TOKENS, not records, because cacheEfficiency is
+  // token-weighted. A few large calls that do not report caching can dominate token
+  // volume while looking negligible as a record count, so "of 6,400 records" could
+  // imply the ratio covers far more usage than it does.
   const partialCacheCoverage =
-    totals.cacheReportingRecords > 0 && totals.cacheReportingRecords < totals.records;
+    totals.cacheReportingInputTokens > 0 && totals.cacheReportingInputTokens < totals.inputTokens;
   const stats = [
     { label: "Tokens", value: formatTokens(totals.totalTokens), note: "" },
     {
       label: "Cached input",
       value: totals.cacheReportingRecords ? formatPercent(totals.cacheEfficiency) : "Not reported",
-      note: partialCacheCoverage ? `of ${totals.cacheReportingRecords} reporting records` : "",
+      note: partialCacheCoverage
+        ? `of ${formatTokens(totals.cacheReportingInputTokens)} reporting tokens`
+        : "",
     },
     { label: "Tasks", value: String(totals.tasks), note: "" },
     { label: "Models", value: String(totals.models), note: "" },
@@ -3584,9 +3604,86 @@ git commit -m "feat: add stat strip with cache coverage disclosure"
 
 **Files:**
 
+- Create: `apps/web/src/model/harness.ts`
+- Create: `apps/web/test/harness.test.ts`
 - Create: `apps/web/src/views/overview.tsx`
 - Modify: `apps/web/src/app.tsx`
 - Modify: `apps/web/src/styles.css`
+
+- [ ] **Step 0: Give harness ids a display label**
+
+`byHarness` rows carry raw ids — `codex`, `claude-code`, and `unknown` for a source that is not registered (see `harnessForSource` in `packages/contracts/src/legacy.ts`). Rendering `row.key` directly puts bare lowercase tokens in a panel beside proper nouns, and shows `unknown` as though it were a harness someone installed.
+
+The spec's rule is that missing data renders as explicitly missing — "Not reported", capitalised and phrased — never a raw token. That rule governs presentation here too, not only semantics.
+
+Note the `HARNESS_LABELS` map in Step 1 is a different thing: it is keyed by `usageSourceId` and feeds the quota meters. This one is keyed by `harnessId`. Do not conflate them.
+
+Create `apps/web/src/model/harness.ts`:
+
+```ts
+const HARNESS_LABELS: Record<string, string> = {
+  codex: "Codex",
+  "claude-code": "Claude Code",
+};
+
+/**
+ * Display label for a harness id. An id we do not recognise — including the
+ * "unknown" sentinel a legacy or unregistered usage source decodes to — renders as
+ * "Unknown harness" rather than a bare token, so it reads as a state rather than as
+ * the name of something the user installed.
+ */
+export function harnessLabel(harnessId: string): string {
+  return HARNESS_LABELS[harnessId] ?? (harnessId === "unknown" ? "Unknown harness" : harnessId);
+}
+
+/** True when the id is not a harness we know how to name. Callers style these apart. */
+export function isUnknownHarness(harnessId: string): boolean {
+  return !(harnessId in HARNESS_LABELS);
+}
+```
+
+Create `apps/web/test/harness.test.ts`:
+
+```ts
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { harnessLabel, isUnknownHarness } from "../src/model/harness.ts";
+
+describe("Harness labels", () => {
+  it("names the harnesses it knows", () => {
+    assert.equal(harnessLabel("codex"), "Codex");
+    assert.equal(harnessLabel("claude-code"), "Claude Code");
+  });
+
+  it("renders the unknown sentinel as a state, not a name", () => {
+    assert.equal(harnessLabel("unknown"), "Unknown harness");
+  });
+
+  it("passes an unrecognised id through rather than inventing a name", () => {
+    assert.equal(harnessLabel("windsurf"), "windsurf");
+  });
+
+  it("flags anything it cannot name so callers can style it apart", () => {
+    assert.equal(isUnknownHarness("codex"), false);
+    assert.equal(isUnknownHarness("claude-code"), false);
+    assert.equal(isUnknownHarness("unknown"), true);
+    assert.equal(isUnknownHarness("windsurf"), true);
+  });
+});
+```
+
+Relabel the harness rows in the view rather than teaching `RankList` about harnesses:
+
+```tsx
+<Panel label="By harness">
+  <RankList
+    rows={data.byHarness.map((row) => ({ ...row, key: harnessLabel(row.key) }))}
+    onMore={() => onDrillDown("byHarness")}
+  />
+</Panel>
+```
+
+Task 27's Breakdown must do the same for its `Harness → Model` grouping.
 
 - [ ] **Step 1: Write the view**
 
