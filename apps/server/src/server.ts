@@ -92,6 +92,7 @@ export async function startUsageMonitorServer(options: {
           prices: ledger.prices(),
           sourceHosts: ledger.sourceHosts(),
           memberships: ledger.memberships(),
+          quotaSnapshots: ledger.quotaSnapshots(),
           filters,
         }),
       );
