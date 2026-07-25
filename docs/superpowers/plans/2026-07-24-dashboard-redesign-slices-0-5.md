@@ -2354,9 +2354,18 @@ git commit -m "feat: emit usage source and harness identities from the Codex imp
 
 ### Task 15: Quota snapshot contract
 
+> **Changing `OverviewView` breaks two consumers immediately.** `packages/usage-analysis/src/index.ts`
+> returns `latestRateLimits: null` and `LimitsCard` in `apps/web/src/legacy-views.tsx` reads
+> `data.latestRateLimits`. As originally written this task renamed the field and left both
+> dangling until Task 18, so Tasks 15, 16, and 17 would each commit a tree that does not
+> typecheck. Step 3 below therefore folds in the placeholder halves of Task 18's Steps 3 and 5.
+> Task 18 still does the real work — threading actual snapshots through `AnalysisInput`.
+
 **Files:**
 
 - Modify: `packages/contracts/src/index.ts`
+- Modify: `packages/usage-analysis/src/index.ts` (placeholder, completed in Task 18)
+- Modify: `apps/web/src/legacy-views.tsx` (placeholder, replaced in Task 24)
 - Test: `packages/contracts/test/contracts.test.ts` (append)
 
 - [ ] **Step 1: Write the failing test**
@@ -2395,6 +2404,32 @@ describe("Usage quota snapshots", () => {
     assert.equal(snapshot.windows[0]?.usedPercent, 41.5);
   });
 
+  // Snapshots round-trip through the ledger as JSON (Task 16), so a field the
+  // schema does not know about is silently dropped on the way in rather than
+  // surfacing as a bug at the source. Strictness turns that into a parse error.
+  it("rejects a snapshot carrying an unknown field", () => {
+    assert.throws(() =>
+      usageQuotaSnapshotSchema.parse({
+        usageSourceId: "codex-local",
+        sourceHostId: "host:a",
+        observedAt: "2026-07-23T10:00:00.000Z",
+        windows: [],
+        creditsRemaining: 12,
+      }),
+    );
+  });
+
+  it("rejects a window carrying an unknown field", () => {
+    assert.throws(() =>
+      usageQuotaSnapshotSchema.parse({
+        usageSourceId: "codex-local",
+        sourceHostId: "host:a",
+        observedAt: "2026-07-23T10:00:00.000Z",
+        windows: [{ id: "primary", label: "5-hour window", resets_at: 1785300000 }],
+      }),
+    );
+  });
+
   it("rejects a snapshot with no usage source", () => {
     assert.throws(() =>
       usageQuotaSnapshotSchema.parse({
@@ -2408,6 +2443,10 @@ describe("Usage quota snapshots", () => {
 ```
 
 Add `usageQuotaSnapshotSchema` to the existing import from `../src/index.ts` at the top of the file.
+
+The two unknown-field tests were added during execution. Without them `.strict()` on either
+schema is unguarded, and dropping it is silent: Zod's default is to strip unknown keys, not to
+reject, so a Codex-shaped `resets_at` passed straight through would vanish rather than fail.
 
 - [ ] **Step 2: Run the test to verify it fails**
 
@@ -2453,16 +2492,41 @@ Then in `OverviewView`, replace `latestRateLimits: RateLimits | null;` with:
   quotaSnapshots: UsageQuotaSnapshot[];
 ```
 
+`rateLimitsSchema` and the `RateLimits` type both stay exported — the Codex importer still parses
+that shape in Task 17 before converting it.
+
+- [ ] **Step 3b: Keep the two consumers compiling**
+
+Per the boxed note above. In `packages/usage-analysis/src/index.ts`, replace the
+`latestRateLimits: null` placeholder with `quotaSnapshots: []` and update the comment above it to
+point at Tasks 16–18 rather than 15–18. An empty list is the honest placeholder for the same
+reason `null` was: it reports that nothing observed a quota instead of fabricating one.
+
+In `apps/web/src/legacy-views.tsx`, rewrite `LimitsCard` to read `data.quotaSnapshots[0]` and map
+over its `windows` instead of the fixed Primary/Weekly pair. Two things change beyond the field
+name, and both are easy to get wrong:
+
+- `usedPercent` is now optional. Render `—` and a value-less (indeterminate) `<progress>` when it
+  is absent. A `?? 0` draws an empty bar that reads as "none used" — the exact
+  unavailable-is-not-zero mistake Slice 2 spent Task 12 removing.
+- `resetsAt` is an ISO instant, not Unix epoch seconds. The old code multiplied by 1000; doing
+  that to an ISO string yields `Invalid Date`.
+
+Task 24 replaces this card properly; this is only enough to keep the tree green.
+
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `node --experimental-strip-types --test packages/contracts/test/contracts.test.ts`
 
-Expected: PASS.
+Expected: PASS, 8 tests.
+
+Then run `vp run check` — Step 3b means this task must leave the whole gate green, not just the
+contracts suite.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/contracts
+git add packages/contracts packages/usage-analysis apps/web/src/legacy-views.tsx
 git commit -m "feat: add normalized usage quota snapshot contract"
 ```
 
@@ -2913,13 +2977,11 @@ Expected: FAIL — `view.quotaSnapshots` is undefined.
 
 - [ ] **Step 3: Thread snapshots through analysis**
 
-In `packages/usage-analysis/src/index.ts`, add `quotaSnapshots?: UsageQuotaSnapshot[];` to `AnalysisInput`, import the type, replace the `latestRateLimits` property in the returned object with:
+In `packages/usage-analysis/src/index.ts`, add `quotaSnapshots?: UsageQuotaSnapshot[];` to `AnalysisInput` and import the type. Task 15 already renamed the returned property to `quotaSnapshots` and hardcoded `[]`; replace that placeholder — and the comment block above it, which is now spent — with:
 
 ```ts
     quotaSnapshots: input.quotaSnapshots ?? [],
 ```
-
-and delete the now-unused sort-and-find expression that produced `latestRateLimits`.
 
 - [ ] **Step 4: Supply them from the server**
 
@@ -2929,7 +2991,7 @@ In `apps/server/src/server.ts`, add `quotaSnapshots: ledger.quotaSnapshots(),` t
 
 Run: `vp run test && vp run typecheck`
 
-Expected: PASS. The legacy `Overview` component still references `data.latestRateLimits`; update `LimitsCard` in `legacy-views.tsx` to read `data.quotaSnapshots[0]?.windows` so typecheck passes. Task 24 replaces it properly.
+Expected: PASS. `LimitsCard` in `legacy-views.tsx` was already migrated to `data.quotaSnapshots` in Task 15's Step 3b, so nothing further is needed there. Task 24 replaces it properly.
 
 - [ ] **Step 6: Commit**
 

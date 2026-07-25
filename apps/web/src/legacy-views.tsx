@@ -191,27 +191,36 @@ function RankChart({ title, rows }: { title: string; rows: RankedUsage[] }) {
   );
 }
 function LimitsCard({ data }: { data: OverviewView }) {
-  const limits = data.latestRateLimits;
+  // Only the first snapshot, because this legacy card has room for one source.
+  // Task 24 replaces it with a meter per source that renders all of them.
+  const snapshot = data.quotaSnapshots[0];
   return (
-    <ChartCard title="Plan limits" summary={limits?.planType || "No limit snapshot"}>
+    <ChartCard title="Plan limits" summary={snapshot?.plan || "No limit snapshot"}>
       <div className="limit-list">
-        {(
-          [
-            ["Primary", limits?.primary],
-            ["Weekly", limits?.secondary],
-          ] as const
-        ).map(([label, value]) => (
-          <div key={label}>
-            <span>{label}</span>
-            <strong>{value ? `${value.usedPercent.toFixed(1)}%` : "—"}</strong>
-            <progress max="100" value={value?.usedPercent ?? 0} />
-            <small>
-              {value?.resetsAt
-                ? `Resets ${new Date(value.resetsAt * 1000).toLocaleString()}`
-                : "No reset available"}
-            </small>
-          </div>
-        ))}
+        {snapshot?.windows.length ? (
+          snapshot.windows.map((window) => (
+            <div key={window.id}>
+              <span>{window.label}</span>
+              {/*
+                An omitted usedPercent means the source did not report this window,
+                which is not the same as reporting zero. The em dash and the
+                value-less (indeterminate) progress bar both say "unmeasured"; a
+                `?? 0` here would draw an empty bar that reads as "none used".
+              */}
+              <strong>
+                {window.usedPercent === undefined ? "—" : `${window.usedPercent.toFixed(1)}%`}
+              </strong>
+              <progress max="100" value={window.usedPercent} />
+              <small>
+                {window.resetsAt
+                  ? `Resets ${new Date(window.resetsAt).toLocaleString()}`
+                  : "No reset available"}
+              </small>
+            </div>
+          ))
+        ) : (
+          <p>No quota snapshot.</p>
+        )}
       </div>
     </ChartCard>
   );

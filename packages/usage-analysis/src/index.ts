@@ -46,13 +46,13 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
     ),
     byHostGroup: rank(priced, ({ record }) => groupFor(record)),
     byHarness: rank(priced, ({ record }) => record.harnessId),
-    // PLACEHOLDER (Task 9/10 of the 2026-07-24 dashboard-redesign plan): `rateLimits`
-    // was removed from UsageRecord because it conflated per-record evidence with a
-    // point-in-time plan-quota snapshot. There is nowhere left to read a rate-limit
-    // snapshot from until Tasks 15-18 land normalized quota snapshots in the ledger
-    // and thread them through here. Hardcoding `null` is the honest placeholder —
-    // it does not fabricate a snapshot the ledger no longer has.
-    latestRateLimits: null,
+    // PLACEHOLDER (Task 15 of the 2026-07-24 dashboard-redesign plan): the shape is
+    // now correct but nothing supplies it yet. Task 16 gives the ledger somewhere to
+    // store snapshots, Task 17 has the Codex importer produce them, and Task 18 adds
+    // `quotaSnapshots` to AnalysisInput and threads them through here. An empty list
+    // is the honest placeholder — it reports that nothing observed a quota, rather
+    // than fabricating one the ledger does not hold.
+    quotaSnapshots: [],
   };
 }
 
