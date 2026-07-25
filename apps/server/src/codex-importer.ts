@@ -2,27 +2,27 @@ import { createReadStream, promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { createInterface } from "node:readline";
-import type { RateLimits, UsageRecord } from "@llm-usage-monitor/contracts";
+import type { RateLimits, UsageQuotaSnapshot, UsageRecord } from "@llm-usage-monitor/contracts";
 
-const CACHE_SCHEMA_VERSION = 4;
+// Bumped 4 -> 5 for Task 17: entries cached under v4 have no `rateLimits`, so
+// every file must be re-parsed once to pick up its quota evidence.
+const CACHE_SCHEMA_VERSION = 5;
 const MAX_FILES = 100_000;
 
-/**
- * PLACEHOLDER (2026-07-24 dashboard-redesign plan): the per-turn shape parseSession
- * produces internally, before rate limits are discarded for storage. Distinct from
- * UsageRecord because UsageRecord no longer carries `rateLimits` — Task 9 removed it
- * from the contract as a field that conflated per-record evidence with a
- * point-in-time plan snapshot.
- *
- * TASK 17 replaces this discard with a real conversion into a normalized
- * UsageQuotaSnapshot. Until then the parsed rate limits are deliberately dropped
- * rather than stored somewhere they do not belong.
- */
-type ParsedTurnRecord = Omit<UsageRecord, "sourceHostId"> & { rateLimits: RateLimits | null };
+type ParsedRecord = Omit<UsageRecord, "sourceHostId">;
 
+/**
+ * Rate limits are cached per file alongside the records because the cached path
+ * below skips parsing entirely. Without them here, an unchanged session file
+ * would contribute its records but silently drop its quota evidence, and a run
+ * where nothing changed would report no quota at all.
+ */
 type ImportState = {
   schemaVersion?: number;
-  files?: Record<string, { fingerprint: string; records: ParsedTurnRecord[] }>;
+  files?: Record<
+    string,
+    { fingerprint: string; records: ParsedRecord[]; rateLimits?: RateLimits | null }
+  >;
   home?: string;
 };
 export class CodexSessionProvider {
@@ -44,6 +44,10 @@ export class CodexSessionProvider {
     const nextFiles: NonNullable<ImportState["files"]> = {};
     const records: UsageRecord[] = [];
     let parsedFiles = 0;
+    // The newest observation across every file wins: quota state is a moment in
+    // time, so the most recent turn's limits are the only ones still true.
+    let latestRateLimits: RateLimits | null = null;
+    let latestObservedAt = "";
     for (const file of files) {
       let stat;
       try {
@@ -53,29 +57,36 @@ export class CodexSessionProvider {
       }
       const fingerprint = `${stat.size}:${stat.mtimeMs}`;
       const prior = state.schemaVersion === CACHE_SCHEMA_VERSION ? state.files?.[file] : undefined;
-      let parsed: ParsedTurnRecord[];
-      if (prior?.fingerprint === fingerprint)
+      let parsed: ParsedRecord[];
+      let rateLimits: RateLimits | null;
+      if (prior?.fingerprint === fingerprint) {
         parsed = prior.records.map((record) => ({
           ...record,
           taskName: taskNames.get(record.sessionId ?? "") ?? record.taskName,
         }));
-      else {
-        parsed = await parseSession(file, taskNames);
+        rateLimits = prior.rateLimits ?? null;
+      } else {
+        const result = await parseSession(file, taskNames);
+        parsed = result.records;
+        rateLimits = result.rateLimits;
         parsedFiles += 1;
       }
-      nextFiles[file] = { fingerprint, records: parsed };
-      // `rateLimits` is dropped here, not carried into the UsageRecord handed to the
-      // ledger — see the ParsedTurnRecord placeholder note above.
-      records.push(
-        ...parsed.map((record) => {
-          const { rateLimits, ...usageFields } = record;
-          void rateLimits;
-          return { ...usageFields, sourceHostId };
-        }),
-      );
+      nextFiles[file] = { fingerprint, records: parsed, rateLimits };
+      records.push(...parsed.map((record) => ({ ...record, sourceHostId })));
+      const newest = parsed.at(-1)?.timestamp;
+      if (rateLimits && newest && newest > latestObservedAt) {
+        latestObservedAt = newest;
+        latestRateLimits = rateLimits;
+      }
     }
+    const snapshot = quotaSnapshotFromRateLimits(
+      latestRateLimits,
+      sourceHostId,
+      latestObservedAt || new Date().toISOString(),
+    );
     return {
       records,
+      quotaSnapshots: snapshot ? [snapshot] : [],
       state: {
         schemaVersion: CACHE_SCHEMA_VERSION,
         files: nextFiles,
@@ -90,7 +101,7 @@ export class CodexSessionProvider {
 export async function parseSession(
   file: string,
   taskNames: Map<string, string>,
-): Promise<ParsedTurnRecord[]> {
+): Promise<{ records: ParsedRecord[]; rateLimits: RateLimits | null }> {
   const lines = createInterface({
     input: createReadStream(file, { encoding: "utf8" }),
     crlfDelay: Infinity,
@@ -125,12 +136,10 @@ export async function parseSession(
         total: null,
         last: null,
         modelContextWindowTokens: 0,
-        rateLimits: latestRateLimits,
       };
       turns.push(currentTurn);
     } else if (payload.type === "token_count") {
       if (payload.rate_limits) latestRateLimits = rateLimitShape(payload.rate_limits);
-      if (currentTurn && latestRateLimits) currentTurn.rateLimits = latestRateLimits;
       if (currentTurn && payload.info?.total_token_usage) {
         currentTurn.total = tokenShape(payload.info.total_token_usage);
         currentTurn.last = payload.info.last_token_usage
@@ -145,7 +154,7 @@ export async function parseSession(
     taskNames.get(sessionId) ||
     `Codex session ${basename(dirname(file))} · ${sessionId.slice(0, 8)}`;
   let previous = tokenShape({});
-  return turns.flatMap((turn) => {
+  const records = turns.flatMap((turn) => {
     if (!turn.total) return [];
     const delta = subtractTokenShapes(turn.total, previous);
     previous = turn.total;
@@ -167,13 +176,16 @@ export async function parseSession(
         ...delta,
         lastTokenUsage: turn.last,
         modelContextWindowTokens: turn.modelContextWindowTokens,
-        rateLimits: turn.rateLimits,
         source: "codex-local",
         sessionId,
         turnId: turn.turnId,
       },
     ];
   });
+  // The file-level rate limits, not per-turn: quota is a property of the account
+  // at a moment in time, and `collect` converts the newest one it sees across
+  // every file into a single snapshot.
+  return { records, rateLimits: latestRateLimits };
 }
 
 type Tokens = {
@@ -192,7 +204,6 @@ type Turn = {
   total: Tokens | null;
   last: Tokens | null;
   modelContextWindowTokens: number;
-  rateLimits: RateLimits | null;
 };
 export function usageModeFlags(value: any, reasoningLevel: string) {
   const normalizedReasoning = reasoningLevel.trim().toLocaleLowerCase();
@@ -239,6 +250,70 @@ export function subtractTokenShapes(current: Tokens, previous: Tokens): Tokens {
   result.cachedInputTokens = Math.min(result.inputTokens, result.cachedInputTokens);
   return result;
 }
+/**
+ * Fallback labels, used only when the source does not report a window length.
+ * Codex's own window sizes are what the label is supposed to describe, so
+ * `windowLabel` prefers them and reaches for this map only when there is
+ * nothing to derive from.
+ */
+const WINDOW_LABELS: Record<string, string> = {
+  primary: "5-hour window",
+  secondary: "Weekly window",
+};
+
+/**
+ * Derived from `windowMinutes` rather than hardcoded per slot, because the slot
+ * name says nothing about duration: "primary" is 5 hours on the plans we have
+ * seen, but a plan whose primary window is 3 hours would still be labelled
+ * "5-hour window" and tell the reader the wrong reset horizon on the one widget
+ * whose entire job is answering "how long until this frees up?".
+ */
+function windowLabel(id: string, windowMinutes: number): string {
+  if (windowMinutes <= 0) return WINDOW_LABELS[id] ?? id;
+  if (windowMinutes % 10_080 === 0) {
+    const weeks = windowMinutes / 10_080;
+    return weeks === 1 ? "Weekly window" : `${weeks}-week window`;
+  }
+  if (windowMinutes % 1_440 === 0) {
+    const days = windowMinutes / 1_440;
+    return days === 1 ? "Daily window" : `${days}-day window`;
+  }
+  if (windowMinutes % 60 === 0) return `${windowMinutes / 60}-hour window`;
+  return `${windowMinutes}-minute window`;
+}
+
+/** Converts a Codex rate-limit payload into a normalized quota snapshot. */
+export function quotaSnapshotFromRateLimits(
+  limits: RateLimits | null,
+  sourceHostId: string,
+  observedAt: string,
+): UsageQuotaSnapshot | null {
+  if (!limits) return null;
+  const windows = (["primary", "secondary"] as const).flatMap((id) => {
+    const window = limits[id];
+    if (!window) return [];
+    return [
+      {
+        id,
+        label: windowLabel(id, window.windowMinutes),
+        usedPercent: window.usedPercent,
+        windowMinutes: window.windowMinutes,
+        ...(window.resetsAt ? { resetsAt: new Date(window.resetsAt * 1000).toISOString() } : {}),
+      },
+    ];
+  });
+  return {
+    usageSourceId: "codex-local",
+    sourceHostId,
+    ...(limits.planType ? { plan: limits.planType } : {}),
+    observedAt,
+    windows,
+    ...(limits.credits && !limits.credits.unlimited
+      ? { balance: { amount: limits.credits.balance, unit: "credits" } }
+      : {}),
+  };
+}
+
 function rateLimitShape(value: any): RateLimits {
   const window = (item: any) =>
     item && typeof item === "object"

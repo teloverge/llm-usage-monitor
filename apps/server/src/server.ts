@@ -47,6 +47,7 @@ export async function startUsageMonitorServer(options: {
         codexHome,
         ledger.importState(importer.id),
       );
+      ledger.replaceQuotaSnapshots(result.quotaSnapshots);
       return ledger.commitProviderImport(importer.id, result.records, result.state);
     },
     migrateLegacy: (id, records) => ledger.applyMigration(id, records),
