@@ -4,11 +4,13 @@ import type {
   ModelPrice,
   SourceHost,
   SourceHostObservation,
+  UsageQuotaSnapshot,
   UsageRecord,
 } from "@llm-usage-monitor/contracts";
 import {
   decodeUsageRecord,
   modelPriceSchema,
+  usageQuotaSnapshotSchema,
   usageRecordSchema,
 } from "@llm-usage-monitor/contracts";
 
@@ -53,8 +55,49 @@ export class UsageLedger {
         | bigint
         | undefined) ?? 0,
     );
-    this.database.exec("DELETE FROM usage_records; DELETE FROM provider_import_state;");
+    this.database.exec(
+      "DELETE FROM usage_records; DELETE FROM provider_import_state; DELETE FROM usage_quota_snapshots;",
+    );
     return count;
+  }
+
+  /**
+   * Keeps the NEWEST snapshot per (usage source, host), not the most recently
+   * written one. Quota state is a point-in-time observation, so an import that
+   * happens to see older evidence — a partial scan, a re-read of an archived
+   * session, two sources racing — must not overwrite a fresher reading. Without
+   * the WHERE clause this is last-write-wins, which passes any test that writes
+   * in ascending order and silently reverts the quota meter in production.
+   *
+   * The comparison is lexicographic on ISO-8601. `usageQuotaSnapshotSchema`
+   * pins `observedAt` to UTC (Zod's `.datetime()` rejects offsets), so that is
+   * chronological — with one bounded exception: mixed sub-second precision at
+   * the same second sorts "…00Z" after "…00.5Z". Sources emit uniform
+   * precision, and the worst case is picking the wrong one of two observations
+   * under a second apart, so this stays a string compare rather than a parse.
+   */
+  replaceQuotaSnapshots(snapshots: UsageQuotaSnapshot[]): void {
+    const validated = snapshots.map((snapshot) => usageQuotaSnapshotSchema.parse(snapshot));
+    this.transaction(() => {
+      const insert = this.database
+        .prepare(`INSERT INTO usage_quota_snapshots (usage_source_id, source_host_id, observed_at, payload) VALUES (?, ?, ?, ?)
+        ON CONFLICT(usage_source_id, source_host_id) DO UPDATE SET observed_at=excluded.observed_at, payload=excluded.payload
+        WHERE excluded.observed_at > usage_quota_snapshots.observed_at`);
+      for (const snapshot of validated)
+        insert.run(
+          snapshot.usageSourceId,
+          snapshot.sourceHostId,
+          snapshot.observedAt,
+          JSON.stringify(snapshot),
+        );
+    });
+  }
+
+  quotaSnapshots(): UsageQuotaSnapshot[] {
+    return this.database
+      .prepare("SELECT payload FROM usage_quota_snapshots ORDER BY usage_source_id")
+      .all()
+      .map((row) => usageQuotaSnapshotSchema.parse(JSON.parse(String(row.payload))));
   }
 
   upsertSourceHost(host: SourceHost, observations: SourceHostObservation[]): void {
@@ -239,6 +282,7 @@ export class UsageLedger {
       CREATE TABLE IF NOT EXISTS model_prices (provider TEXT NOT NULL, model TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(provider, model));
       CREATE TABLE IF NOT EXISTS provider_import_state (provider_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS applied_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS usage_quota_snapshots (usage_source_id TEXT NOT NULL, source_host_id TEXT NOT NULL, observed_at TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(usage_source_id, source_host_id));
     `);
   }
 

@@ -2543,6 +2543,10 @@ git commit -m "feat: add normalized usage quota snapshot contract"
 
 Append to `packages/usage-ledger/test/ledger.test.ts`:
 
+Use the file's existing `create()` helper rather than `new UsageLedger(":memory:")` plus a manual
+`close()` — the `afterEach` at the top of the file already closes every ledger `create()` hands
+out, and a test that fails before its `close()` line leaks a handle.
+
 ```ts
 describe("Quota snapshot storage", () => {
   const snapshot = (observedAt: string, usedPercent: number) => ({
@@ -2554,31 +2558,54 @@ describe("Quota snapshot storage", () => {
   });
 
   it("keeps only the latest snapshot per source and host", () => {
-    const ledger = new UsageLedger(":memory:");
+    const ledger = create();
     ledger.replaceQuotaSnapshots([snapshot("2026-07-20T09:00:00.000Z", 10)]);
     ledger.replaceQuotaSnapshots([snapshot("2026-07-20T10:00:00.000Z", 41.5)]);
     const stored = ledger.quotaSnapshots();
     assert.equal(stored.length, 1);
     assert.equal(stored[0]?.windows[0]?.usedPercent, 41.5);
-    ledger.close();
+  });
+
+  // Added during execution. The test above writes in ascending time order, so it
+  // passes under plain last-write-wins and proves nothing about recency despite
+  // its name. This is the one that makes "latest" mean latest.
+  it("does not let an older observation overwrite a newer one", () => {
+    const ledger = create();
+    ledger.replaceQuotaSnapshots([snapshot("2026-07-20T10:00:00.000Z", 41.5)]);
+    ledger.replaceQuotaSnapshots([snapshot("2026-07-20T09:00:00.000Z", 10)]);
+    const stored = ledger.quotaSnapshots();
+    assert.equal(stored.length, 1);
+    assert.equal(stored[0]?.observedAt, "2026-07-20T10:00:00.000Z");
+    assert.equal(stored[0]?.windows[0]?.usedPercent, 41.5);
   });
 
   it("keeps snapshots from different sources side by side", () => {
-    const ledger = new UsageLedger(":memory:");
+    const ledger = create();
     ledger.replaceQuotaSnapshots([
       snapshot("2026-07-20T09:00:00.000Z", 10),
       { ...snapshot("2026-07-20T09:00:00.000Z", 88), usageSourceId: "claude-code-local" },
     ]);
     assert.equal(ledger.quotaSnapshots().length, 2);
-    ledger.close();
+  });
+
+  // Added during execution. The key is (source, host) but the test above only
+  // covers the source half; without this, collapsing the host half goes unnoticed.
+  it("keeps snapshots for the same source on different hosts side by side", () => {
+    const ledger = create();
+    ledger.replaceQuotaSnapshots([
+      snapshot("2026-07-20T09:00:00.000Z", 10),
+      { ...snapshot("2026-07-20T09:00:00.000Z", 88), sourceHostId: "host:b" },
+    ]);
+    const stored = ledger.quotaSnapshots();
+    assert.equal(stored.length, 2);
+    assert.deepEqual(stored.map((entry) => entry.sourceHostId).sort(), ["host:a", "host:b"]);
   });
 
   it("clears snapshots along with records", () => {
-    const ledger = new UsageLedger(":memory:");
+    const ledger = create();
     ledger.replaceQuotaSnapshots([snapshot("2026-07-20T09:00:00.000Z", 10)]);
     ledger.clearRecords();
     assert.equal(ledger.quotaSnapshots().length, 0);
-    ledger.close();
   });
 });
 ```
@@ -2599,13 +2626,34 @@ In `packages/usage-ledger/src/index.ts`, add to the `migrate()` SQL block:
 
 Add these methods to the class:
 
+The `WHERE` clause on the `DO UPDATE` was added during execution. Without it the upsert is
+last-write-wins, not latest-wins: an import that sees older evidence overwrites a fresher reading
+and the quota meter silently reverts. Keep the comment — the lexicographic-ISO assumption it
+records is what makes the SQL comparison valid.
+
 ```ts
+  /**
+   * Keeps the NEWEST snapshot per (usage source, host), not the most recently
+   * written one. Quota state is a point-in-time observation, so an import that
+   * happens to see older evidence — a partial scan, a re-read of an archived
+   * session, two sources racing — must not overwrite a fresher reading. Without
+   * the WHERE clause this is last-write-wins, which passes any test that writes
+   * in ascending order and silently reverts the quota meter in production.
+   *
+   * The comparison is lexicographic on ISO-8601. `usageQuotaSnapshotSchema`
+   * pins `observedAt` to UTC (Zod's `.datetime()` rejects offsets), so that is
+   * chronological — with one bounded exception: mixed sub-second precision at
+   * the same second sorts "…00Z" after "…00.5Z". Sources emit uniform
+   * precision, and the worst case is picking the wrong one of two observations
+   * under a second apart, so this stays a string compare rather than a parse.
+   */
   replaceQuotaSnapshots(snapshots: UsageQuotaSnapshot[]): void {
     const validated = snapshots.map((snapshot) => usageQuotaSnapshotSchema.parse(snapshot));
     this.transaction(() => {
       const insert = this.database
         .prepare(`INSERT INTO usage_quota_snapshots (usage_source_id, source_host_id, observed_at, payload) VALUES (?, ?, ?, ?)
-        ON CONFLICT(usage_source_id, source_host_id) DO UPDATE SET observed_at=excluded.observed_at, payload=excluded.payload`);
+        ON CONFLICT(usage_source_id, source_host_id) DO UPDATE SET observed_at=excluded.observed_at, payload=excluded.payload
+        WHERE excluded.observed_at > usage_quota_snapshots.observed_at`);
       for (const snapshot of validated)
         insert.run(
           snapshot.usageSourceId,
@@ -2636,7 +2684,7 @@ this.database.exec(
 
 Run: `node --experimental-strip-types --test packages/usage-ledger/test/ledger.test.ts`
 
-Expected: PASS.
+Expected: PASS, 10 tests in the file (5 of them new).
 
 - [ ] **Step 5: Commit**
 

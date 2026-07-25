@@ -183,6 +183,66 @@ describe("Ledger import idempotency", () => {
   });
 });
 
+describe("Quota snapshot storage", () => {
+  const snapshot = (observedAt: string, usedPercent: number) => ({
+    usageSourceId: "codex-local",
+    sourceHostId: "host:a",
+    plan: "plus",
+    observedAt,
+    windows: [{ id: "primary", label: "5-hour window", usedPercent }],
+  });
+
+  it("keeps only the latest snapshot per source and host", () => {
+    const ledger = create();
+    ledger.replaceQuotaSnapshots([snapshot("2026-07-20T09:00:00.000Z", 10)]);
+    ledger.replaceQuotaSnapshots([snapshot("2026-07-20T10:00:00.000Z", 41.5)]);
+    const stored = ledger.quotaSnapshots();
+    assert.equal(stored.length, 1);
+    assert.equal(stored[0]?.windows[0]?.usedPercent, 41.5);
+  });
+
+  it("does not let an older observation overwrite a newer one", () => {
+    const ledger = create();
+    ledger.replaceQuotaSnapshots([snapshot("2026-07-20T10:00:00.000Z", 41.5)]);
+    ledger.replaceQuotaSnapshots([snapshot("2026-07-20T09:00:00.000Z", 10)]);
+    const stored = ledger.quotaSnapshots();
+    assert.equal(stored.length, 1);
+    assert.equal(stored[0]?.observedAt, "2026-07-20T10:00:00.000Z");
+    assert.equal(stored[0]?.windows[0]?.usedPercent, 41.5);
+  });
+
+  it("keeps snapshots from different sources side by side", () => {
+    const ledger = create();
+    ledger.replaceQuotaSnapshots([
+      snapshot("2026-07-20T09:00:00.000Z", 10),
+      { ...snapshot("2026-07-20T09:00:00.000Z", 88), usageSourceId: "claude-code-local" },
+    ]);
+    assert.equal(ledger.quotaSnapshots().length, 2);
+  });
+
+  // The source half of the key is covered above. This is the host half: one
+  // person running the same harness on a laptop and a workstation has two
+  // independent quota readings, and collapsing them would show whichever
+  // machine imported last as if it were the whole account.
+  it("keeps snapshots for the same source on different hosts side by side", () => {
+    const ledger = create();
+    ledger.replaceQuotaSnapshots([
+      snapshot("2026-07-20T09:00:00.000Z", 10),
+      { ...snapshot("2026-07-20T09:00:00.000Z", 88), sourceHostId: "host:b" },
+    ]);
+    const stored = ledger.quotaSnapshots();
+    assert.equal(stored.length, 2);
+    assert.deepEqual(stored.map((entry) => entry.sourceHostId).sort(), ["host:a", "host:b"]);
+  });
+
+  it("clears snapshots along with records", () => {
+    const ledger = create();
+    ledger.replaceQuotaSnapshots([snapshot("2026-07-20T09:00:00.000Z", 10)]);
+    ledger.clearRecords();
+    assert.equal(ledger.quotaSnapshots().length, 0);
+  });
+});
+
 describe("Ledger legacy migration", () => {
   it("reads a pre-identity record and upgrades it on the way out", () => {
     const ledger = create();
