@@ -530,6 +530,61 @@ footer {
   font-size: 11px;
 }
 
+.rank-list {
+  display: grid;
+  gap: 7px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.rank-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1.1fr 52px;
+  gap: 9px;
+  align-items: center;
+  font-size: var(--size-meta);
+}
+.rank-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rank-track {
+  height: 8px;
+  background: var(--track);
+  border-radius: 0 4px 4px 0;
+  overflow: hidden;
+}
+.rank-track i {
+  display: block;
+  height: 100%;
+  background: var(--series-1);
+  border-radius: 0 4px 4px 0;
+}
+.rank-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+.link {
+  margin-top: 8px;
+  padding: 0;
+  color: var(--muted);
+  font-size: var(--size-meta);
+}
+.link:hover {
+  color: var(--ink);
+}
+/* Truncation disclosed with no drill-down to offer: same voice as the button,
+   but not focusable and with no hover affordance, so it never reads as an
+   action that does nothing when clicked. */
+.link-static {
+  margin-bottom: 0;
+}
+.link-static:hover {
+  color: var(--muted);
+}
+
 @media (max-width: 900px) {
   .topbar {
     grid-template-columns: 1fr auto;
