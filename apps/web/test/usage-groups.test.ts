@@ -5,6 +5,8 @@ import { groupHistoryByTask, groupModelsByProvider } from "../src/usage-groups.t
 
 const historyRecord = (overrides: Partial<UsageHistoryRecord>): UsageHistoryRecord => ({
   id: "record:1",
+  usageSourceId: "codex-local",
+  harnessId: "codex",
   sessionId: "session:1",
   timestamp: "2026-07-23T12:00:00.000Z",
   taskName: "Review changes",
@@ -19,7 +21,6 @@ const historyRecord = (overrides: Partial<UsageHistoryRecord>): UsageHistoryReco
   totalTokens: 110,
   lastTokenUsage: null,
   modelContextWindowTokens: 1_000,
-  rateLimits: null,
   source: "test",
   sourceHostLabel: "Workstation",
   estimatedCost: 0.1,

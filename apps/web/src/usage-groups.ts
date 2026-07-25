@@ -36,7 +36,11 @@ export function groupHistoryByTask(records: UsageHistoryRecord[]): HistoryTaskGr
   const grouped = new Map<string, UsageHistoryRecord[]>();
   for (const record of records) {
     const key = normalizeTaskName(record.taskName);
-    grouped.set(key, [...(grouped.get(key) ?? []), record]);
+    // push, not spread — see the note in usage-analysis' group(): rebuilding the
+    // array per item makes this O(n²) once a bucket gets large.
+    const bucket = grouped.get(key);
+    if (bucket) bucket.push(record);
+    else grouped.set(key, [record]);
   }
   return [...grouped]
     .map(([key, taskRecords]) => {
@@ -60,7 +64,9 @@ export function groupModelsByProvider(rows: RankedUsage[]): ProviderModelGroup[]
   const providers = new Map<string, RankedUsage[]>();
   for (const row of rows) {
     const label = row.provider?.trim() || "Unknown provider";
-    providers.set(label, [...(providers.get(label) ?? []), row]);
+    const bucket = providers.get(label);
+    if (bucket) bucket.push(row);
+    else providers.set(label, [row]);
   }
   return [...providers]
     .map(([label, providerRows]) => ({
@@ -81,7 +87,9 @@ function groupSessions(records: UsageHistoryRecord[]): HistorySession[] {
   const sessions = new Map<string, UsageHistoryRecord[]>();
   for (const record of records) {
     const key = record.sessionId?.trim() || record.id;
-    sessions.set(key, [...(sessions.get(key) ?? []), record]);
+    const bucket = sessions.get(key);
+    if (bucket) bucket.push(record);
+    else sessions.set(key, [record]);
   }
   return [...sessions]
     .map(([key, sessionRecords]) => {
@@ -97,11 +105,13 @@ function groupSessions(records: UsageHistoryRecord[]): HistorySession[] {
         sourceHosts: unique(sorted.map((record) => record.sourceHostLabel)),
         models: unique(sorted.map((record) => `${record.model} · ${record.provider}`)),
         reasoningLevels: unique(sorted.map((record) => record.reasoningLevel || "unknown")),
-        plans: unique(
-          sorted.flatMap((record) =>
-            record.rateLimits?.planType ? [record.rateLimits.planType] : [],
-          ),
-        ),
+        // PLACEHOLDER (Task 9/10 of the 2026-07-24 dashboard-redesign plan): plan-type
+        // no longer lives on the record — `rateLimits` was removed from UsageRecord.
+        // Always empty until Tasks 15-18 land normalized quota snapshots and this
+        // reads from those instead. The "Plan" column renders "—" for every session
+        // in the meantime, which is honest (no data), not a regression in behavior
+        // this task is responsible for restoring.
+        plans: [] as string[],
         modeFlags: {
           ultra: sorted.some((record) => record.modeFlags.ultra),
           fast: sorted.some((record) => record.modeFlags.fast),

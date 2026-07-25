@@ -50,20 +50,21 @@ export const usageRecordSchema = z
   .object({
     id: z.string().min(1).max(500),
     sourceHostId: z.string().min(1).max(200),
+    usageSourceId: z.string().min(1).max(200),
+    harnessId: z.string().min(1).max(200),
     timestamp: z.string().datetime(),
     taskName: z.string().min(1).max(500),
     provider: z.string().min(1).max(100),
     model: z.string().min(1).max(200),
-    reasoningLevel: z.string().max(100),
+    reasoningLevel: z.string().min(1).max(100).optional(),
     modeFlags: usageModeFlagsSchema.default({ ultra: false, fast: false }),
     inputTokens: z.number().int().nonnegative(),
-    cachedInputTokens: z.number().int().nonnegative(),
+    cachedInputTokens: z.number().int().nonnegative().optional(),
     outputTokens: z.number().int().nonnegative(),
-    reasoningOutputTokens: z.number().int().nonnegative(),
+    reasoningOutputTokens: z.number().int().nonnegative().optional(),
     totalTokens: z.number().int().nonnegative(),
     lastTokenUsage: tokenShapeSchema.nullable(),
-    modelContextWindowTokens: z.number().int().nonnegative(),
-    rateLimits: rateLimitsSchema.nullable(),
+    modelContextWindowTokens: z.number().int().nonnegative().optional(),
     source: z.string().min(1).max(200),
     sessionId: z.string().max(200).optional(),
     turnId: z.string().max(200).optional(),
@@ -124,6 +125,8 @@ export interface UsageFilters {
   query?: string;
   sourceHostId?: string;
   hostGroupId?: string;
+  harnessId?: string;
+  usageSourceId?: string;
 }
 export interface UsageTotals {
   estimatedCost: number;
@@ -133,6 +136,15 @@ export interface UsageTotals {
   models: number;
   inputTokens: number;
   cachedInputTokens: number;
+  /**
+   * Coverage for `cacheEfficiency`, which is token-weighted rather than
+   * record-weighted. Both are exposed because they can diverge: a handful of large
+   * calls that do not report caching can dominate token volume while looking
+   * negligible as a record count. A consumer disclosing coverage should say what
+   * share of TOKENS the ratio speaks for, not just how many records reported.
+   */
+  cacheReportingRecords: number;
+  cacheReportingInputTokens: number;
   outputTokens: number;
   reasoningOutputTokens: number;
   totalTokens: number;
@@ -144,6 +156,9 @@ export interface RankedUsage {
   totalTokens: number;
   records: number;
   modeFlags: UsageModeFlags;
+  // provider/model/reasoningLevel exist because they are structured sub-fields
+  // distinct from a model row's key. There is deliberately no harnessId: for a
+  // byHarness row the harness id IS `key`, so the field would only duplicate it.
   provider?: string;
   model?: string;
   reasoningLevel?: string;
@@ -160,6 +175,7 @@ export interface OverviewView {
   byTask: RankedUsage[];
   bySourceHost: RankedUsage[];
   byHostGroup: RankedUsage[];
+  byHarness: RankedUsage[];
   latestRateLimits: RateLimits | null;
 }
 
@@ -174,6 +190,8 @@ export const filtersSchema = z
     query: z.string().max(500).optional(),
     sourceHostId: z.string().max(200).optional(),
     hostGroupId: z.string().max(200).optional(),
+    harnessId: z.string().max(200).optional(),
+    usageSourceId: z.string().max(200).optional(),
   })
   .strict();
 export const modelPriceSchema = z
@@ -234,3 +252,7 @@ export interface DashboardActionOutcome {
   code: string;
   affectedRecords?: number;
 }
+
+// `exports` in package.json points only at this file (no subpath exports), so
+// consumers that need the legacy decoder import it from the package root.
+export { decodeUsageRecord, harnessForSource } from "./legacy.ts";

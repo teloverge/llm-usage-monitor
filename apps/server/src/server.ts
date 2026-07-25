@@ -193,6 +193,8 @@ function parseFilters(params: URLSearchParams): UsageFilters {
       "query",
       "sourceHostId",
       "hostGroupId",
+      "harnessId",
+      "usageSourceId",
     ].flatMap((key) => {
       const item = params.get(key);
       return item === null || item === "" ? [] : [[key, item]];

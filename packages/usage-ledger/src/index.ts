@@ -6,7 +6,11 @@ import type {
   SourceHostObservation,
   UsageRecord,
 } from "@llm-usage-monitor/contracts";
-import { modelPriceSchema, usageRecordSchema } from "@llm-usage-monitor/contracts";
+import {
+  decodeUsageRecord,
+  modelPriceSchema,
+  usageRecordSchema,
+} from "@llm-usage-monitor/contracts";
 
 export class UsageLedger {
   readonly database: DatabaseSync;
@@ -39,7 +43,7 @@ export class UsageLedger {
     return this.database
       .prepare("SELECT payload FROM usage_records ORDER BY recorded_at DESC")
       .all()
-      .map((row) => usageRecordSchema.parse(JSON.parse(String(row.payload))));
+      .map((row) => decodeUsageRecord(JSON.parse(String(row.payload))));
   }
 
   clearRecords(): number {

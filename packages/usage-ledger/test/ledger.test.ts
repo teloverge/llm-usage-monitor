@@ -15,6 +15,8 @@ const create = () => {
 const usage = (id: string): UsageRecord => ({
   id,
   sourceHostId: "host:a",
+  usageSourceId: "test-local",
+  harnessId: "test",
   timestamp: "2026-07-23T12:00:00.000Z",
   taskName: "Task",
   provider: "openai",
@@ -28,7 +30,6 @@ const usage = (id: string): UsageRecord => ({
   totalTokens: 2,
   lastTokenUsage: null,
   modelContextWindowTokens: 0,
-  rateLimits: null,
   source: "test",
 });
 
@@ -79,6 +80,8 @@ describe("Ledger import idempotency", () => {
   const sample = (id: string, sourceHostId = "host:a"): UsageRecord => ({
     id,
     sourceHostId,
+    usageSourceId: "codex-local",
+    harnessId: "codex",
     timestamp: "2026-07-20T09:00:00.000Z",
     taskName: "portable-usage-host",
     provider: "openai",
@@ -92,7 +95,6 @@ describe("Ledger import idempotency", () => {
     totalTokens: 1200,
     lastTokenUsage: null,
     modelContextWindowTokens: 400_000,
-    rateLimits: null,
     source: "codex-local",
   });
 
@@ -178,5 +180,43 @@ describe("Ledger import idempotency", () => {
     ledger.commitProviderImport("codex-local", [sample("a", "host:b")], {});
     assert.equal(ledger.records().length, 1);
     assert.equal(ledger.records().find((record) => record.id === "a")?.sourceHostId, "host:b");
+  });
+});
+
+describe("Ledger legacy migration", () => {
+  it("reads a pre-identity record and upgrades it on the way out", () => {
+    const ledger = create();
+    ledger.database
+      .prepare(
+        "INSERT INTO usage_records (id, source_host_id, recorded_at, payload) VALUES (?, ?, ?, ?)",
+      )
+      .run(
+        "codex:old:turn-1",
+        "host:a",
+        "2026-07-20T09:00:00.000Z",
+        JSON.stringify({
+          id: "codex:old:turn-1",
+          sourceHostId: "host:a",
+          timestamp: "2026-07-20T09:00:00.000Z",
+          taskName: "legacy task",
+          provider: "openai",
+          model: "gpt-5-codex",
+          reasoningLevel: "unknown",
+          modeFlags: { ultra: false, fast: false },
+          inputTokens: 10,
+          cachedInputTokens: 4,
+          outputTokens: 2,
+          reasoningOutputTokens: 1,
+          totalTokens: 12,
+          lastTokenUsage: null,
+          modelContextWindowTokens: 400000,
+          rateLimits: { limitId: "x", limitName: "", planType: "plus" },
+          source: "codex-local",
+        }),
+      );
+    const [record] = ledger.records();
+    assert.equal(record?.usageSourceId, "codex-local");
+    assert.equal(record?.harnessId, "codex");
+    assert.equal(record?.reasoningLevel, undefined);
   });
 });
