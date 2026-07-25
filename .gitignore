@@ -1,5 +1,6 @@
 node_modules/
 *.vsix
+inst_vsix.ps1
 *.tgz
 .DS_Store
 .vscode-test/
@@ -7,3 +8,12 @@ node_modules/
 npm-debug.log*
 debug.log
 llm-usage-report.html
+
+.agents/skills/impeccable/
+.superpowers/
+
+dist/
+**/dist/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
