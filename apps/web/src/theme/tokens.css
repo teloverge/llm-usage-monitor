@@ -1,0 +1,52 @@
+/**
+ * 13 of the colours below are twinned with ./palette.ts and guarded by
+ * ../../test/token-agreement.test.ts. If you are changing --page, --panel, --accent,
+ * --series-1/2/3, --status-good/warning/critical, --grid, --axis, --muted, or --track,
+ * update the matching value in palette.ts too, or the test will fail and name the token.
+ */
+:root {
+  color-scheme: dark;
+
+  --page: #0d1411;
+  --panel: #151e1a;
+  --raised: #1b2621;
+  --field: #0f1713;
+  --line: #2b3831;
+  --grid: #22302a;
+  --axis: #384a41;
+  --track: #24342c;
+
+  --ink: #e6eee9;
+  --ink-strong: #ffffff;
+  --muted: #95a59c;
+
+  --accent: #16c79a;
+  --accent-ink: #07110d;
+
+  --series-1: #0fae83;
+  --series-2: #3987e5;
+  --series-3: #d95926;
+
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-critical: #d03b3b;
+
+  --size-hero: 44px;
+  --size-stat: 20px;
+  --size-body: 12.5px;
+  --size-meta: 11px;
+  --size-zone: 10px;
+
+  --pad-panel: 11px 12px;
+  --radius-panel: 9px;
+  --radius-control: 6px;
+  --gap: 11px;
+
+  --rail: 248px;
+
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-body);
+  color: var(--ink);
+  background: var(--page);
+  font-synthesis: none;
+}
