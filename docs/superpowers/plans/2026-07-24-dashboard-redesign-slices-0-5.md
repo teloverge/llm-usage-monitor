@@ -2701,7 +2701,16 @@ git commit -m "feat: persist normalized quota snapshots per source and host"
 
 - Modify: `apps/server/src/codex-importer.ts`
 - Modify: `apps/server/src/server.ts:41-57`
+- Create: `apps/server/test/fixtures/codex/archived_sessions/2026/06/rollout-2026-06-15T08-00-00-bbbbbbbb-cccc-dddd-eeee-ffffffffffff.jsonl`
+- Modify: `apps/server/test/fixtures/codex/README.md`
 - Test: `apps/server/test/codex-characterization.test.ts` (append)
+
+> **The plan's tests cover the pure converter, not what actually gets stored.**
+> `quotaSnapshotFromRateLimits` is exercised thoroughly below, but Step 4b's
+> cross-file newest-wins tracking and cached path — the code that decides which
+> snapshot reaches the ledger — had no coverage at all. Step 6b adds it. Both
+> defects it catches are silent in production: a fully-cached run reporting no
+> quota, and an archived session overwriting a live reading.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2765,13 +2774,37 @@ Expected: FAIL — `quotaSnapshotFromRateLimits` is not exported.
 
 Add to `apps/server/src/codex-importer.ts`:
 
+The label is derived from `windowMinutes` rather than hardcoded per slot (changed during
+execution). The slot name says nothing about duration: `primary` is 5 hours on the plans we have
+seen, but a plan whose primary window is 3 hours would still be labelled "5-hour window" — telling
+the reader the wrong reset horizon on the one widget whose whole job is answering "how long until
+this frees up?". The plan's two assertions below pass either way, because Codex's current windows
+happen to be exactly 300 and 10080 minutes, so Step 1 gained two tests that distinguish them.
+
 ```ts
 import type { RateLimits, UsageQuotaSnapshot, UsageRecord } from "@llm-usage-monitor/contracts";
 
+/**
+ * Fallback labels, used only when the source does not report a window length.
+ */
 const WINDOW_LABELS: Record<string, string> = {
   primary: "5-hour window",
   secondary: "Weekly window",
 };
+
+function windowLabel(id: string, windowMinutes: number): string {
+  if (windowMinutes <= 0) return WINDOW_LABELS[id] ?? id;
+  if (windowMinutes % 10_080 === 0) {
+    const weeks = windowMinutes / 10_080;
+    return weeks === 1 ? "Weekly window" : `${weeks}-week window`;
+  }
+  if (windowMinutes % 1_440 === 0) {
+    const days = windowMinutes / 1_440;
+    return days === 1 ? "Daily window" : `${days}-day window`;
+  }
+  if (windowMinutes % 60 === 0) return `${windowMinutes / 60}-hour window`;
+  return `${windowMinutes}-minute window`;
+}
 
 /** Converts a Codex rate-limit payload into a normalized quota snapshot. */
 export function quotaSnapshotFromRateLimits(
@@ -2786,7 +2819,7 @@ export function quotaSnapshotFromRateLimits(
     return [
       {
         id,
-        label: WINDOW_LABELS[id] ?? id,
+        label: windowLabel(id, window.windowMinutes),
         usedPercent: window.usedPercent,
         windowMinutes: window.windowMinutes,
         ...(window.resetsAt ? { resetsAt: new Date(window.resetsAt * 1000).toISOString() } : {}),
@@ -2938,6 +2971,16 @@ const { records } = await parseSession(session, taskNames);
 
 and leave the assertions on `records` unchanged.
 
+Also rewrite the `it("applies the latest rate-limit snapshot to subsequent turns")` block that
+Task 14 gutted. It asserted on a per-record `rateLimits` field that no longer exists; restore the
+coverage in the shape the contract now uses — one file-level observation rather than a copy
+stapled to every turn — plus a test that `"rateLimits" in records[0]` is now false and one that a
+session which never reported limits yields `rateLimits: null`.
+
+Two dead things fall out of this step and should go with it: the `rateLimits` field on the
+internal `Turn` type (nothing reads it once the record stops carrying it) and the
+`ParsedTurnRecord` alias, which becomes plain `ParsedRecord = Omit<UsageRecord, "sourceHostId">`.
+
 - [ ] **Step 5: Persist snapshots on import**
 
 In `apps/server/src/server.ts`, change the `importCodex` action body to:
@@ -2959,6 +3002,29 @@ In `apps/server/src/server.ts`, change the `importCodex` action body to:
 Run: `node --experimental-strip-types --test apps/server/test/codex-characterization.test.ts`
 
 Expected: PASS.
+
+- [ ] **Step 6b: Cover `collect`, not just the converter (added during execution)**
+
+The fixture directory doubles as a Codex home — `collect(sourceHostId, home, state)` reads it
+read-only — so Step 4b's logic is directly testable. Add a `describe("Codex import quota
+snapshots")` block asserting that `collect`:
+
+1. produces exactly one snapshot, carrying the `sourceHostId` it was handed;
+2. observes it at the newest turn that actually reported limits (the 07-21 fixture is newer and
+   reports none — a file without quota evidence must be skipped, not treated as evidence that the
+   quota is now unknown);
+3. still returns the snapshot when every file is served from cache;
+4. returns `[]` for a home with no sessions;
+5. does not let an older archived session overwrite a newer reading.
+
+(5) needs a new fixture, because nothing in the existing set can reach the recency guard. Create
+`archived_sessions/2026/06/rollout-2026-06-15T08-00-00-bbbbbbbb-cccc-dddd-eeee-ffffffffffff.jsonl`
+reporting `plan_type: "pro"` at 5.5% / 9.75%. It is the oldest session present and, because
+`collect` walks `sessions` and then `archived_sessions` with each sorted independently, also the
+last one iterated — so under plain last-one-wins its stale reading replaces the live `plus` one and
+the cockpit shows a months-old quota as current. Verify by deleting `newest > latestObservedAt`
+from the condition: three tests fail with `actual: 'pro', expected: 'plus'`. Note the hazard in the
+fixtures README.
 
 - [ ] **Step 7: Commit**
 

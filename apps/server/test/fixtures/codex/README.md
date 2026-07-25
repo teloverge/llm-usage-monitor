@@ -21,3 +21,11 @@ is a separate, single-turn fixture (Task 14) whose `turn_context` payload has no
 the main fixture above, so it doesn't disturb that fixture's existing
 turn-count/id/delta assertions. It proves an absent `effort` produces a record
 with no `reasoningLevel` key, not the literal string `"unknown"`.
+
+`archived_sessions/2026/06/rollout-2026-06-15T08-00-00-bbbbbbbb-...jsonl` (Task 17)
+is deliberately the OLDEST session here while also being the LAST one `collect`
+walks — `collect` concatenates `sessions` and then `archived_sessions`, sorting
+each independently, so archived files always iterate after live ones. It reports a
+different plan (`pro`, 5.5% / 9.75%) from the 07-20 fixture (`plus`, 41.5% / 78.25%)
+so that "newest observation wins" is distinguishable from "last one written wins".
+Without this file the quota recency guard in `collect` is unreachable by the suite.
