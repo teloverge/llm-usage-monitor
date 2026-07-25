@@ -46,6 +46,46 @@ export const rateLimitsSchema = z
   })
   .strict();
 
+/**
+ * One quota window as the dashboard understands it, normalized away from any
+ * one harness's shape. Every measurement is optional because a source that does
+ * not report a window's usage is unreported, not zero — see `quotaStatus` in
+ * `apps/web/src/model/format.ts`, which renders absence as "unreported" rather
+ * than a full or empty meter. `resetsAt` is an ISO instant, not the Unix epoch
+ * seconds Codex emits; conversion belongs in the importer.
+ */
+export const usageQuotaWindowSchema = z
+  .object({
+    id: z.string().min(1).max(200),
+    label: z.string().min(1).max(200),
+    usedPercent: z.number().nonnegative().optional(),
+    windowMinutes: z.number().int().nonnegative().optional(),
+    resetsAt: z.string().datetime().optional(),
+  })
+  .strict();
+/**
+ * A point-in-time observation of one usage source's plan quota on one host.
+ * Keyed by (usageSourceId, sourceHostId): quota is a property of the account as
+ * seen from a machine, so two harnesses on the same host hold separate
+ * snapshots, and the same harness on two hosts does too.
+ */
+export const usageQuotaSnapshotSchema = z
+  .object({
+    usageSourceId: z.string().min(1).max(200),
+    sourceHostId: z.string().min(1).max(200),
+    accountScope: z.string().max(200).optional(),
+    plan: z.string().max(200).optional(),
+    observedAt: z.string().datetime(),
+    windows: z.array(usageQuotaWindowSchema).max(50),
+    balance: z
+      .object({ amount: z.number(), unit: z.string().max(50) })
+      .strict()
+      .optional(),
+  })
+  .strict();
+export type UsageQuotaSnapshot = z.infer<typeof usageQuotaSnapshotSchema>;
+export type UsageQuotaWindow = z.infer<typeof usageQuotaWindowSchema>;
+
 export const usageRecordSchema = z
   .object({
     id: z.string().min(1).max(500),
@@ -176,7 +216,13 @@ export interface OverviewView {
   bySourceHost: RankedUsage[];
   byHostGroup: RankedUsage[];
   byHarness: RankedUsage[];
-  latestRateLimits: RateLimits | null;
+  /**
+   * Latest snapshot per (usage source, host) — a list, not a single value,
+   * because a host can run several harnesses and each has its own plan quota.
+   * Empty means nothing reported quota, which is distinct from a source
+   * reporting itself as unused.
+   */
+  quotaSnapshots: UsageQuotaSnapshot[];
 }
 
 export const filtersSchema = z
