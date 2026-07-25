@@ -46,18 +46,18 @@ Explicitly out of scope:
 
 ## Decisions
 
-| Decision | Choice | Why |
-|---|---|---|
-| Primary job | "Am I burning too much?" — cost-first | Stated by the user; drives hierarchy everywhere |
-| Reference point | The estimate itself, with drivers | User wants the API-equivalent price of work done, not a budget comparison |
-| Overview layout | Cost cockpit: main column + context rail | Keeps the main column a pure cost story; non-spend context does not interrupt it |
-| Tone | Remove marketing hero | It is a tool the user already owns, not a landing page |
-| Advanced view | Kept, renamed **Breakdown** | Overview stays a summary; Breakdown is the deep pivot |
-| Pricing | Moves into **Settings** | Rare setup task; frees the main nav for the three analysis views |
-| Filters | Topbar chips | Zero vertical cost, always reachable, one filter row scoping everything |
-| Harness in UI | A driver panel on Overview | Coarsest grouping, visible without changing filters |
-| Analysis addition | Task → session children | Lets Breakdown drill without a separate history query |
-| Sequencing | Visual foundation first, then interleave | The design system has zero coupling to harness work, so pulling it forward is free |
+| Decision          | Choice                                   | Why                                                                                |
+| ----------------- | ---------------------------------------- | ---------------------------------------------------------------------------------- |
+| Primary job       | "Am I burning too much?" — cost-first    | Stated by the user; drives hierarchy everywhere                                    |
+| Reference point   | The estimate itself, with drivers        | User wants the API-equivalent price of work done, not a budget comparison          |
+| Overview layout   | Cost cockpit: main column + context rail | Keeps the main column a pure cost story; non-spend context does not interrupt it   |
+| Tone              | Remove marketing hero                    | It is a tool the user already owns, not a landing page                             |
+| Advanced view     | Kept, renamed **Breakdown**              | Overview stays a summary; Breakdown is the deep pivot                              |
+| Pricing           | Moves into **Settings**                  | Rare setup task; frees the main nav for the three analysis views                   |
+| Filters           | Topbar chips                             | Zero vertical cost, always reachable, one filter row scoping everything            |
+| Harness in UI     | A driver panel on Overview               | Coarsest grouping, visible without changing filters                                |
+| Analysis addition | Task → session children                  | Lets Breakdown drill without a separate history query                              |
+| Sequencing        | Visual foundation first, then interleave | The design system has zero coupling to harness work, so pulling it forward is free |
 
 ## Visual system
 
@@ -75,21 +75,21 @@ normal-vision separation floor.
 
 **Roles:**
 
-| Role | Hex | Use |
-|---|---|---|
-| UI accent | `#16c79a` | Buttons, focus rings, brand mark, the hero figure. **Never a chart fill.** |
-| Series 1 — teal | `#0fae83` | Rank bars, single-series trend, cached tokens |
-| Series 2 — blue | `#3987e5` | Fresh input tokens |
-| Series 3 — orange | `#d95926` | Output tokens |
-| Status good | `#0ca30c` | Quota meter under threshold |
-| Status warning | `#fab219` | Quota meter approaching limit |
-| Status critical | `#d03b3b` | Quota meter at limit |
-| Surface / panel | `#0d1411` / `#151e1a` | Page plane, chart surface |
-| Gridline | `#22302a` | Solid hairline, horizontal only |
-| Baseline / axis | `#384a41` | Solid hairline |
-| Primary ink | `#e6eee9` | Body text |
-| Muted ink | `#95a59c` | Labels, axis ticks, meta |
-| Track | `#24342c` | Empty portion of bars and meters |
+| Role              | Hex                   | Use                                                                        |
+| ----------------- | --------------------- | -------------------------------------------------------------------------- |
+| UI accent         | `#16c79a`             | Buttons, focus rings, brand mark, the hero figure. **Never a chart fill.** |
+| Series 1 — teal   | `#0fae83`             | Rank bars, single-series trend, cached tokens                              |
+| Series 2 — blue   | `#3987e5`             | Fresh input tokens                                                         |
+| Series 3 — orange | `#d95926`             | Output tokens                                                              |
+| Status good       | `#0ca30c`             | Quota meter under threshold                                                |
+| Status warning    | `#fab219`             | Quota meter approaching limit                                              |
+| Status critical   | `#d03b3b`             | Quota meter at limit                                                       |
+| Surface / panel   | `#0d1411` / `#151e1a` | Page plane, chart surface                                                  |
+| Gridline          | `#22302a`             | Solid hairline, horizontal only                                            |
+| Baseline / axis   | `#384a41`             | Solid hairline                                                             |
+| Primary ink       | `#e6eee9`             | Body text                                                                  |
+| Muted ink         | `#95a59c`             | Labels, axis ticks, meta                                                   |
+| Track             | `#24342c`             | Empty portion of bars and meters                                           |
 
 Validator result for the categorical trio, all pairs, dark, surface `#151e1a`:
 lightness band PASS; chroma floor PASS; CVD separation PASS (worst
@@ -106,13 +106,13 @@ repaint the survivors.
 
 ### Type and density
 
-| Role | Size | Notes |
-|---|---|---|
-| Hero figure | 44px / 700 / -0.035em | Proportional figures, system sans, accent color |
-| Stat value | 20px / 650 | Proportional figures |
-| Zone label | 10px / 700 / 0.13em uppercase | Section grouping, muted, with a hairline rule |
-| Body and rows | 12.5px | |
-| Meta and axis | 11px | Muted |
+| Role          | Size                          | Notes                                           |
+| ------------- | ----------------------------- | ----------------------------------------------- |
+| Hero figure   | 44px / 700 / -0.035em         | Proportional figures, system sans, accent color |
+| Stat value    | 20px / 650                    | Proportional figures                            |
+| Zone label    | 10px / 700 / 0.13em uppercase | Section grouping, muted, with a hairline rule   |
+| Body and rows | 12.5px                        |                                                 |
+| Meta and axis | 11px                          | Muted                                           |
 
 The text floor rises from 9px to 11px. Card padding drops from 13px to 10–12px.
 The blanket `min-height: 280px` on every card is deleted — containers grow to
@@ -139,12 +139,12 @@ Typeface remains the system sans stack throughout. No display or serif face.
 
 Four current charts change form because each matches a known anti-pattern:
 
-| Current | Replacement | Reason |
-|---|---|---|
-| Token composition donut | Horizontal stacked bar + value rows | A donut cannot distinguish the two 24% slices; the bar keeps part-to-whole and adds direct labels |
-| Two time charts (cost, tokens) | One chart with a Cost/Tokens segmented toggle | One measure on one axis at a time. Dual-axis plots are forbidden outright |
-| `<progress>` plan limits | Meter with status fill, glyph, and label | A ratio against a ceiling is a meter, and its fill should carry state |
-| Rank bars with accent fill, three rows each | One hue, one row per item | Removes the value-ramp double-encoding and fits four items where three fit before |
+| Current                                     | Replacement                                   | Reason                                                                                            |
+| ------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Token composition donut                     | Horizontal stacked bar + value rows           | A donut cannot distinguish the two 24% slices; the bar keeps part-to-whole and adds direct labels |
+| Two time charts (cost, tokens)              | One chart with a Cost/Tokens segmented toggle | One measure on one axis at a time. Dual-axis plots are forbidden outright                         |
+| `<progress>` plan limits                    | Meter with status fill, glyph, and label      | A ratio against a ceiling is a meter, and its fill should carry state                             |
+| Rank bars with accent fill, three rows each | One hue, one row per item                     | Removes the value-ramp double-encoding and fits four items where three fit before                 |
 
 Every chart has a table-view twin reachable from Breakdown. Tooltips enhance and
 never gate: every value is reachable via direct labels or the table view, and
@@ -243,6 +243,7 @@ Four panels behind the gear:
   that is detected or configured. An `unavailable` source renders at reduced
   opacity with a disabled Refresh and no verification badge; a `failed` source
   renders its bounded diagnostic message and keeps Refresh enabled.
+
 - **Rates** — the existing price table, restyled. Sticky toolbar with the save
   action; dirty state drives the button.
 - **Hosts & groups** — Source Host labels and effective-dated Host Group
@@ -393,50 +394,50 @@ lands before the cockpit consumes it.
 **Slice 0 — Freeze current behavior.** Sanitized Codex fixtures for discovery,
 cumulative-token deltas, stable IDs, task-name lookup, quota extraction, and
 unchanged-file checkpoints. A ledger test proving import idempotency.
-*Accepts:* current typecheck and tests stay green; Codex behavior is refactorable
+_Accepts:_ current typecheck and tests stay green; Codex behavior is refactorable
 without tests reaching into parser internals; fixtures contain no prompts,
 responses, paths, usernames, or credentials.
 
 **Slice 1 — Visual foundation.** Design tokens, validated palette, app shell,
 topbar with filter chips, Settings shell with Rates moved in, density pass,
 removal of the hero and notice banner. Built against the current data model.
-*Accepts:* every raw color literal lives in `tokens.css` or `palette.ts`; the
+_Accepts:_ every raw color literal lives in `tokens.css` or `palette.ts`; the
 palette validator runs in `vp run check` and passes; no contract file changes.
 
 **Slice 2 — Canonical identities.** `usageSourceId` and `harnessId` in the
 contract; optional metrics; compatibility decoder; ledger migration; harness rank
 dimension and task→session children in analysis; `CONTEXT.md` vocabulary update.
-*Accepts:* existing Codex ledgers open without data loss; analysis can filter
+_Accepts:_ existing Codex ledgers open without data loss; analysis can filter
 `harnessId` and `provider` independently; missing optional metrics render as
 unavailable, not zero; pricing still keys only on provider and model.
 
 **Slice 3 — Quota snapshots.** Contract, persistence, analysis selection; the
 current Codex importer emits snapshots.
-*Accepts:* records no longer carry `rateLimits`; a source with no quota
+_Accepts:_ records no longer carry `rateLimits`; a source with no quota
 capability yields no snapshot rather than an empty one; quota data does not enter
 cost calculation.
 
 **Slice 4 — Overview cockpit.** Headline, trend with measure toggle, stat strip,
 three driver panels, context rail.
-*Accepts:* full picture fits above the fold at 1440×900; no dual-axis plot
+_Accepts:_ full picture fits above the fold at 1440×900; no dual-axis plot
 exists; refetch holds the previous render; every chart's container includes its
 axis band.
 
 **Slice 5 — Breakdown and History.** Chip group-by, three-level nesting, table
 view, harness column in History.
-*Accepts:* each level totals to its parent; child bars scale to their parent;
+_Accepts:_ each level totals to its parent; child bars scale to their parent;
 table view presents every value without color encoding.
 
 **Slice 6 — The usage-sources seam.** `packages/usage-sources` with contracts,
 registry, a fake adapter, and the Codex adapter; registry injected into the
 server; `refresh-sources` action; Settings → Sources.
-*Accepts:* the fake and Codex adapters pass the same tests through
+_Accepts:_ the fake and Codex adapters pass the same tests through
 `refreshSources`; no Codex-specific branching outside compatibility aliases and
 adapter registration; one source's failure does not hide another's success.
 
 **Slice 7 — Source ownership and reconciliation.** Ledger ownership columns,
 atomic snapshot and delta reconciliation, Codex checkpoint migration.
-*Accepts:* deleting a fixture session removes its records on the next
+_Accepts:_ deleting a fixture session removes its records on the next
 authoritative scan; rewriting a fixture changes records without duplicates; a
 parser failure leaves records and checkpoint unchanged; two sources may share a
 native session ID without collision; `clear-records` clears records, ownership,
@@ -445,21 +446,21 @@ snapshots, and checkpoints consistently.
 **Slice 8 — Claude Code adapter.** Format research, sanitized fixtures covering
 two sessions, model changes, missing optional metrics, and rewritten history;
 discovery, parsing, stable IDs, checkpointing, capability reporting.
-*Accepts:* Codex and Claude Code import through the same interface; no new action
+_Accepts:_ Codex and Claude Code import through the same interface; no new action
 variant or analysis branch was required; the combined dashboard separates
 harness, provider, and model correctly; the adapter stays `experimental` until a
 live Windows smoke test is recorded.
 
 **Slice 9 — Conformance kit.** Fixture builders, redaction checks, clock and
 filesystem injection, standard behavioral tests, adapter metadata files.
-*Accepts:* a new adapter is testable without a live installation or network;
+_Accepts:_ a new adapter is testable without a live installation or network;
 fixture validation rejects likely secrets and raw conversational content;
 verification level is visible in catalog responses and Settings.
 
 **Slice 10 — Release hardening.** Format, lint, typecheck, tests, full build,
 extension packaging, Windows install smoke, migration from the latest released
 VSIX with a copied ledger, README and architecture doc updates, CHANGELOG.
-*Accepts:* existing Codex users retain history, pricing, settings, and
+_Accepts:_ existing Codex users retain history, pricing, settings, and
 keybindings; the packaged extension contains all registered adapters and no raw
 fixtures; rollback preserves the user's ledger.
 
@@ -480,8 +481,15 @@ Tests cross the same interfaces as production callers.
 - **Client:** optional metrics render as "not reported"; quota windows with no
   `usedPercent` render without a meter; driver panels cap and link correctly;
   refetch does not unmount the previous render.
-- **Palette:** the validator runs as part of `vp run check` against the declared
-  surfaces, so a color edit cannot silently break the gates.
+- **Palette:** an in-repo guard test runs as part of `vp run check` against the
+  declared surface. It enforces **two** of the external validator's five checks —
+  the lightness band and contrast — plus a golden pin on the exact hex values.
+  It does **not** re-derive CVD separation, the normal-vision ΔE floor, or the
+  chroma floor; porting colour-blindness simulation matrices in-repo was rejected
+  because a subtly wrong constant yields a check that is green and wrong, which is
+  worse than no check. The golden pin is what protects those three: any change to
+  a palette value fails a test that names the external validator, making the
+  change deliberate and routing the engineer back to the tool that can re-check it.
 
 Parser-internal tests are retired once equivalent behavior is covered through the
 adapter interface. Pure normalization-function tests are kept only where their

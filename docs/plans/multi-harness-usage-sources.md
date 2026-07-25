@@ -350,4 +350,3 @@ The architecture is ready for broad adapter work when all of the following are t
 4. Implement the smallest Slice 1 contract and decoder change that makes that test pass.
 5. Add mixed `harnessId` versus `provider` analysis tests before changing filters or UI.
 6. Stop at a green, reviewable vertical slice; do not begin individual new harness parsers until the generic registry and Codex adapter pass through the new interface.
-

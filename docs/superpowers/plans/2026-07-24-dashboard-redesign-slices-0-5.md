@@ -36,37 +36,37 @@ To run a single test by name, add `--test-name-pattern "part of the it() string"
 
 ### Created
 
-| Path | Responsibility |
-|---|---|
-| `apps/web/src/theme/tokens.css` | Every design token. The only place raw color literals live in CSS. |
-| `apps/web/src/theme/palette.ts` | Series and status colors exported by role, plus the surface they are validated against. |
-| `apps/web/src/theme/color-math.ts` | sRGB→OKLab lightness and WCAG contrast. Used only by the guard test. |
-| `apps/web/src/model/format.ts` | money, tokens, compact, percent, coverage, and relative-time formatters. |
-| `apps/web/src/components/*.tsx` | Presentational primitives. None of them fetch. |
-| `apps/web/src/views/overview.tsx` | Overview composition. |
-| `apps/web/src/views/breakdown.tsx` | Breakdown composition. |
-| `apps/web/src/views/history.tsx` | History composition. |
-| `apps/web/src/views/settings/*.tsx` | Settings panels. |
-| `packages/contracts/src/legacy.ts` | Compatibility decoder for pre-identity Usage Records. |
-| `apps/server/test/fixtures/codex/` | Sanitized Codex session fixtures. |
+| Path                                | Responsibility                                                                          |
+| ----------------------------------- | --------------------------------------------------------------------------------------- |
+| `apps/web/src/theme/tokens.css`     | Every design token. The only place raw color literals live in CSS.                      |
+| `apps/web/src/theme/palette.ts`     | Series and status colors exported by role, plus the surface they are validated against. |
+| `apps/web/src/theme/color-math.ts`  | sRGB→OKLab lightness and WCAG contrast. Used only by the guard test.                    |
+| `apps/web/src/model/format.ts`      | money, tokens, compact, percent, coverage, and relative-time formatters.                |
+| `apps/web/src/components/*.tsx`     | Presentational primitives. None of them fetch.                                          |
+| `apps/web/src/views/overview.tsx`   | Overview composition.                                                                   |
+| `apps/web/src/views/breakdown.tsx`  | Breakdown composition.                                                                  |
+| `apps/web/src/views/history.tsx`    | History composition.                                                                    |
+| `apps/web/src/views/settings/*.tsx` | Settings panels.                                                                        |
+| `packages/contracts/src/legacy.ts`  | Compatibility decoder for pre-identity Usage Records.                                   |
+| `apps/server/test/fixtures/codex/`  | Sanitized Codex session fixtures.                                                       |
 
 ### Modified
 
-| Path | Change |
-|---|---|
-| `packages/contracts/src/index.ts` | `usageSourceId`/`harnessId`, optional metrics, quota snapshot schema, filters, `OverviewView`. |
-| `packages/usage-analysis/src/index.ts` | Harness ranking, task→session children, reporting-aware cache efficiency, quota selection. |
-| `packages/usage-ledger/src/index.ts` | Decode on read, quota snapshot table. |
-| `apps/server/src/codex-importer.ts` | Emit identities; convert rate limits to quota snapshots. |
-| `apps/server/src/server.ts` | Filter parsing, quota snapshots in overview. |
-| `apps/web/src/App.tsx` | Reduced to the shell; renamed `app.tsx`. |
-| `apps/web/src/styles.css` | Rewritten against tokens. |
-| `apps/web/src/usage-groups.ts` | Moved to `model/usage-groups.ts`, harness added. |
+| Path                                   | Change                                                                                         |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `packages/contracts/src/index.ts`      | `usageSourceId`/`harnessId`, optional metrics, quota snapshot schema, filters, `OverviewView`. |
+| `packages/usage-analysis/src/index.ts` | Harness ranking, task→session children, reporting-aware cache efficiency, quota selection.     |
+| `packages/usage-ledger/src/index.ts`   | Decode on read, quota snapshot table.                                                          |
+| `apps/server/src/codex-importer.ts`    | Emit identities; convert rate limits to quota snapshots.                                       |
+| `apps/server/src/server.ts`            | Filter parsing, quota snapshots in overview.                                                   |
+| `apps/web/src/App.tsx`                 | Reduced to the shell; renamed `app.tsx`.                                                       |
+| `apps/web/src/styles.css`              | Rewritten against tokens.                                                                      |
+| `apps/web/src/usage-groups.ts`         | Moved to `model/usage-groups.ts`, harness added.                                               |
 
 ### Deleted
 
-| Path | Reason |
-|---|---|
+| Path                   | Reason                                             |
+| ---------------------- | -------------------------------------------------- |
 | `apps/web/src/App.tsx` | Split into `app.tsx`, `views/`, and `components/`. |
 
 ---
@@ -78,6 +78,7 @@ Establishes a refactoring baseline. No production code changes.
 ### Task 1: Sanitized Codex fixture and parser characterization test
 
 **Files:**
+
 - Create: `apps/server/test/fixtures/codex/sessions/2026/07/rollout-2026-07-20T09-00-00-11111111-2222-3333-4444-555555555555.jsonl`
 - Create: `apps/server/test/fixtures/codex/session_index.jsonl`
 - Create: `apps/server/test/fixtures/codex/README.md`
@@ -100,7 +101,10 @@ Create `apps/server/test/fixtures/codex/sessions/2026/07/rollout-2026-07-20T09-0
 `apps/server/test/fixtures/codex/session_index.jsonl`:
 
 ```jsonl
-{"id":"11111111-2222-3333-4444-555555555555","thread_name":"portable-usage-host"}
+{
+  "id": "11111111-2222-3333-4444-555555555555",
+  "thread_name": "portable-usage-host"
+}
 ```
 
 `apps/server/test/fixtures/codex/README.md`:
@@ -200,6 +204,7 @@ git commit -m "test: characterize Codex parser against sanitized fixtures"
 ### Task 2: Ledger import idempotency characterization
 
 **Files:**
+
 - Test: `packages/usage-ledger/test/ledger.test.ts` (append)
 
 - [ ] **Step 1: Write the failing test**
@@ -293,6 +298,7 @@ No contract changes. Builds against the current data model.
 The palette validator lives in an external skill, so the gate is reimplemented in-repo as a test. This is what makes a future color edit fail CI.
 
 **Files:**
+
 - Create: `apps/web/src/theme/color-math.ts`
 - Create: `apps/web/src/theme/palette.ts`
 - Test: `apps/web/test/palette.test.ts`
@@ -425,13 +431,18 @@ export const CHART_INK = {
   track: "#24342c",
 } as const;
 
-/** Token-mix segment identity. Order is the stacking order. */
-export const TOKEN_MIX = [
-  { key: "fresh", label: "Fresh input", color: SERIES.blue },
-  { key: "cached", label: "Cached", color: SERIES.teal },
-  { key: "output", label: "Output", color: SERIES.orange },
-] as const;
+/** Token-mix segment identity, keyed for lookup without assertions. */
+export const TOKEN_MIX = {
+  fresh: { label: "Fresh input", color: SERIES.blue },
+  cached: { label: "Cached", color: SERIES.teal },
+  output: { label: "Output", color: SERIES.orange },
+} as const;
+
+/** Stacking order for the token-mix bar. Explicit so it never depends on key order. */
+export const TOKEN_MIX_ORDER = ["fresh", "cached", "output"] as const;
 ```
+
+`TOKEN_MIX` is keyed rather than an array so consumers index it directly and get a compile error if a key drifts. An array shape would force `TOKEN_MIX.find(…)!` in the consumer — a non-null assertion with no compile-time link between the segment key and the palette.
 
 - [ ] **Step 5: Run the test to verify it passes**
 
@@ -451,6 +462,7 @@ git commit -m "feat: add validated chart palette with in-repo gate test"
 ### Task 4: Quota threshold and formatter module
 
 **Files:**
+
 - Create: `apps/web/src/model/format.ts`
 - Test: `apps/web/test/format.test.ts`
 
@@ -475,10 +487,14 @@ describe("Formatters", () => {
     assert.equal(formatMoney(0), "$0.00");
   });
 
-  it("formats token counts compactly above a thousand", () => {
+  it("formats token counts compactly from a thousand upward", () => {
     assert.equal(formatTokens(645_000), "645K");
     assert.equal(formatTokens(1_240_000), "1.2M");
     assert.equal(formatTokens(812), "812");
+    // Pins the exact transition. Without these two, `< 1_000` and `<= 1_000` are
+    // indistinguishable to the suite and a refactor can flip the boundary silently.
+    assert.equal(formatTokens(999), "999");
+    assert.equal(formatTokens(1_000), "1K");
   });
 
   it("formats a ratio as a percent with one decimal", () => {
@@ -486,12 +502,12 @@ describe("Formatters", () => {
   });
 
   it("reports priced coverage only when some records are unpriced", () => {
-    assert.equal(formatCoverage(4900, 4900), "4,900 records priced");
-    assert.equal(formatCoverage(4900, 4812), "4,812 of 4,900 records priced");
+    assert.equal(formatCoverage({ records: 4900, priced: 4900 }), "4,900 records priced");
+    assert.equal(formatCoverage({ records: 4900, priced: 4812 }), "4,812 of 4,900 records priced");
   });
 
-  it("returns null coverage text when there are no records", () => {
-    assert.equal(formatCoverage(0, 0), "No records in this period");
+  it("describes an empty period in prose when there are no records", () => {
+    assert.equal(formatCoverage({ records: 0, priced: 0 }), "No records in this period");
   });
 });
 
@@ -528,14 +544,24 @@ Expected: FAIL — `Cannot find module '../src/model/format.ts'`
 Create `apps/web/src/model/format.ts`:
 
 ```ts
-const money = new Intl.NumberFormat(undefined, {
+/**
+ * Locale is pinned rather than taken from the runtime. This dashboard reports
+ * US-dollar API rates under English copy, and `currency: "USD"` is already fixed —
+ * letting the OS locale drive grouping and symbol placement while the currency
+ * stays American produces inconsistent output like "142,30 $" beside English
+ * labels. Pinning also keeps these assertions deterministic on contributor and CI
+ * machines whose default locale is not en-US.
+ */
+const LOCALE = "en-US";
+
+const money = new Intl.NumberFormat(LOCALE, {
   style: "currency",
   currency: "USD",
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
-const plain = new Intl.NumberFormat();
-const compact = new Intl.NumberFormat(undefined, {
+const plain = new Intl.NumberFormat(LOCALE);
+const compact = new Intl.NumberFormat(LOCALE, {
   notation: "compact",
   maximumFractionDigits: 1,
 });
@@ -552,7 +578,16 @@ export function formatPercent(ratio: number): string {
   return `${(ratio * 100).toFixed(1)}%`;
 }
 
-export function formatCoverage(records: number, priced: number): string {
+/**
+ * Named fields rather than two positional numbers: a transposed positional call
+ * type-checks and yields plausible-but-wrong text ("4,900 of 4,812 records priced")
+ * directly under the hero figure, where a reader would trust it.
+ *
+ * Always returns a renderable string, never null — the sole consumer splices it
+ * into a sentence with no conditional, so the empty case belongs here rather than
+ * duplicated as a null-guard at every call site.
+ */
+export function formatCoverage({ records, priced }: { records: number; priced: number }): string {
   if (records === 0) return "No records in this period";
   return priced === records
     ? `${plain.format(records)} records priced`
@@ -561,6 +596,10 @@ export function formatCoverage(records: number, priced: number): string {
 
 export type QuotaStatus = "good" | "warning" | "critical" | "unreported";
 
+/**
+ * 75 and 90 are the product-defined thresholds from the design spec, not tunable
+ * knobs. Do not extract them into configuration without changing the spec.
+ */
 export function quotaStatus(usedPercent: number | undefined): QuotaStatus {
   if (usedPercent === undefined) return "unreported";
   if (usedPercent >= 90) return "critical";
@@ -587,6 +626,7 @@ git commit -m "feat: add display formatters and quota threshold rules"
 ### Task 5: Design tokens
 
 **Files:**
+
 - Create: `apps/web/src/theme/tokens.css`
 - Modify: `apps/web/src/styles.css` (import tokens, drop hardcoded colors)
 
@@ -671,6 +711,7 @@ git commit -m "feat: extract design tokens into a single stylesheet"
 ### Task 6: Shell primitives
 
 **Files:**
+
 - Create: `apps/web/src/components/panel.tsx`
 - Create: `apps/web/src/components/chip.tsx`
 
@@ -775,6 +816,7 @@ git commit -m "feat: add panel, zone, and filter chip primitives"
 ### Task 7: App shell with topbar chips
 
 **Files:**
+
 - Create: `apps/web/src/app.tsx`
 - Modify: `apps/web/src/main.tsx`
 - Modify: `apps/web/src/styles.css`
@@ -1101,6 +1143,7 @@ git commit -m "feat: rebuild app shell with topbar filter chips and stale-hold r
 ### Task 8: Remove the hero and disclaimer banner
 
 **Files:**
+
 - Modify: `apps/web/src/legacy-views.tsx`
 - Modify: `apps/web/src/styles.css`
 
@@ -1145,6 +1188,7 @@ git commit -m "refactor: remove marketing hero and full-width disclaimer banner"
 ### Task 9: Add usage source and harness identities to the contract
 
 **Files:**
+
 - Modify: `packages/contracts/src/index.ts:49-78`
 - Create: `packages/contracts/src/legacy.ts`
 - Test: `packages/contracts/test/legacy.test.ts`
@@ -1316,6 +1360,7 @@ git commit -m "feat: separate usage source, harness, and provider identities"
 ### Task 10: Decode on read in the ledger
 
 **Files:**
+
 - Modify: `packages/usage-ledger/src/index.ts:38-43,209-224`
 - Test: `packages/usage-ledger/test/ledger.test.ts` (append)
 
@@ -1414,6 +1459,7 @@ git commit -m "feat: decode legacy usage records on read"
 ### Task 11: Rank usage by harness
 
 **Files:**
+
 - Modify: `packages/contracts/src/index.ts` (`RankedUsage`, `OverviewView`)
 - Modify: `packages/usage-analysis/src/index.ts:23-53`
 - Test: `packages/usage-analysis/test/analysis.test.ts` (append)
@@ -1490,13 +1536,18 @@ describe("Harness ranking", () => {
     const view = analyzeUsage({
       records: [
         record("2026-07-23T10:00:00.000Z"),
-        record("2026-07-23T11:00:00.000Z", "high", { ultra: false, fast: false }, {
-          id: "claude-1",
-          usageSourceId: "claude-code-local",
-          harnessId: "claude-code",
-          provider: "anthropic",
-          model: "claude-test",
-        }),
+        record(
+          "2026-07-23T11:00:00.000Z",
+          "high",
+          { ultra: false, fast: false },
+          {
+            id: "claude-1",
+            usageSourceId: "claude-code-local",
+            harnessId: "claude-code",
+            provider: "anthropic",
+            model: "claude-test",
+          },
+        ),
       ],
       prices,
       sourceHosts: hosts,
@@ -1513,13 +1564,18 @@ describe("Harness ranking", () => {
   it("keeps harness and provider independently filterable", () => {
     const records = [
       record("2026-07-23T10:00:00.000Z"),
-      record("2026-07-23T11:00:00.000Z", "high", { ultra: false, fast: false }, {
-        id: "claude-1",
-        usageSourceId: "claude-code-local",
-        harnessId: "claude-code",
-        provider: "anthropic",
-        model: "claude-test",
-      }),
+      record(
+        "2026-07-23T11:00:00.000Z",
+        "high",
+        { ultra: false, fast: false },
+        {
+          id: "claude-1",
+          usageSourceId: "claude-code-local",
+          harnessId: "claude-code",
+          provider: "anthropic",
+          model: "claude-test",
+        },
+      ),
     ];
     const byHarness = analyzeUsage({
       records,
@@ -1635,6 +1691,7 @@ git commit -m "feat: rank and filter usage by harness"
 ### Task 12: Cache efficiency excludes non-reporting records
 
 **Files:**
+
 - Modify: `packages/contracts/src/index.ts` (`UsageTotals`)
 - Modify: `packages/usage-analysis/src/index.ts:139-168`
 - Test: `packages/usage-analysis/test/analysis.test.ts` (append)
@@ -1671,10 +1728,15 @@ describe("Unavailable metrics are not zero", () => {
     const view = analyzeUsage({
       records: [
         record("2026-07-23T10:00:00.000Z"),
-        record("2026-07-23T11:00:00.000Z", "high", { ultra: false, fast: false }, {
-          id: "no-cache",
-          cachedInputTokens: undefined,
-        }),
+        record(
+          "2026-07-23T11:00:00.000Z",
+          "high",
+          { ultra: false, fast: false },
+          {
+            id: "no-cache",
+            cachedInputTokens: undefined,
+          },
+        ),
       ],
       prices,
       sourceHosts: hosts,
@@ -1689,9 +1751,14 @@ describe("Unavailable metrics are not zero", () => {
   it("reports zero cached tokens as evidence, not as unreported", () => {
     const view = analyzeUsage({
       records: [
-        record("2026-07-23T10:00:00.000Z", "high", { ultra: false, fast: false }, {
-          cachedInputTokens: 0,
-        }),
+        record(
+          "2026-07-23T10:00:00.000Z",
+          "high",
+          { ultra: false, fast: false },
+          {
+            cachedInputTokens: 0,
+          },
+        ),
       ],
       prices,
       sourceHosts: hosts,
@@ -1732,7 +1799,7 @@ Expected: FAIL — `cacheEfficiency` is 0.25 because the non-reporting record co
 In `packages/contracts/src/index.ts`, add to `UsageTotals`:
 
 ```ts
-  cacheReportingRecords: number;
+cacheReportingRecords: number;
 ```
 
 - [ ] **Step 4: Implement reporting-aware summarization**
@@ -1787,7 +1854,7 @@ function summarize(items: PricedRecord[]): UsageTotals {
 In `packages/usage-analysis/src/index.ts`, in `rankModels`, change the children grouping key from `record.reasoningLevel || "unknown"` to:
 
 ```ts
-      const children = rank(values, ({ record }) => record.reasoningLevel ?? "not reported")
+const children = rank(values, ({ record }) => record.reasoningLevel ?? "not reported");
 ```
 
 And in `reasoningOrder`, replace `"unknown"` with `"not reported"` in the order array.
@@ -1810,6 +1877,7 @@ git commit -m "feat: exclude non-reporting records from cache efficiency"
 ### Task 13: Task rows gain session children
 
 **Files:**
+
 - Modify: `packages/usage-analysis/src/index.ts`
 - Test: `packages/usage-analysis/test/analysis.test.ts` (append)
 
@@ -1844,20 +1912,35 @@ describe("Task session children", () => {
   it("nests sessions under their task, ranked by cost", () => {
     const view = analyzeUsage({
       records: [
-        record("2026-07-23T10:00:00.000Z", "high", { ultra: false, fast: false }, {
-          id: "a",
-          sessionId: "session-1",
-        }),
-        record("2026-07-23T11:00:00.000Z", "high", { ultra: false, fast: false }, {
-          id: "b",
-          sessionId: "session-1",
-        }),
-        record("2026-07-23T12:00:00.000Z", "high", { ultra: false, fast: false }, {
-          id: "c",
-          sessionId: "session-2",
-          outputTokens: 10,
-          totalTokens: 1_010_000,
-        }),
+        record(
+          "2026-07-23T10:00:00.000Z",
+          "high",
+          { ultra: false, fast: false },
+          {
+            id: "a",
+            sessionId: "session-1",
+          },
+        ),
+        record(
+          "2026-07-23T11:00:00.000Z",
+          "high",
+          { ultra: false, fast: false },
+          {
+            id: "b",
+            sessionId: "session-1",
+          },
+        ),
+        record(
+          "2026-07-23T12:00:00.000Z",
+          "high",
+          { ultra: false, fast: false },
+          {
+            id: "c",
+            sessionId: "session-2",
+            outputTokens: 10,
+            totalTokens: 1_010_000,
+          },
+        ),
       ],
       prices,
       sourceHosts: hosts,
@@ -1872,9 +1955,16 @@ describe("Task session children", () => {
 
   it("falls back to the record id when a session id is absent", () => {
     const view = analyzeUsage({
-      records: [record("2026-07-23T10:00:00.000Z", "high", { ultra: false, fast: false }, {
-        id: "solo",
-      })],
+      records: [
+        record(
+          "2026-07-23T10:00:00.000Z",
+          "high",
+          { ultra: false, fast: false },
+          {
+            id: "solo",
+          },
+        ),
+      ],
       prices,
       sourceHosts: hosts,
       memberships: [],
@@ -1936,6 +2026,7 @@ git commit -m "feat: nest sessions under task rankings"
 ### Task 14: Importer emits canonical identities
 
 **Files:**
+
 - Modify: `apps/server/src/codex-importer.ts:126-153`
 - Test: `apps/server/test/codex-characterization.test.ts` (append)
 
@@ -1978,13 +2069,13 @@ In `apps/server/src/codex-importer.ts`, inside the object returned by the `turns
 And change the reasoning level assignment on line 100 from:
 
 ```ts
-      const reasoningLevel = String(payload.effort || "unknown");
+const reasoningLevel = String(payload.effort || "unknown");
 ```
 
 to:
 
 ```ts
-      const reasoningLevel = payload.effort ? String(payload.effort) : undefined;
+const reasoningLevel = payload.effort ? String(payload.effort) : undefined;
 ```
 
 Then update the `Turn` type's `reasoningLevel` field to `string | undefined`, and update the `usageModeFlags` call to pass `reasoningLevel ?? ""`.
@@ -1992,9 +2083,9 @@ Then update the `Turn` type's `reasoningLevel` field to `string | undefined`, an
 In `usageModeFlags`, the first line becomes:
 
 ```ts
-  const normalizedReasoning = String(reasoningLevel ?? "")
-    .trim()
-    .toLocaleLowerCase();
+const normalizedReasoning = String(reasoningLevel ?? "")
+  .trim()
+  .toLocaleLowerCase();
 ```
 
 - [ ] **Step 4: Remove rate limits from the emitted record**
@@ -2025,6 +2116,7 @@ git commit -m "feat: emit usage source and harness identities from the Codex imp
 ### Task 15: Quota snapshot contract
 
 **Files:**
+
 - Modify: `packages/contracts/src/index.ts`
 - Test: `packages/contracts/test/contracts.test.ts` (append)
 
@@ -2106,7 +2198,10 @@ export const usageQuotaSnapshotSchema = z
     plan: z.string().max(200).optional(),
     observedAt: z.string().datetime(),
     windows: z.array(usageQuotaWindowSchema).max(50),
-    balance: z.object({ amount: z.number(), unit: z.string().max(50) }).strict().optional(),
+    balance: z
+      .object({ amount: z.number(), unit: z.string().max(50) })
+      .strict()
+      .optional(),
   })
   .strict();
 export type UsageQuotaSnapshot = z.infer<typeof usageQuotaSnapshotSchema>;
@@ -2137,6 +2232,7 @@ git commit -m "feat: add normalized usage quota snapshot contract"
 ### Task 16: Persist quota snapshots
 
 **Files:**
+
 - Modify: `packages/usage-ledger/src/index.ts`
 - Test: `packages/usage-ledger/test/ledger.test.ts` (append)
 
@@ -2228,9 +2324,9 @@ Add these methods to the class:
 Update the import at line 9 to include `usageQuotaSnapshotSchema` and add `UsageQuotaSnapshot` to the type import block. Update `clearRecords()` so its `exec` reads:
 
 ```ts
-    this.database.exec(
-      "DELETE FROM usage_records; DELETE FROM provider_import_state; DELETE FROM usage_quota_snapshots;",
-    );
+this.database.exec(
+  "DELETE FROM usage_records; DELETE FROM provider_import_state; DELETE FROM usage_quota_snapshots;",
+);
 ```
 
 - [ ] **Step 4: Run the test to verify it passes**
@@ -2251,6 +2347,7 @@ git commit -m "feat: persist normalized quota snapshots per source and host"
 ### Task 17: Codex importer produces quota snapshots
 
 **Files:**
+
 - Modify: `apps/server/src/codex-importer.ts`
 - Modify: `apps/server/src/server.ts:41-57`
 - Test: `apps/server/test/codex-characterization.test.ts` (append)
@@ -2275,11 +2372,7 @@ describe("Codex quota conversion", () => {
   };
 
   it("converts Codex windows into named quota windows", () => {
-    const snapshot = quotaSnapshotFromRateLimits(
-      limits,
-      "host:a",
-      "2026-07-20T09:00:30.000Z",
-    );
+    const snapshot = quotaSnapshotFromRateLimits(limits, "host:a", "2026-07-20T09:00:30.000Z");
     assert.equal(snapshot?.usageSourceId, "codex-local");
     assert.equal(snapshot?.plan, "plus");
     assert.deepEqual(
@@ -2345,9 +2438,7 @@ export function quotaSnapshotFromRateLimits(
         label: WINDOW_LABELS[id] ?? id,
         usedPercent: window.usedPercent,
         windowMinutes: window.windowMinutes,
-        ...(window.resetsAt
-          ? { resetsAt: new Date(window.resetsAt * 1000).toISOString() }
-          : {}),
+        ...(window.resetsAt ? { resetsAt: new Date(window.resetsAt * 1000).toISOString() } : {}),
       },
     ];
   });
@@ -2371,32 +2462,32 @@ In `CodexSessionProvider.collect`, track the latest rate limits. Change `parseSe
 At the end of `parseSession`, replace the `return turns.flatMap(...)` statement with:
 
 ```ts
-  const records = turns.flatMap((turn) => {
-    if (!turn.total) return [];
-    const delta = subtractTokenShapes(turn.total, previous);
-    previous = turn.total;
-    if (delta.totalTokens <= 0 && delta.inputTokens <= 0 && delta.outputTokens <= 0) return [];
-    return [
-      {
-        id: `codex:${sessionId}:${turn.turnId}`,
-        timestamp: new Date(turn.timestamp).toISOString(),
-        taskName,
-        provider,
-        model: turn.model,
-        ...(turn.reasoningLevel ? { reasoningLevel: turn.reasoningLevel } : {}),
-        modeFlags: turn.modeFlags,
-        ...delta,
-        lastTokenUsage: turn.last,
-        modelContextWindowTokens: turn.modelContextWindowTokens,
-        usageSourceId: "codex-local",
-        harnessId: "codex",
-        source: "codex-local",
-        sessionId,
-        turnId: turn.turnId,
-      },
-    ];
-  });
-  return { records, rateLimits: latestRateLimits };
+const records = turns.flatMap((turn) => {
+  if (!turn.total) return [];
+  const delta = subtractTokenShapes(turn.total, previous);
+  previous = turn.total;
+  if (delta.totalTokens <= 0 && delta.inputTokens <= 0 && delta.outputTokens <= 0) return [];
+  return [
+    {
+      id: `codex:${sessionId}:${turn.turnId}`,
+      timestamp: new Date(turn.timestamp).toISOString(),
+      taskName,
+      provider,
+      model: turn.model,
+      ...(turn.reasoningLevel ? { reasoningLevel: turn.reasoningLevel } : {}),
+      modeFlags: turn.modeFlags,
+      ...delta,
+      lastTokenUsage: turn.last,
+      modelContextWindowTokens: turn.modelContextWindowTokens,
+      usageSourceId: "codex-local",
+      harnessId: "codex",
+      source: "codex-local",
+      sessionId,
+      turnId: turn.turnId,
+    },
+  ];
+});
+return { records, rateLimits: latestRateLimits };
 ```
 
 Change the declared return type to
@@ -2428,60 +2519,60 @@ Bump `CACHE_SCHEMA_VERSION` from `4` to `5` so existing caches re-parse once and
 Then replace the body of the `for (const file of files)` loop and the return statement in `collect` with:
 
 ```ts
-    for (const file of files) {
-      let stat;
-      try {
-        stat = await fs.stat(file);
-      } catch {
-        continue;
-      }
-      const fingerprint = `${stat.size}:${stat.mtimeMs}`;
-      const prior = state.schemaVersion === CACHE_SCHEMA_VERSION ? state.files?.[file] : undefined;
-      let parsed: Array<Omit<UsageRecord, "sourceHostId">>;
-      let rateLimits: RateLimits | null;
-      if (prior?.fingerprint === fingerprint) {
-        parsed = prior.records.map((record) => ({
-          ...record,
-          taskName: taskNames.get(record.sessionId ?? "") ?? record.taskName,
-        }));
-        rateLimits = prior.rateLimits ?? null;
-      } else {
-        const result = await parseSession(file, taskNames);
-        parsed = result.records;
-        rateLimits = result.rateLimits;
-        parsedFiles += 1;
-      }
-      nextFiles[file] = { fingerprint, records: parsed, rateLimits };
-      records.push(...parsed.map((record) => ({ ...record, sourceHostId })));
-      const newest = parsed.at(-1)?.timestamp;
-      if (rateLimits && newest && newest > latestObservedAt) {
-        latestObservedAt = newest;
-        latestRateLimits = rateLimits;
-      }
-    }
-    const snapshot = quotaSnapshotFromRateLimits(
-      latestRateLimits,
-      sourceHostId,
-      latestObservedAt || new Date().toISOString(),
-    );
-    return {
-      records,
-      quotaSnapshots: snapshot ? [snapshot] : [],
-      state: {
-        schemaVersion: CACHE_SCHEMA_VERSION,
-        files: nextFiles,
-        home,
-        lastScan: new Date().toISOString(),
-      },
-      stats: { discoveredFiles: files.length, parsedFiles, records: records.length, home },
-    };
+for (const file of files) {
+  let stat;
+  try {
+    stat = await fs.stat(file);
+  } catch {
+    continue;
+  }
+  const fingerprint = `${stat.size}:${stat.mtimeMs}`;
+  const prior = state.schemaVersion === CACHE_SCHEMA_VERSION ? state.files?.[file] : undefined;
+  let parsed: Array<Omit<UsageRecord, "sourceHostId">>;
+  let rateLimits: RateLimits | null;
+  if (prior?.fingerprint === fingerprint) {
+    parsed = prior.records.map((record) => ({
+      ...record,
+      taskName: taskNames.get(record.sessionId ?? "") ?? record.taskName,
+    }));
+    rateLimits = prior.rateLimits ?? null;
+  } else {
+    const result = await parseSession(file, taskNames);
+    parsed = result.records;
+    rateLimits = result.rateLimits;
+    parsedFiles += 1;
+  }
+  nextFiles[file] = { fingerprint, records: parsed, rateLimits };
+  records.push(...parsed.map((record) => ({ ...record, sourceHostId })));
+  const newest = parsed.at(-1)?.timestamp;
+  if (rateLimits && newest && newest > latestObservedAt) {
+    latestObservedAt = newest;
+    latestRateLimits = rateLimits;
+  }
+}
+const snapshot = quotaSnapshotFromRateLimits(
+  latestRateLimits,
+  sourceHostId,
+  latestObservedAt || new Date().toISOString(),
+);
+return {
+  records,
+  quotaSnapshots: snapshot ? [snapshot] : [],
+  state: {
+    schemaVersion: CACHE_SCHEMA_VERSION,
+    files: nextFiles,
+    home,
+    lastScan: new Date().toISOString(),
+  },
+  stats: { discoveredFiles: files.length, parsedFiles, records: records.length, home },
+};
 ```
 
 Declare the two trackers alongside `parsedFiles`, before the loop:
 
 ```ts
-    let latestRateLimits: RateLimits | null = null;
-    let latestObservedAt = "";
+let latestRateLimits: RateLimits | null = null;
+let latestObservedAt = "";
 ```
 
 The newest snapshot wins because quota state is a point-in-time observation — the most recent turn's limits are the only ones still true.
@@ -2530,6 +2621,7 @@ git commit -m "feat: convert Codex rate limits into normalized quota snapshots"
 ### Task 18: Serve quota snapshots in the overview
 
 **Files:**
+
 - Modify: `packages/usage-analysis/src/index.ts`
 - Modify: `apps/server/src/server.ts:84-97`
 - Test: `packages/usage-analysis/test/analysis.test.ts` (append)
@@ -2614,6 +2706,7 @@ git commit -m "feat: serve normalized quota snapshots from the overview endpoint
 ### Task 19: Rank list component
 
 **Files:**
+
 - Create: `apps/web/src/components/rank-list.tsx`
 - Modify: `apps/web/src/styles.css`
 
@@ -2731,6 +2824,7 @@ git commit -m "feat: add single-hue rank list component"
 ### Task 20: Token mix stacked bar
 
 **Files:**
+
 - Create: `apps/web/src/components/token-mix.tsx`
 - Modify: `apps/web/src/styles.css`
 
@@ -2740,45 +2834,37 @@ Create `apps/web/src/components/token-mix.tsx`:
 
 ```tsx
 import type { UsageTotals } from "@llm-usage-monitor/contracts";
-import { TOKEN_MIX } from "../theme/palette.ts";
+import { TOKEN_MIX, TOKEN_MIX_ORDER } from "../theme/palette.ts";
 import { formatTokens } from "../model/format.ts";
 
 export function TokenMix({ totals }: { totals: UsageTotals }) {
   const cached = totals.cachedInputTokens;
-  const segments = [
-    { key: "fresh", value: Math.max(0, totals.inputTokens - cached) },
-    { key: "cached", value: cached },
-    { key: "output", value: totals.outputTokens },
-  ];
-  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
+  const values = {
+    fresh: Math.max(0, totals.inputTokens - cached),
+    cached,
+    output: totals.outputTokens,
+  };
+  const total = TOKEN_MIX_ORDER.reduce((sum, key) => sum + values[key], 0);
   if (!total) return <p className="empty-state">No tokens in this period</p>;
   return (
     <>
       <div className="stack" role="img" aria-label="Token composition">
-        {segments.map((segment) => {
-          const meta = TOKEN_MIX.find((item) => item.key === segment.key)!;
-          return (
-            <span
-              key={segment.key}
-              style={{ width: `${(segment.value / total) * 100}%`, background: meta.color }}
-            />
-          );
-        })}
+        {TOKEN_MIX_ORDER.map((key) => (
+          <span
+            key={key}
+            style={{ width: `${(values[key] / total) * 100}%`, background: TOKEN_MIX[key].color }}
+          />
+        ))}
       </div>
       <ul className="legend">
-        {segments.map((segment) => {
-          const meta = TOKEN_MIX.find((item) => item.key === segment.key)!;
-          return (
-            <li key={segment.key}>
-              <i className="dot" style={{ background: meta.color }} />
-              <span>{meta.label}</span>
-              <span className="legend-count">{formatTokens(segment.value)}</span>
-              <span className="legend-share">
-                {`${Math.round((segment.value / total) * 100)}%`}
-              </span>
-            </li>
-          );
-        })}
+        {TOKEN_MIX_ORDER.map((key) => (
+          <li key={key}>
+            <i className="dot" style={{ background: TOKEN_MIX[key].color }} />
+            <span>{TOKEN_MIX[key].label}</span>
+            <span className="legend-count">{formatTokens(values[key])}</span>
+            <span className="legend-share">{`${Math.round((values[key] / total) * 100)}%`}</span>
+          </li>
+        ))}
       </ul>
     </>
   );
@@ -2844,6 +2930,7 @@ git commit -m "feat: replace token composition donut with a stacked bar"
 ### Task 21: Quota meter component
 
 **Files:**
+
 - Create: `apps/web/src/components/quota-meters.tsx`
 - Modify: `apps/web/src/styles.css`
 
@@ -2907,7 +2994,10 @@ export function QuotaMeters({
                     aria-label={`${window.label} used`}
                   >
                     <i
-                      style={{ width: `${Math.min(100, window.usedPercent!)}%`, background: FILL[status] }}
+                      style={{
+                        width: `${Math.min(100, window.usedPercent!)}%`,
+                        background: FILL[status],
+                      }}
                     />
                   </div>
                 )}
@@ -3001,6 +3091,7 @@ git commit -m "feat: replace progress bars with status-aware quota meters"
 ### Task 22: Headline and trend chart
 
 **Files:**
+
 - Create: `apps/web/src/components/headline.tsx`
 - Modify: `apps/web/src/styles.css`
 
@@ -3047,8 +3138,11 @@ export function Headline({ data }: { data: OverviewView }) {
           <p className="panel-label">API-equivalent cost of work · {period}</p>
           <p className="hero">{formatMoney(data.totals.estimatedCost)}</p>
           <p className="panel-label">
-            {formatCoverage(data.totals.records, data.totals.pricedRecords)} · estimated at your
-            configured API rates, not a bill
+            {formatCoverage({
+              records: data.totals.records,
+              priced: data.totals.pricedRecords,
+            })}{" "}
+            · estimated at your configured API rates, not a bill
           </p>
         </div>
         <div className="segmented" role="group" aria-label="Trend measure">
@@ -3175,6 +3269,7 @@ git commit -m "feat: add headline figure and single-axis trend chart with measur
 ### Task 23: Stat strip
 
 **Files:**
+
 - Create: `apps/web/src/components/stat-strip.tsx`
 - Modify: `apps/web/src/styles.css`
 
@@ -3252,6 +3347,7 @@ git commit -m "feat: add stat strip with cache coverage disclosure"
 ### Task 24: Assemble the Overview
 
 **Files:**
+
 - Create: `apps/web/src/views/overview.tsx`
 - Modify: `apps/web/src/app.tsx`
 - Modify: `apps/web/src/styles.css`
@@ -3407,20 +3503,20 @@ Append to `apps/web/src/styles.css`:
 In `apps/web/src/app.tsx`, replace the `Overview` import in `ViewSlot` with `import { Overview } from "./views/overview.tsx";` and update the branch to:
 
 ```tsx
-  if (view === "overview")
-    return overview ? <Overview data={overview} onDrillDown={onDrillDown} /> : null;
+if (view === "overview")
+  return overview ? <Overview data={overview} onDrillDown={onDrillDown} /> : null;
 ```
 
 Add an `onDrillDown` prop to `ViewSlot` and pass it from `App`:
 
 ```tsx
-  const [breakdownDimension, setBreakdownDimension] = useState<
-    "byHarness" | "byModel" | "byTask" | "bySourceHost" | "byHostGroup"
-  >("byModel");
-  const onDrillDown = (dimension: "byHarness" | "byModel" | "byTask") => {
-    setBreakdownDimension(dimension);
-    setView("breakdown");
-  };
+const [breakdownDimension, setBreakdownDimension] = useState<
+  "byHarness" | "byModel" | "byTask" | "bySourceHost" | "byHostGroup"
+>("byModel");
+const onDrillDown = (dimension: "byHarness" | "byModel" | "byTask") => {
+  setBreakdownDimension(dimension);
+  setView("breakdown");
+};
 ```
 
 - [ ] **Step 4: Verify in the browser**
@@ -3441,6 +3537,7 @@ git commit -m "feat: assemble the Overview cockpit"
 ### Task 25: Delete the legacy Overview
 
 **Files:**
+
 - Modify: `apps/web/src/legacy-views.tsx`
 
 - [ ] **Step 1: Remove the replaced components**
@@ -3471,6 +3568,7 @@ git commit -m "refactor: delete the legacy Overview and its styles"
 ### Task 26: Nested rollup component
 
 **Files:**
+
 - Create: `apps/web/src/components/rollup.tsx`
 - Modify: `apps/web/src/styles.css`
 - Test: `apps/web/test/rollup-scale.test.ts`
@@ -3656,6 +3754,7 @@ git commit -m "feat: add nested rollup with parent-relative bar scaling"
 ### Task 27: Breakdown view
 
 **Files:**
+
 - Create: `apps/web/src/views/breakdown.tsx`
 - Modify: `apps/web/src/app.tsx`
 
@@ -3704,7 +3803,11 @@ export function Breakdown({
             {item.label}
           </button>
         ))}
-        <button className="chip table-toggle" aria-pressed={asTable} onClick={() => setAsTable(!asTable)}>
+        <button
+          className="chip table-toggle"
+          aria-pressed={asTable}
+          onClick={() => setAsTable(!asTable)}
+        >
           ⊞ Table view
         </button>
       </div>
@@ -3818,14 +3921,14 @@ Append to `apps/web/src/styles.css`:
 In `apps/web/src/app.tsx`, import `Breakdown` and its `Dimension` type, and replace the breakdown branch in `ViewSlot`:
 
 ```tsx
-  if (view === "breakdown")
-    return overview ? (
-      <Breakdown
-        data={overview}
-        dimension={breakdownDimension}
-        onDimensionChange={setBreakdownDimension}
-      />
-    ) : null;
+if (view === "breakdown")
+  return overview ? (
+    <Breakdown
+      data={overview}
+      dimension={breakdownDimension}
+      onDimensionChange={setBreakdownDimension}
+    />
+  ) : null;
 ```
 
 Pass `breakdownDimension` and `setBreakdownDimension` into `ViewSlot` as props.
@@ -3848,6 +3951,7 @@ git commit -m "feat: rebuild Breakdown with chip group-by, nesting, and a table 
 ### Task 28: History view with harness column
 
 **Files:**
+
 - Create: `apps/web/src/views/history.tsx`
 - Modify: `apps/web/src/model/usage-groups.ts`
 - Modify: `apps/web/src/app.tsx`
@@ -3967,9 +4071,7 @@ export function History({ records }: { records: UsageHistoryRecord[] }) {
               <span className="rollup-tokens">
                 {group.sessions.length} sessions · {formatTokens(group.totalTokens)}
               </span>
-              <span className="rollup-tokens">
-                {new Date(group.lastActiveAt).toLocaleString()}
-              </span>
+              <span className="rollup-tokens">{new Date(group.lastActiveAt).toLocaleString()}</span>
               <span className="rank-value">
                 {group.estimatedCost === null ? "Unpriced" : formatMoney(group.estimatedCost)}
               </span>
@@ -4004,7 +4106,10 @@ function SessionTable({ sessions }: { sessions: HistorySession[] }) {
             <td>
               {session.harnesses.map((harness) => (
                 <span className="harness" key={harness}>
-                  <i className="dot" style={{ background: HARNESS_COLOR[harness] ?? SERIES.orange }} />
+                  <i
+                    className="dot"
+                    style={{ background: HARNESS_COLOR[harness] ?? SERIES.orange }}
+                  />
                   {harness}
                 </span>
               ))}
@@ -4064,6 +4169,7 @@ git commit -m "feat: rebuild History with harness attribution and retire legacy 
 ### Task 29: Update documentation
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `CHANGELOG.md`
 - Modify: `CONTEXT.md`
