@@ -3042,6 +3042,7 @@ git commit -m "feat: convert Codex rate limits into normalized quota snapshots"
 - Modify: `packages/usage-analysis/src/index.ts`
 - Modify: `apps/server/src/server.ts:84-97`
 - Test: `packages/usage-analysis/test/analysis.test.ts` (append)
+- Test: `apps/server/test/quota-round-trip.test.ts` (created during execution, see Step 5b)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -3080,6 +3081,34 @@ describe("Quota snapshots in the overview", () => {
     });
     assert.deepEqual(view.quotaSnapshots, []);
   });
+
+  // Added during execution. Every other field on OverviewView is derived from
+  // the FILTERED records, so "filter the snapshots too" is the natural-looking
+  // next edit — and it is wrong. Quota is the account's standing with the
+  // provider, not a property of the selected records: narrowing the period or
+  // typing in the search box must not change what the meter reads, and a filter
+  // matching nothing must not render as 0% used.
+  it("reports quota unchanged regardless of the active filters", () => {
+    const snapshots = [
+      {
+        usageSourceId: "codex-local",
+        sourceHostId: "host:a",
+        plan: "plus",
+        observedAt: "2026-07-23T10:00:00.000Z",
+        windows: [{ id: "primary", label: "5-hour window", usedPercent: 41.5 }],
+      },
+    ];
+    const view = analyzeUsage({
+      records: [],
+      prices: [],
+      sourceHosts: [],
+      memberships: [],
+      quotaSnapshots: snapshots,
+      filters: { timeframe: "today", query: "matches-nothing", sourceHostId: "host:zzz" },
+    });
+    assert.equal(view.totals.records, 0);
+    assert.deepEqual(view.quotaSnapshots, snapshots);
+  });
 });
 ```
 
@@ -3107,12 +3136,34 @@ Run: `vp run test && vp run typecheck`
 
 Expected: PASS. `LimitsCard` in `legacy-views.tsx` was already migrated to `data.quotaSnapshots` in Task 15's Step 3b, so nothing further is needed there. Task 24 replaces it properly.
 
+- [ ] **Step 5b: Test the seam Slice 3 just created (added during execution)**
+
+Tasks 16, 17 and 18 each land in a different package and each is unit-tested inside it. Nothing
+exercises the joins, and one of them can fail silently: `replaceQuotaSnapshots` validates through
+`usageQuotaSnapshotSchema`, which is `.strict()`. If the Task 17 converter emits a field the
+contract does not declare, every unit test still passes — the failure surfaces only when a real
+import runs, as a thrown parse error behind the user's Refresh-sources button.
+
+`apps/server` depends on contracts, usage-ledger and usage-analysis, so it is the right home for
+this. Create `apps/server/test/quota-round-trip.test.ts` that runs
+`CodexSessionProvider.collect` against the fixture home, feeds the result to
+`ledger.replaceQuotaSnapshots`, reads it back with `ledger.quotaSnapshots()`, passes that to
+`analyzeUsage`, and asserts the snapshot arrives intact.
+
+Verify it is load-bearing by adding a stray key to the emitted window (e.g.
+`limitName: limits.limitName`): all 20 importer unit tests still pass and only this one fails,
+with `Unrecognized key: "limitName"`.
+
 - [ ] **Step 6: Commit**
 
 ```bash
-git add packages/usage-analysis apps/server/src/server.ts apps/web/src/legacy-views.tsx
+git add packages/usage-analysis apps/server/src/server.ts apps/server/test/quota-round-trip.test.ts
 git commit -m "feat: serve normalized quota snapshots from the overview endpoint"
 ```
+
+Slice 3 is complete at this point. The quota path runs end to end: Codex rate limits → normalized
+snapshot → ledger → `/api/overview`. The only consumer is still the legacy `LimitsCard`; Task 21
+builds the real quota meter and Task 24 puts it on the Overview.
 
 ---
 

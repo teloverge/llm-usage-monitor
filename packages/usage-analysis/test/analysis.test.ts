@@ -473,3 +473,63 @@ describe("Task session children", () => {
     assert.equal(view.byTask[0]?.children?.[0]?.key, "solo");
   });
 });
+
+describe("Quota snapshots in the overview", () => {
+  it("passes supplied snapshots through unchanged", () => {
+    const snapshots = [
+      {
+        usageSourceId: "codex-local",
+        sourceHostId: "host:a",
+        plan: "plus",
+        observedAt: "2026-07-23T10:00:00.000Z",
+        windows: [{ id: "primary", label: "5-hour window", usedPercent: 41.5 }],
+      },
+    ];
+    const view = analyzeUsage({
+      records: [],
+      prices: [],
+      sourceHosts: [],
+      memberships: [],
+      quotaSnapshots: snapshots,
+      filters: { timeframe: "all" },
+    });
+    assert.deepEqual(view.quotaSnapshots, snapshots);
+  });
+
+  it("defaults to no snapshots when none are supplied", () => {
+    const view = analyzeUsage({
+      records: [],
+      prices: [],
+      sourceHosts: [],
+      memberships: [],
+      filters: { timeframe: "all" },
+    });
+    assert.deepEqual(view.quotaSnapshots, []);
+  });
+
+  // Quota is not usage: it is the account's standing with the provider, which
+  // does not change because the reader narrowed the date range or typed in the
+  // search box. Filtering it would make the meter read differently depending on
+  // an unrelated control, and read as 0% for any filter that matches nothing.
+  it("reports quota unchanged regardless of the active filters", () => {
+    const snapshots = [
+      {
+        usageSourceId: "codex-local",
+        sourceHostId: "host:a",
+        plan: "plus",
+        observedAt: "2026-07-23T10:00:00.000Z",
+        windows: [{ id: "primary", label: "5-hour window", usedPercent: 41.5 }],
+      },
+    ];
+    const view = analyzeUsage({
+      records: [],
+      prices: [],
+      sourceHosts: [],
+      memberships: [],
+      quotaSnapshots: snapshots,
+      filters: { timeframe: "today", query: "matches-nothing", sourceHostId: "host:zzz" },
+    });
+    assert.equal(view.totals.records, 0);
+    assert.deepEqual(view.quotaSnapshots, snapshots);
+  });
+});

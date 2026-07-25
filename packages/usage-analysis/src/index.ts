@@ -7,6 +7,7 @@ import type {
   UsageFilters,
   UsageHistoryRecord,
   UsageModeFlags,
+  UsageQuotaSnapshot,
   UsageRecord,
   UsageTotals,
 } from "@llm-usage-monitor/contracts";
@@ -17,6 +18,13 @@ export interface AnalysisInput {
   sourceHosts: SourceHost[];
   memberships: HostGroupMembership[];
   filters: UsageFilters;
+  /**
+   * Deliberately NOT filtered by `filters`. Quota is the account's standing with
+   * the provider, not a property of the selected records — narrowing the period
+   * or typing in the search box must not change what the meter reads, and a
+   * filter matching nothing must not render as 0% used.
+   */
+  quotaSnapshots?: UsageQuotaSnapshot[];
   now?: Date;
 }
 
@@ -46,13 +54,7 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
     ),
     byHostGroup: rank(priced, ({ record }) => groupFor(record)),
     byHarness: rank(priced, ({ record }) => record.harnessId),
-    // PLACEHOLDER (Task 15 of the 2026-07-24 dashboard-redesign plan): the shape is
-    // now correct but nothing supplies it yet. Task 16 gives the ledger somewhere to
-    // store snapshots, Task 17 has the Codex importer produce them, and Task 18 adds
-    // `quotaSnapshots` to AnalysisInput and threads them through here. An empty list
-    // is the honest placeholder — it reports that nothing observed a quota, rather
-    // than fabricating one the ledger does not hold.
-    quotaSnapshots: [],
+    quotaSnapshots: input.quotaSnapshots ?? [],
   };
 }
 
