@@ -3173,16 +3173,36 @@ builds the real quota meter and Task 24 puts it on the Overview.
 
 **Files:**
 
+- Create: `apps/web/src/model/rank-scale.ts` (added during execution)
 - Create: `apps/web/src/components/rank-list.tsx`
 - Modify: `apps/web/src/styles.css`
+- Test: `apps/web/test/rank-scale.test.ts` (added during execution)
+
+- [ ] **Step 0: Put the arithmetic somewhere testable (added during execution)**
+
+`.tsx` cannot be unit tested here, and everything that can actually go wrong in this component is
+arithmetic rather than markup: an empty list, a zero or negative cap, and an all-unpriced period
+that divides by zero. Extract it to `apps/web/src/model/rank-scale.ts` — `rankView(rows, limit)`
+returning `{ shown, remaining, maximum }`, and `rankBarWidth(cost, maximum)` — with
+`apps/web/test/rank-scale.test.ts` covering:
+
+- the cap hides rows and `remaining` reports how many;
+- `maximum` is 0 for an empty list, not `-Infinity` (`Math.max()` with no arguments);
+- `rankBarWidth` returns 0 rather than `NaN` when nothing is priced — `width: NaN%` is an invalid
+  declaration that the browser drops silently, so the bar keeps whatever width it last had;
+- the width clamps to 0–100;
+- a zero **and** a negative limit hide everything. Unclamped, `slice(0, -1)` means "all but the
+  last", so a caller computing a limit arithmetically would quietly drop its smallest row.
 
 - [ ] **Step 1: Write the component**
 
-Create `apps/web/src/components/rank-list.tsx`:
+Create `apps/web/src/components/rank-list.tsx`. Two changes from the original draft, both
+described below it:
 
 ```tsx
 import type { RankedUsage } from "@llm-usage-monitor/contracts";
 import { formatMoney } from "../model/format.ts";
+import { rankBarWidth, rankView } from "../model/rank-scale.ts";
 
 export function RankList({
   rows,
@@ -3195,10 +3215,9 @@ export function RankList({
   onMore?: () => void;
   emptyLabel?: string;
 }) {
-  const shown = rows.slice(0, limit);
-  const maximum = Math.max(0, ...shown.map((row) => row.estimatedCost));
-  const remaining = rows.length - shown.length;
-  if (!shown.length) return <p className="empty-state">{emptyLabel}</p>;
+  if (!rows.length) return <p className="empty-state">{emptyLabel}</p>;
+
+  const { shown, remaining, maximum } = rankView(rows, limit);
   return (
     <>
       <ol className="rank-list">
@@ -3208,25 +3227,42 @@ export function RankList({
               {row.key}
             </span>
             <span className="rank-track" aria-hidden="true">
-              <i style={{ width: `${maximum ? (row.estimatedCost / maximum) * 100 : 0}%` }} />
+              <i style={{ width: `${rankBarWidth(row.estimatedCost, maximum)}%` }} />
             </span>
             <span className="rank-value">{formatMoney(row.estimatedCost)}</span>
           </li>
         ))}
       </ol>
-      {remaining > 0 && onMore && (
-        <button className="link" onClick={onMore}>
-          {remaining} more →
-        </button>
-      )}
+      {remaining > 0 &&
+        (onMore ? (
+          <button type="button" className="link" onClick={onMore}>
+            {remaining} more →
+          </button>
+        ) : (
+          <p className="link link-static">{remaining} more</p>
+        ))}
     </>
   );
 }
 ```
 
+**The empty check reads `rows.length`, not `shown.length`.** A list that has rows but shows none of
+them is truncated, not empty; keying off `shown` renders "No usage in this period" over real usage.
+
+**Truncation is disclosed whether or not there is a drill-down.** The original `remaining > 0 &&
+onMore` renders nothing when no handler is passed — and Task 24 has exactly such a call site:
+`<RankList rows={data.bySourceHost} limit={5} />`. A reader with eight hosts would see five and no
+indication the other three exist. The static variant says so without pretending to be an action.
+
+`type="button"` matches the three buttons already in `app.tsx`; without it a button inside any
+future `<form>` defaults to submit.
+
 - [ ] **Step 2: Add the styles**
 
-Append to `apps/web/src/styles.css`:
+Insert these **before** the `@media` blocks at the end of `apps/web/src/styles.css`, not at EOF.
+Appending after them puts base rules later in the cascade than the responsive overrides, so any
+future media-query rule for these classes would lose to its own base rule at equal specificity.
+The same applies to every later task in this plan that says "append to `styles.css`".
 
 ```css
 .rank-list {
@@ -3274,14 +3310,24 @@ Append to `apps/web/src/styles.css`:
 .link:hover {
   color: var(--ink);
 }
+/* Truncation disclosed with no drill-down to offer: same voice as the button,
+   but not focusable and with no hover affordance, so it never reads as an
+   action that does nothing when clicked. */
+.link-static {
+  margin-bottom: 0;
+}
+.link-static:hover {
+  color: var(--muted);
+}
 ```
 
 - [ ] **Step 3: Typecheck and commit**
 
-Run: `vp run typecheck`
+Run: `vp run check` (the extracted module has tests now, so the full gate applies)
 
 ```bash
-git add apps/web/src/components/rank-list.tsx apps/web/src/styles.css
+git add apps/web/src/components/rank-list.tsx apps/web/src/model/rank-scale.ts \
+  apps/web/test/rank-scale.test.ts apps/web/src/styles.css
 git commit -m "feat: add single-hue rank list component"
 ```
 
