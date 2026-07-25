@@ -1,0 +1,12 @@
+{
+  "name": "@llm-usage-monitor/dashboard-actions",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@llm-usage-monitor/contracts": "workspace:*"
+  }
+}

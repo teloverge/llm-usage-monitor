@@ -1,0 +1,17 @@
+{
+  "name": "@llm-usage-monitor/source-host-agent",
+  "private": true,
+  "bin": {
+    "usage-monitor-agent": "dist/cli.mjs"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=dist/cli.mjs"
+  },
+  "dependencies": {
+    "@llm-usage-monitor/contracts": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

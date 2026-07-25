@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Add Oxlint and Oxfmt to the pinned validation workflow, remove the redundant Activity Bar import link, and rename incremental Codex imports to refresh actions.
+- Restart stale shared runtimes after an extension update, load newly added default prices such as `codex-auto-review`, and condense the Pricing workspace.
+- Add `codex-auto-review` to the default OpenAI pricing catalog using the supplied July 22, 2026 rate source.
+- Group Advanced usage into collapsible provider and model levels, and roll logically identical History tasks into summed task rows with collapsible session details.
+- Start the Windows Usage Monitor Server without a visible console and add a system-tray menu for opening the dashboard or fully exiting until the next explicit launch.
+- Roll Advanced model usage up by base model with expandable reasoning levels and explicit Ultra and Fast mode indicators across the dashboard.
+- Group History by date, task, model, reasoning level, or Source Host with collapsible sections, row estimates, and group-level API-equivalent totals.
+- Replace the generated web header mark with the approved Teloverge LLM Usage Monitor asset.
+- Prevent raw Source Host identifiers and MAC-shaped hostnames from being rendered or returned in History views.
+- Reorganize the project as a TypeScript workspace with separate React web, shared server, VS Code extension, Source Host Agent, contracts, analysis, action, and SQLite ledger modules.
+- Add cost-first automatic charts, API-equivalent spend totals, rolling Last 24 hours, and fleet-aware Source Host and Host Group projections.
+- Run the browser and VS Code clients against one loopback-only server, with VS Code discovery/startup and one-time legacy-state migration.
+- Reserve a fail-closed, per-user Source Host Agent for future authenticated secondary-host collection on Windows, macOS, and Linux.
 - Transfer the product identity from PsiForge to Teloverge and replace the parent, dashboard, README, package, and Activity Bar branding with the Teloverge LLM Usage Monitor logo.
 - Sort expanded reasoning-level rows from highest effort to lowest.
 - Add the Usage Monitor view icon and remove redundant generated activation events from the extension manifest.

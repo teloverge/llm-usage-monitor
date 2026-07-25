@@ -1,0 +1,15 @@
+{
+  "name": "@llm-usage-monitor/usage-ledger",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@llm-usage-monitor/contracts": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "@llm-usage-monitor/usage-analysis",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@llm-usage-monitor/contracts": "workspace:*"
+  }
+}
