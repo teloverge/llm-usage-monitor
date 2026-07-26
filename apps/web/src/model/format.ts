@@ -48,6 +48,29 @@ export function formatCoverage({ records, priced }: { records: number; priced: n
     : `${plain.format(priced)} of ${plain.format(records)} records priced`;
 }
 
+/**
+ * Absolute instants rendered in the reader's own time zone — "resets at 3pm" is
+ * only useful in the zone they are sitting in — but under the pinned locale, so
+ * the wording and ordering stay consistent with every other string on the page.
+ * Calling `Date#toLocaleString()` directly would take BOTH from the OS and is
+ * the bypass this module exists to prevent.
+ *
+ * `timeZone` is an override for tests only: without it the output depends on the
+ * machine running the suite, which is exactly the non-determinism the locale
+ * comment above is guarding against.
+ *
+ * Returns null rather than the string "Invalid Date" when the input cannot be
+ * parsed, so a caller renders nothing instead of pasting that into a sentence.
+ */
+export function formatDateTime(value: string, timeZone?: string): string | null {
+  const instant = new Date(value);
+  if (Number.isNaN(instant.getTime())) return null;
+  const options: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" };
+  return new Intl.DateTimeFormat(LOCALE, timeZone ? { ...options, timeZone } : options).format(
+    instant,
+  );
+}
+
 export type QuotaStatus = "good" | "warning" | "critical" | "unreported";
 
 /**

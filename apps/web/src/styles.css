@@ -622,6 +622,63 @@ footer {
   font-variant-numeric: tabular-nums;
 }
 
+.quota-groups {
+  display: grid;
+  gap: 11px;
+}
+.quota-group + .quota-group {
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+.quota-source {
+  margin: 0 0 5px;
+  color: var(--muted);
+  font-size: var(--size-meta);
+}
+.quota-window + .quota-window {
+  margin-top: 11px;
+}
+.quota-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 0 4px;
+  font-size: var(--size-meta);
+}
+.quota-head b {
+  font-weight: 550;
+}
+.quota-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+.quota-value.warning {
+  color: var(--status-warning);
+}
+.quota-value.critical {
+  color: var(--status-critical);
+}
+.quota-value.unreported {
+  color: var(--muted);
+  font-weight: 400;
+}
+.meter {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--track);
+  overflow: hidden;
+}
+.meter i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+}
+.quota-reset {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: var(--size-meta);
+}
+
 @media (max-width: 900px) {
   .topbar {
     grid-template-columns: 1fr auto;

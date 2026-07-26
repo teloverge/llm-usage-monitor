@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   formatCoverage,
+  formatDateTime,
   formatMoney,
   formatPercent,
   formatTokens,
@@ -35,6 +36,33 @@ describe("Formatters", () => {
 
   it("describes an empty period in prose when there are no records", () => {
     assert.equal(formatCoverage({ records: 0, priced: 0 }), "No records in this period");
+  });
+});
+
+describe("Absolute instants", () => {
+  // The time zone is passed explicitly here and nowhere else: real callers want
+  // the reader's own zone, but a suite that depended on it would pass or fail
+  // according to the machine running it.
+  it("renders an ISO instant under the pinned locale", () => {
+    assert.equal(
+      formatDateTime("2026-07-23T12:06:40.000Z", "UTC"),
+      "Jul 23, 2026, 12:06 PM",
+      "en-US month-first wording with a 12-hour clock, whatever the OS locale is",
+    );
+  });
+
+  it("converts into the requested zone rather than reporting UTC", () => {
+    assert.equal(
+      formatDateTime("2026-07-23T12:06:40.000Z", "America/Chicago"),
+      "Jul 23, 2026, 7:06 AM",
+    );
+  });
+
+  it("returns null for an unparseable instant instead of the words Invalid Date", () => {
+    // A caller splices this into "resets {value}"; the literal string
+    // "Invalid Date" reads as a real reset time to anyone skimming.
+    assert.equal(formatDateTime("not-a-date"), null);
+    assert.equal(formatDateTime(""), null);
   });
 });
 
