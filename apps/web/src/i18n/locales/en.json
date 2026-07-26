@@ -45,6 +45,22 @@
       "tab": "Language",
       "heading": "Language",
       "hint": "Applies to this browser only. Numbers, dates, and currency follow the language you choose."
+    },
+    "hostGroups": {
+      "heading": "Host groups",
+      "effectiveHint": "Grouping applies to usage recorded from now on. Earlier usage keeps the grouping that applied when it happened.",
+      "newGroup": "New group",
+      "empty": "No host groups yet. Use New group to add one.",
+      "groupName": "Group name",
+      "saving": "Saving…",
+      "save": "Save",
+      "retire": "Retire",
+      "thisGroup": "this group",
+      "hostsIn": "Hosts in {{group}}",
+      "currentlyIn": "currently in {{group}}",
+      "ungrouped": "Ungrouped: {{hosts}}",
+      "none": "none",
+      "confirmRetire": "Retire \"{{group}}\"? Usage recorded from now on will be ungrouped. Past usage keeps this group, so no existing totals change."
     }
   },
   "app": {

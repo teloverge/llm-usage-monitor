@@ -45,6 +45,22 @@
       "tab": "Idioma",
       "heading": "Idioma",
       "hint": "Se aplica solo a este navegador. Los números, las fechas y la moneda siguen el idioma que elijas."
+    },
+    "hostGroups": {
+      "heading": "Grupos de hosts",
+      "effectiveHint": "La agrupación se aplica al uso registrado a partir de ahora. El uso anterior conserva la agrupación vigente en su momento.",
+      "newGroup": "Nuevo grupo",
+      "empty": "Todavía no hay grupos de hosts. Usa Nuevo grupo para añadir uno.",
+      "groupName": "Nombre del grupo",
+      "saving": "Guardando…",
+      "save": "Guardar",
+      "retire": "Retirar",
+      "thisGroup": "este grupo",
+      "hostsIn": "Hosts en {{group}}",
+      "currentlyIn": "actualmente en {{group}}",
+      "ungrouped": "Sin agrupar: {{hosts}}",
+      "none": "ninguno",
+      "confirmRetire": "¿Retirar \"{{group}}\"? El uso registrado a partir de ahora quedará sin agrupar. El uso pasado conserva este grupo, así que ningún total existente cambia."
     }
   },
   "app": {
