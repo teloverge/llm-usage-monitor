@@ -1,9 +1,25 @@
 import { harnessForSource } from "@llm-usage-monitor/contracts";
+import { SERIES } from "../theme/palette.ts";
 
 const HARNESS_LABELS: Record<string, string> = {
   codex: "Codex",
   "claude-code": "Claude Code",
 };
+
+/**
+ * Series colour per harness, assigned by entity rather than by rank so a
+ * harness keeps the same swatch wherever it appears. Anything unregistered
+ * shares the third slot: the dot is an aid to scanning, not an identifier, and
+ * the label beside it is what actually distinguishes the row.
+ */
+const HARNESS_COLORS: Record<string, string> = {
+  codex: SERIES.teal,
+  "claude-code": SERIES.blue,
+};
+
+export function harnessColor(harnessId: string): string {
+  return HARNESS_COLORS[harnessId] ?? SERIES.orange;
+}
 
 /**
  * Display label for a harness id. An id we do not recognise — including the

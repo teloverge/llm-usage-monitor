@@ -4893,7 +4893,13 @@ git commit -m "feat: rebuild Breakdown with chip group-by, nesting, and a table 
 
 Run: `git mv apps/web/src/usage-groups.ts apps/web/src/model/usage-groups.ts`
 
-Update the import path in `apps/web/test/usage-groups.test.ts` to `../src/model/usage-groups.ts`.
+Update the import path in `apps/web/test/usage-groups.test.ts` to `../src/model/usage-groups.ts`
+and in `legacy-views.tsx` (still importing it until Step 8).
+
+**Also delete `groupModelsByProvider` and `ProviderModelGroup`, and their test.** Task 27 removed
+their only consumer (`ModelRollups`): the new Breakdown nests via `byModel`'s children from
+`usage-analysis` rather than regrouping client-side. Only the test referenced them afterwards, so
+they were dead code kept alive by their own coverage.
 
 - [ ] **Step 2: Write the failing test**
 
@@ -4947,7 +4953,9 @@ Expected: FAIL — `harnesses` is undefined.
 
 - [ ] **Step 4: Extend the grouping**
 
-In `apps/web/src/model/usage-groups.ts`, add `harnesses: string[];` to the `HistorySession` interface. In `groupSessions`, add:
+In `apps/web/src/model/usage-groups.ts`, add `harnesses: string[];` to the `HistorySession`
+interface — raw ids, not labels, so a view can render them through `harnessLabel`. In
+`groupSessions`, add:
 
 ```ts
         harnesses: unique(sorted.map((record) => record.harnessId)),
@@ -4969,20 +4977,25 @@ Expected: PASS.
 
 - [ ] **Step 6: Write the view**
 
-Create `apps/web/src/views/history.tsx`:
+Create `apps/web/src/views/history.tsx`. Three corrections to the draft below:
+
+- **Render `harnessLabel(harness)`, not the raw id.** The draft prints `codex` and `unknown`
+  verbatim — exactly what Task 24 Step 0 built `harnessLabel` for, and `unknown` must not read as
+  the name of something installed.
+- **Move the colour map into `model/harness.ts` as `harnessColor`.** A third harness lookup table
+  in a view is a third place to keep in step; putting it beside the labels keeps all harness
+  presentation together and testable. The dot also takes `aria-hidden` — the label beside it is
+  what names the harness, so the dot is decoration.
+- **Three more pinned-locale bypasses.** `new Date(...).toLocaleString()` appears twice and
+  `session.records.toLocaleString()` once. Use `formatDateTime` and `formatCount`.
 
 ```tsx
 import { useMemo } from "react";
 import type { UsageHistoryRecord } from "@llm-usage-monitor/contracts";
 import { Zone } from "../components/panel.tsx";
-import { SERIES } from "../theme/palette.ts";
-import { formatMoney, formatTokens } from "../model/format.ts";
+import { formatCount, formatDateTime, formatMoney, formatTokens } from "../model/format.ts";
+import { harnessColor, harnessLabel } from "../model/harness.ts";
 import { groupHistoryByTask, type HistorySession } from "../model/usage-groups.ts";
-
-const HARNESS_COLOR: Record<string, string> = {
-  codex: SERIES.teal,
-  "claude-code": SERIES.blue,
-};
 
 export function History({ records }: { records: UsageHistoryRecord[] }) {
   const groups = useMemo(() => groupHistoryByTask(records), [records]);
@@ -5081,7 +5094,19 @@ Append to `apps/web/src/styles.css`:
 
 In `apps/web/src/app.tsx`, import `History` from `./views/history.tsx` and drop the `legacy-views.tsx` import entirely. Then delete `apps/web/src/legacy-views.tsx` and move the `Pricing` component into `apps/web/src/views/settings/rates.tsx` unchanged apart from its import paths, wiring it to the `settingsOpen` branch of `ViewSlot`.
 
-Run: `git rm apps/web/src/legacy-views.tsx`
+Run: `git rm -f apps/web/src/legacy-views.tsx` (it has local modifications from Step 1's import fix,
+so plain `git rm` refuses).
+
+`rates.tsx` is `Pricing` verbatim apart from its imports — drop the `title` helper that follows it
+in `legacy-views.tsx`, which belonged to the old session table, and add the missing `type="button"`
+on its save button.
+
+Deleting the legacy file orphans one more style family: `.section-summary`, `.summary-copy`,
+`.summary-total`, `.history-group*`, `.mode-badge*`, `.mode-empty` and `.save`. The new History
+uses `.rollup` and `.data-table` instead. `.table-card` and the `.pricing-*` rules stay — `rates.tsx`
+still wears them. Verify the same way as Tasks 25 and 27, and re-run `oxfmt --check` on
+`styles.css` afterwards: a line-range deletion that clips a selector line leaves a rule body with
+no selector, which is a parse error rather than a silent mistake.
 
 - [ ] **Step 9: Verify the whole workspace**
 
