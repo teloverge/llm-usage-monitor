@@ -35,6 +35,17 @@ export function formatTokens(value: number): string {
 }
 
 /**
+ * Exact counts of things — tasks, models, records. Grouped rather than
+ * `String(value)`, so a four-figure count reads "1,234" like every other number
+ * on the page instead of "1234" beside "6,900 records priced". Never compacted:
+ * a count of tasks is something you might reconcile against a list, so it keeps
+ * every digit.
+ */
+export function formatCount(value: number): string {
+  return plain.format(value);
+}
+
+/**
  * Money for a chart axis, where `formatMoney` does not fit. A 48px-wide axis
  * gutter at 11px type holds roughly seven characters; "$8,947.32" is nine and
  * gets clipped, which turns a precise figure into a misread one. Ticks are for

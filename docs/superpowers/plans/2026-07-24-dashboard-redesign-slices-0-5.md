@@ -3924,8 +3924,31 @@ git commit -m "feat: add headline figure and single-axis trend chart with measur
 
 **Files:**
 
+- Create: `apps/web/src/model/stat-strip.ts` (added during execution)
 - Create: `apps/web/src/components/stat-strip.tsx`
+- Modify: `apps/web/src/model/format.ts` (added during execution — `formatCount`)
 - Modify: `apps/web/src/styles.css`
+- Test: `apps/web/test/stat-strip.test.ts` (added during execution)
+
+- [ ] **Step 0: Move the cache decision into `model/stat-strip.ts` (added during execution)**
+
+`cacheStat(totals)` → `{ ratio, partialOf }`, both nullable.
+
+**The gate must be `cacheReportingInputTokens`, not `cacheReportingRecords`.** That is the ratio's
+own denominator — `cacheEfficiency` is `cachedInputTokens / cacheReportingInputTokens`. Records can
+report caching while contributing no input tokens, and `analyzeUsage` then guards the division and
+returns 0. A records-based gate renders that guarded zero as a measured **"0.0%"**: a measurement
+claim over an empty denominator. Same family as the Task 20 population mix-up, and the reason the
+gate and the denominator have to be the same quantity.
+
+`ratio: null` must stay distinct from `ratio: 0` — a source that reported and cached nothing is a
+real measurement and reads "0.0%", not "Not reported".
+
+- [ ] **Step 0b: Add `formatCount` to `model/format.ts` (added during execution)**
+
+The draft renders counts with `String(totals.tasks)`, so a four-figure task count reads "1234"
+beside "6,900 records priced" from `formatCoverage`. `formatCount` groups them. Never compacted:
+a count of tasks is something a reader might reconcile against a list, so it keeps every digit.
 
 - [ ] **Step 1: Write the component**
 
@@ -3933,26 +3956,24 @@ Create `apps/web/src/components/stat-strip.tsx`:
 
 ```tsx
 import type { UsageTotals } from "@llm-usage-monitor/contracts";
-import { formatPercent, formatTokens } from "../model/format.ts";
+import { formatCount, formatPercent, formatTokens } from "../model/format.ts";
+import { cacheStat } from "../model/stat-strip.ts";
 
 export function StatStrip({ totals }: { totals: UsageTotals }) {
-  // Coverage is disclosed in TOKENS, not records, because cacheEfficiency is
-  // token-weighted. A few large calls that do not report caching can dominate token
-  // volume while looking negligible as a record count, so "of 6,400 records" could
-  // imply the ratio covers far more usage than it does.
-  const partialCacheCoverage =
-    totals.cacheReportingInputTokens > 0 && totals.cacheReportingInputTokens < totals.inputTokens;
+  const cache = cacheStat(totals);
   const stats = [
     { label: "Tokens", value: formatTokens(totals.totalTokens), note: "" },
     {
       label: "Cached input",
-      value: totals.cacheReportingRecords ? formatPercent(totals.cacheEfficiency) : "Not reported",
-      note: partialCacheCoverage
-        ? `of ${formatTokens(totals.cacheReportingInputTokens)} reporting tokens`
-        : "",
+      value: cache.ratio === null ? "Not reported" : formatPercent(cache.ratio),
+      // Coverage is stated in TOKENS because the ratio is token-weighted: a few
+      // large calls that do not report caching can dominate token volume while
+      // looking negligible as a record count, so "of 6,400 records" would imply
+      // the ratio covers far more usage than it does.
+      note: cache.partialOf === null ? "" : `of ${formatTokens(cache.partialOf)} reporting tokens`,
     },
-    { label: "Tasks", value: String(totals.tasks), note: "" },
-    { label: "Models", value: String(totals.models), note: "" },
+    { label: "Tasks", value: formatCount(totals.tasks), note: "" },
+    { label: "Models", value: formatCount(totals.models), note: "" },
   ];
   return (
     <section className="panel strip">
@@ -3993,12 +4014,42 @@ Append to `apps/web/src/styles.css`:
 }
 ```
 
+Insert before the `@media` blocks, not at EOF — see Task 19 Step 2.
+
+`.strip` is the redesign's replacement for `.metrics`, which both media blocks already collapse
+4 → 2 → 1. Give `.strip` the same treatment, or four cells share ~78px each at 375px. The divider
+is a left border, so at two columns the third cell would carry one at the start of its row — reset
+it on `:nth-child(odd)` there, and on every cell at one column:
+
+```css
+@media (max-width: 900px) {
+  .strip {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 11px;
+  }
+  .strip > div:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+@media (max-width: 600px) {
+  .strip {
+    grid-template-columns: 1fr;
+  }
+  .strip > div {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+```
+
 - [ ] **Step 3: Typecheck and commit**
 
-Run: `vp run typecheck`
+Run: `vp run check`
 
 ```bash
-git add apps/web/src/components/stat-strip.tsx apps/web/src/styles.css
+git add apps/web/src/components/stat-strip.tsx apps/web/src/model/stat-strip.ts \
+  apps/web/src/model/format.ts apps/web/test/stat-strip.test.ts apps/web/src/styles.css
 git commit -m "feat: add stat strip with cache coverage disclosure"
 ```
 
