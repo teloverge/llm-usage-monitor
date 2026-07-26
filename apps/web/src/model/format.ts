@@ -197,22 +197,6 @@ export function formatWholePercent(percentage: number): string {
 }
 
 /**
- * Named fields rather than two positional numbers: a transposed positional call
- * type-checks and yields plausible-but-wrong text ("4,900 of 4,812 records priced")
- * directly under the hero figure, where a reader would trust it.
- *
- * Always returns a renderable string, never null — the sole consumer splices it
- * into a sentence with no conditional, so the empty case belongs here rather than
- * duplicated as a null-guard at every call site.
- */
-export function formatCoverage({ records, priced }: { records: number; priced: number }): string {
-  if (records === 0) return "No records in this period";
-  return priced === records
-    ? `${plain().format(records)} records priced`
-    : `${plain().format(priced)} of ${plain().format(records)} records priced`;
-}
-
-/**
  * Absolute instants rendered in the reader's own time zone — "resets at 3pm" is
  * only useful in the zone they are sitting in — but under the active UI locale,
  * so the wording and ordering stay consistent with every other string on the
