@@ -17,7 +17,6 @@ import {
   formatMoney,
   formatNumberCompact,
   formatTokens,
-  formatTokensAxis,
 } from "../model/format.ts";
 import { coverageMessage } from "../model/coverage.ts";
 
@@ -53,11 +52,10 @@ export function Headline({ data }: { data: OverviewView }) {
   const period = t(inlinePeriodKey(data.filters.timeframe));
   const key = measure === "cost" ? "estimatedCost" : "totalTokens";
   // The axis and the tooltip format the same number differently on purpose: the
-  // axis gutter is 48px and clips anything longer than about seven characters,
-  // while the tooltip has room for the exact figure including its currency.
-  // Both axis formatters drop to zero fraction digits for exactly that reason
-  // — see `formatNumberCompact` and `formatTokensAxis` in model/format.ts.
-  const axisFormat = measure === "cost" ? formatNumberCompact : formatTokensAxis;
+  // axis compacts to fit the gutter, while the tooltip has room for the exact
+  // figure including its currency. Both keep one fraction digit — see
+  // `formatNumberCompact` in model/format.ts for why the axis cannot drop it.
+  const axisFormat = measure === "cost" ? formatNumberCompact : formatTokens;
   const exactFormat = measure === "cost" ? formatMoney : formatTokens;
   const coverage = coverageMessage({
     records: data.totals.records,
@@ -121,7 +119,12 @@ export function Headline({ data }: { data: OverviewView }) {
               tick={{ fill: CHART_INK.muted, fontSize: 11 }}
               tickLine={false}
               axisLine={false}
-              width={48}
+              // Sized from the widest tick this axis can actually produce, not
+              // by eye: measured in the browser at 11px, Spanish "892,4 mil M"
+              // — a token axis in the hundreds of billions — renders 57px, and
+              // English is always narrower. 48px clipped it, and clipping a
+              // compact number turns a precise figure into a misread one.
+              width={64}
             />
             <Tooltip
               formatter={(value) => exactFormat(Number(value))}

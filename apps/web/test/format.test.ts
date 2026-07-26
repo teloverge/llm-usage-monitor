@@ -8,7 +8,6 @@ import {
   formatNumberCompact,
   formatPercent,
   formatTokens,
-  formatTokensAxis,
   formatWholePercent,
   quotaStatus,
   setFormatLocale,
@@ -126,46 +125,34 @@ describe("Formatters", () => {
 });
 
 describe("Axis formatting", () => {
-  // Zero fraction digits, not one: a fractional compact value in the
-  // 100,000-999,999 range is 9 characters in Spanish ("892,4 mil"), which
-  // overruns the ~7-character budget of the 48px gutter. Dropping the
-  // fraction digit is what keeps every value in range at or under budget.
-  it("keeps axis numbers short enough for the gutter, with no fraction digit", () => {
+  it("compacts an axis number and drops the currency", () => {
     inLocale("en", () => {
-      assert.equal(formatNumberCompact(8947), "9K");
-      assert.equal(formatNumberCompact(1_240_000), "1M");
-      assert.equal(formatNumberCompact(142.3), "142");
+      assert.equal(formatNumberCompact(8947), "8.9K");
+      assert.equal(formatNumberCompact(1_240_000), "1.2M");
+      assert.equal(formatNumberCompact(142.3), "142.3");
       assert.equal(formatNumberCompact(0), "0");
     });
     inLocale("es", () => {
-      assert.equal(formatNumberCompact(8947), `9${NBSP}mil`);
-      assert.equal(formatNumberCompact(1_240_000), `1${NBSP}M`);
-      assert.equal(formatNumberCompact(142.3), "142");
+      assert.equal(formatNumberCompact(8947), `8,9${NBSP}mil`);
+      assert.equal(formatNumberCompact(1_240_000), `1,2${NBSP}M`);
+      assert.equal(formatNumberCompact(142.3), "142,3");
       assert.equal(formatNumberCompact(0), "0");
     });
   });
 
-  // Pins the exact bug this formatter exists to fix: at one fraction digit
-  // (`formatTokens`' own rate), 892,400 would render "892,4 mil" (9 chars) in
-  // Spanish; at zero it is "892 mil" (7), inside the gutter budget.
-  it("formats a value in the danger range without overrunning the gutter", () => {
+  /**
+   * Regression: the axis formerly rounded to zero fraction digits to save gutter
+   * width. Recharts spaces ticks evenly, so a domain of 0..3,008 produces 1,504
+   * and 2,256 — both of which round to "2K", putting one label on two different
+   * gridlines. The fraction digit is what keeps the ticks distinguishable, and
+   * this pins the exact pair that collided in real data.
+   */
+  it("keeps evenly spaced ticks distinguishable from each other", () => {
     inLocale("en", () => {
-      assert.equal(formatTokensAxis(892_400), "892K");
+      assert.notEqual(formatNumberCompact(1_504), formatNumberCompact(2_256));
     });
     inLocale("es", () => {
-      assert.equal(formatTokensAxis(892_400), `892${NBSP}mil`);
-    });
-  });
-
-  it("keeps a token axis value under 1,000 exact, like formatTokens does", () => {
-    inLocale("en", () => {
-      assert.equal(formatTokensAxis(812), "812");
-      assert.equal(formatTokensAxis(999), "999");
-      assert.equal(formatTokensAxis(1_000), "1K");
-    });
-    inLocale("es", () => {
-      assert.equal(formatTokensAxis(812), "812");
-      assert.equal(formatTokensAxis(1_000), `1${NBSP}mil`);
+      assert.notEqual(formatNumberCompact(1_504), formatNumberCompact(2_256));
     });
   });
 

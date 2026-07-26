@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2
+
+- The dashboard reads in the language of your browser, with English and Spanish available and a Language setting to override the choice. Numbers, dates and percentages follow the selected language; costs always name the currency explicitly as `USD` rather than a bare `$`, which is ambiguous outside the US.
+- Chart axis ticks no longer carry the currency — the unit is stated once on the Cost/Tokens toggle above the chart — and no longer round two different gridlines to the same label, which made an axis read `2K` twice.
+- Source Host names resolve in the view rather than on the server, so a host whose reported hostname is a MAC address shows a stable "Source Host N" label consistently everywhere it appears, in whichever language is selected.
+
 ## 0.3.1
 
 Maintenance release. No functional changes; version bump only.
