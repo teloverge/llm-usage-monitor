@@ -232,16 +232,6 @@ describe("Harness ranking", () => {
       effectiveDate: "2026-01-01",
     },
   ];
-  const hosts = [
-    {
-      id: "host:a",
-      hostname: "workstation",
-      platform: "win32",
-      architecture: "x64",
-      firstSeenAt: "2026-01-01T00:00:00.000Z",
-      lastSeenAt: "2026-07-23T10:00:00.000Z",
-    },
-  ];
 
   it("groups records by harness and sorts by estimated cost", () => {
     const view = analyzeUsage({
@@ -363,16 +353,6 @@ describe("Unavailable metrics are not zero", () => {
       effectiveDate: "2026-01-01",
     },
   ];
-  const hosts = [
-    {
-      id: "host:a",
-      hostname: "workstation",
-      platform: "win32",
-      architecture: "x64",
-      firstSeenAt: "2026-01-01T00:00:00.000Z",
-      lastSeenAt: "2026-07-23T10:00:00.000Z",
-    },
-  ];
 
   it("excludes records that do not report caching from cache efficiency", () => {
     const view = analyzeUsage({
@@ -444,16 +424,6 @@ describe("Task session children", () => {
       output: 10,
       source: "test",
       effectiveDate: "2026-01-01",
-    },
-  ];
-  const hosts = [
-    {
-      id: "host:a",
-      hostname: "workstation",
-      platform: "win32",
-      architecture: "x64",
-      firstSeenAt: "2026-01-01T00:00:00.000Z",
-      lastSeenAt: "2026-07-23T10:00:00.000Z",
     },
   ];
 
