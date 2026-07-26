@@ -106,6 +106,65 @@ describe("Usage Ledger", () => {
       1,
     );
   });
+
+  it("moving a host into another group closes its previous membership", () => {
+    const ledger = create();
+    ledger.upsertSourceHost(
+      {
+        id: "host:a",
+        hostname: "workstation",
+        platform: "win32",
+        architecture: "x64",
+        firstSeenAt: "2026-01-01T00:00:00.000Z",
+        lastSeenAt: "2026-07-23T12:00:00.000Z",
+      },
+      [],
+    );
+    ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-01-01T00:00:00.000Z");
+    ledger.setHostGroup("group:two", "Workstations", ["host:a"], "2026-07-01T00:00:00.000Z");
+    assert.deepEqual(ledger.memberships(), [
+      {
+        hostGroupId: "group:one",
+        sourceHostId: "host:a",
+        effectiveFrom: "2026-01-01T00:00:00.000Z",
+        effectiveTo: "2026-07-01T00:00:00.000Z",
+      },
+      {
+        hostGroupId: "group:two",
+        sourceHostId: "host:a",
+        effectiveFrom: "2026-07-01T00:00:00.000Z",
+        effectiveTo: null,
+      },
+    ]);
+  });
+
+  // Two saves landing in the same millisecond collide on the membership primary
+  // key (group, host, effective_from). The close-then-insert would otherwise
+  // leave the row closed and silently drop the membership the user just saved.
+  it("re-saving an unchanged group at the same instant keeps the membership open", () => {
+    const ledger = create();
+    ledger.upsertSourceHost(
+      {
+        id: "host:a",
+        hostname: "workstation",
+        platform: "win32",
+        architecture: "x64",
+        firstSeenAt: "2026-01-01T00:00:00.000Z",
+        lastSeenAt: "2026-07-23T12:00:00.000Z",
+      },
+      [],
+    );
+    ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-07-01T00:00:00.000Z");
+    ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-07-01T00:00:00.000Z");
+    assert.deepEqual(ledger.memberships(), [
+      {
+        hostGroupId: "group:one",
+        sourceHostId: "host:a",
+        effectiveFrom: "2026-07-01T00:00:00.000Z",
+        effectiveTo: null,
+      },
+    ]);
+  });
 });
 
 describe("Ledger import idempotency", () => {
