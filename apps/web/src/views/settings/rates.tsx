@@ -21,13 +21,19 @@ export function Pricing({
 }) {
   const [draft, setDraft] = useState(prices);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   useEffect(() => setDraft(prices), [prices]);
   const dirty = JSON.stringify(draft) !== JSON.stringify(prices);
   const save = async () => {
     setSaving(true);
+    setError("");
     try {
       await executeAction({ version: 1, type: "replace-prices", prices: draft });
       await onSaved();
+    } catch (reason) {
+      // Without this the rejection is unhandled, onSaved never runs, and the
+      // button returns to "Prices saved" as though nothing went wrong.
+      setError(reason instanceof Error ? reason.message : String(reason));
     } finally {
       setSaving(false);
     }
@@ -43,6 +49,11 @@ export function Pricing({
           {saving ? "Saving…" : dirty ? "Save changes" : "Prices saved"}
         </button>
       </div>
+      {error && (
+        <p role="alert" className="error host-group-error">
+          {error}
+        </p>
+      )}
       {draft.length ? (
         <div className="table-card pricing-table">
           <table>

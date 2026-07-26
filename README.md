@@ -20,6 +20,7 @@ The dollar total is an **API-equivalent estimate**: what the selected token usag
 - Reports metrics a source does not supply as unavailable rather than as zero.
 - Filters Today, rolling Last 24 hours, 7/30/90 days, all retained history, task name, and Source Host.
 - Uses hostname as the preferred Source Host label and retains IP addresses as informative observations.
+- Groups Source Hosts into user-defined Host Groups from Settings, effective from the moment they are saved.
 - Stores canonical Usage Records, Source Hosts, effective-dated Host Group membership, prices, and import state in SQLite.
 - Runs the browser and VS Code surfaces against one loopback-only Usage Monitor Server.
 
