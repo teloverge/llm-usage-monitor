@@ -84,7 +84,10 @@ export function Headline({ data }: { data: OverviewView }) {
             <CartesianGrid stroke={CHART_INK.grid} vertical={false} />
             <XAxis
               dataKey="bucket"
-              tickFormatter={formatBucketLabel}
+              // Wrapped, not passed by reference: recharts calls tickFormatter
+              // with (value, index), and the index would land in the timeZone
+              // parameter.
+              tickFormatter={(value) => formatBucketLabel(String(value))}
               stroke={CHART_INK.axis}
               tick={{ fill: CHART_INK.muted, fontSize: 11 }}
               tickLine={false}
