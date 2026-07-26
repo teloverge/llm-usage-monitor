@@ -6,9 +6,10 @@ import {
   formatCount,
   formatDateTime,
   formatMoney,
-  formatMoneyCompact,
+  formatNumberCompact,
   formatPercent,
   formatTokens,
+  formatWholePercent,
   quotaStatus,
   setFormatLocale,
 } from "../src/model/format.ts";
@@ -84,6 +85,34 @@ describe("Formatters", () => {
     });
   });
 
+  it("formats a ratio as a percent in the active locale", () => {
+    inLocale("en", () => {
+      assert.equal(formatPercent(0.682), "68.2%");
+    });
+    // Spanish uses a comma decimal and a NO-BREAK SPACE before the sign.
+    inLocale("es", () => {
+      assert.equal(formatPercent(0.682), `68,2${NBSP}%`);
+    });
+  });
+
+  /**
+   * Quota meters and token-mix shares arrive already whole and are read at a
+   * glance, so they keep no decimal — "82%", not "82.0%". Separate from
+   * `formatPercent` rather than a flag on it, because the two also differ in
+   * what they take: a ratio there, a percentage here. One function taking
+   * either would be a transposition waiting to happen.
+   */
+  it("formats an already-whole percentage without a decimal", () => {
+    inLocale("en", () => {
+      assert.equal(formatWholePercent(82), "82%");
+      assert.equal(formatWholePercent(0), "0%");
+      assert.equal(formatWholePercent(100), "100%");
+    });
+    inLocale("es", () => {
+      assert.equal(formatWholePercent(82), `82${NBSP}%`);
+    });
+  });
+
   it("rejects an unsupported locale rather than formatting in it", () => {
     inLocale("en", () => {
       setFormatLocale("fr-CA");
@@ -97,12 +126,22 @@ describe("Formatters", () => {
 });
 
 describe("Axis formatting", () => {
-  it("keeps axis money short enough for the gutter", () => {
-    // formatMoney("$8,947.32") is nine characters and clips at 48px/11px.
-    assert.equal(formatMoneyCompact(8947), "$8.9K");
-    assert.equal(formatMoneyCompact(1_240_000), "$1.2M");
-    assert.equal(formatMoneyCompact(142.3), "$142.3");
-    assert.equal(formatMoneyCompact(0), "$0");
+  it("keeps axis numbers short enough for the gutter", () => {
+    // The 48px/11px gutter holds about seven characters. Currency is stated once
+    // on the measure toggle instead, because "USD 8.9K" (8) and "8,9 mil USD"
+    // (11) both clip — which turns a precise figure into a misread one.
+    inLocale("en", () => {
+      assert.equal(formatNumberCompact(8947), "8.9K");
+      assert.equal(formatNumberCompact(1_240_000), "1.2M");
+      assert.equal(formatNumberCompact(142.3), "142.3");
+      assert.equal(formatNumberCompact(0), "0");
+    });
+    inLocale("es", () => {
+      assert.equal(formatNumberCompact(8947), `8,9${NBSP}mil`);
+      assert.equal(formatNumberCompact(1_240_000), `1,2${NBSP}M`);
+      assert.equal(formatNumberCompact(142.3), "142,3");
+      assert.equal(formatNumberCompact(0), "0");
+    });
   });
 
   // These two are what catch index drift: verified that slice(5)->slice(4) and
