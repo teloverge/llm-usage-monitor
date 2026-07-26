@@ -11,9 +11,11 @@ import { TokenMix } from "../components/token-mix.tsx";
 
 export function Overview({
   data,
+  hostLabel,
   onDrillDown,
 }: {
   data: OverviewView;
+  hostLabel: (sourceHostId: string) => string;
   onDrillDown: (dimension: "byHarness" | "byModel" | "byTask") => void;
 }) {
   const { t } = useTranslation();
@@ -23,6 +25,10 @@ export function Overview({
     ...row,
     key: harnessLabel(row.key, t("common.unknownHarness")),
   }));
+  // Same treatment, same reason: a `bySourceHost` row's key IS its host id, and
+  // naming an unnamed host needs translated positional wording the analysis
+  // layer cannot supply.
+  const hostRows = data.bySourceHost.map((row) => ({ ...row, key: hostLabel(row.key) }));
   return (
     <div className="cockpit">
       <div className="cockpit-main">
@@ -55,7 +61,7 @@ export function Overview({
           <QuotaMeters snapshots={data.quotaSnapshots} harnessLabel={usageSourceLabel} />
         </Panel>
         <Panel label={t("overview.hosts")}>
-          <RankList rows={data.bySourceHost} limit={5} />
+          <RankList rows={hostRows} limit={5} />
         </Panel>
       </div>
     </div>

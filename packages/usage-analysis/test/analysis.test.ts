@@ -61,14 +61,14 @@ describe("Cache-aware costing", () => {
 
   it("bills reads, writes, and fresh input at their own rates", () => {
     // 100k fresh @15 + 600k read @1.50 + 300k write @18.75 = 1.5 + 0.9 + 5.625
-    const [priced] = analyzeHistory([claude()], [price], []);
+    const [priced] = analyzeHistory([claude()], [price]);
     assert.equal(priced?.estimatedCost, 8.025);
   });
 
   it("charges cache writes at the base input rate when the card omits one", () => {
     const { cacheWrite: _cacheWrite, ...noWriteRate } = price;
     // Without the surcharge the 300k write joins the 100k fresh at $15/M.
-    const [priced] = analyzeHistory([claude()], [noWriteRate], []);
+    const [priced] = analyzeHistory([claude()], [noWriteRate]);
     assert.equal(priced?.estimatedCost, 6 + 0.9);
   });
 
@@ -83,7 +83,7 @@ describe("Cache-aware costing", () => {
       effectiveDate: "2026-07-26",
     };
     // 500k fresh @10 + 500k cached @1 + 100k output @20 = 5 + 0.5 + 2
-    const [priced] = analyzeHistory([record("2026-07-25T12:00:00.000Z")], [openai], []);
+    const [priced] = analyzeHistory([record("2026-07-25T12:00:00.000Z")], [openai]);
     assert.equal(priced?.estimatedCost, 7.5);
   });
 
@@ -91,7 +91,6 @@ describe("Cache-aware costing", () => {
     const [priced] = analyzeHistory(
       [claude({ cachedInputTokens: 900_000, cacheCreationInputTokens: 900_000 })],
       [price],
-      [],
     );
     // Reads clamp to 900k, writes to the remaining 100k, fresh to nothing.
     assert.equal(priced?.estimatedCost, (900_000 * 1.5 + 100_000 * 18.75) / 1_000_000);
@@ -101,7 +100,6 @@ describe("Cache-aware costing", () => {
     const view = analyzeUsage({
       records: [claude()],
       prices: [price],
-      sourceHosts: [],
       memberships: [],
       quotaSnapshots: [],
       filters: { timeframe: "all" },
@@ -133,23 +131,14 @@ describe("Usage Analysis", () => {
           effectiveDate: "2026-01-01",
         },
       ],
-      sourceHosts: [
-        {
-          id: "host:a",
-          hostname: "workstation",
-          platform: "win32",
-          architecture: "x64",
-          firstSeenAt: "2026-01-01T00:00:00Z",
-          lastSeenAt: "2026-07-23T10:00:00Z",
-        },
-      ],
       memberships: [],
       filters: { timeframe: "last24" },
       now: new Date("2026-07-23T12:00:00Z"),
     });
     assert.equal(view.totals.estimatedCost, 2.25);
     assert.equal(view.timeline[0]?.estimatedCost, view.totals.estimatedCost);
-    assert.equal(view.bySourceHost[0]?.key, "workstation");
+    // Keyed by raw host id now; the view resolves it to a display name.
+    assert.equal(view.bySourceHost[0]?.key, "host:a");
   });
   it("rolls reasoning levels and recorded modes into one base model", () => {
     const records = [
@@ -169,16 +158,6 @@ describe("Usage Analysis", () => {
           effectiveDate: "2026-01-01",
         },
       ],
-      sourceHosts: [
-        {
-          id: "host:a",
-          hostname: "workstation",
-          platform: "win32",
-          architecture: "x64",
-          firstSeenAt: "2026-01-01T00:00:00Z",
-          lastSeenAt: "2026-07-23T11:00:00Z",
-        },
-      ],
       memberships: [],
       filters: { timeframe: "last24" },
       now: new Date("2026-07-23T12:00:00Z"),
@@ -190,18 +169,20 @@ describe("Usage Analysis", () => {
     );
     assert.deepEqual(view.byModel[0]?.modeFlags, { ultra: true, fast: true });
   });
-  it("does not expose a hardware address as a Source Host label", () => {
-    const records = [{ ...record("2026-07-23T10:00:00Z"), sourceHostId: "AA:BB:CC:DD:EE:FF" }];
-    const hosts = [
-      {
-        id: "AA:BB:CC:DD:EE:FF",
-        hostname: "AA:BB:CC:DD:EE:FF",
-        platform: "win32",
-        architecture: "x64",
-        firstSeenAt: "2026-01-01T00:00:00Z",
-        lastSeenAt: "2026-07-23T10:00:00Z",
-      },
-    ];
+  /**
+   * Naming a host is a DISPLAY decision and no longer happens here: an unnamed
+   * host falls back to positional wording that is translated, and this layer
+   * runs on the server with no idea of the reader's language. It therefore emits
+   * the raw host id and lets the view resolve it against the catalog.
+   *
+   * Masking a hardware address is consequently the view's job, and is pinned by
+   * `apps/web/test/source-host.test.ts` — which covers colon- and
+   * hyphen-separated MACs, bare 12-digit hex, and blank hostnames. It cannot be
+   * enforced here in any case: `/api/catalog` already ships every host's raw
+   * `hostname` to the client, so masking has always been a rendering concern.
+   */
+  it("emits the raw host id rather than deciding a display label", () => {
+    const records = [{ ...record("2026-07-23T10:00:00Z"), sourceHostId: "host:a" }];
     const prices = [
       {
         provider: "openai",
@@ -216,15 +197,17 @@ describe("Usage Analysis", () => {
     const view = analyzeUsage({
       records,
       prices,
-      sourceHosts: hosts,
       memberships: [],
       filters: { timeframe: "last24" },
       now: new Date("2026-07-23T12:00:00Z"),
     });
-    const history = analyzeHistory(records, prices, hosts);
-    assert.equal(view.bySourceHost[0]?.key, "Source Host 1");
-    assert.equal(history[0]?.sourceHostLabel, "Source Host 1");
-    assert.equal("sourceHostId" in history[0]!, false);
+    const history = analyzeHistory(records, prices);
+    assert.equal(view.bySourceHost[0]?.key, "host:a");
+    assert.equal(history[0]?.sourceHostId, "host:a");
+    // No rendered label may survive on either payload — a string here would be
+    // English text no locale could override.
+    assert.equal("sourceHostLabel" in view.bySourceHost[0]!, false);
+    assert.equal("sourceHostLabel" in history[0]!, false);
   });
 });
 
@@ -278,7 +261,6 @@ describe("Harness ranking", () => {
         ),
       ],
       prices,
-      sourceHosts: hosts,
       memberships: [],
       filters: { timeframe: "all" },
     });
@@ -339,7 +321,6 @@ describe("Harness ranking", () => {
     const byHarness = analyzeUsage({
       records,
       prices,
-      sourceHosts: hosts,
       memberships: [],
       filters: { timeframe: "all", harnessId: "codex" },
     });
@@ -351,7 +332,6 @@ describe("Harness ranking", () => {
     const byProvider = analyzeUsage({
       records,
       prices,
-      sourceHosts: hosts,
       memberships: [],
       filters: { timeframe: "all", provider: "openai" },
     });
@@ -363,7 +343,6 @@ describe("Harness ranking", () => {
     const byUsageSource = analyzeUsage({
       records,
       prices,
-      sourceHosts: hosts,
       memberships: [],
       filters: { timeframe: "all", usageSourceId: "codex-fork-local" },
     });
@@ -410,7 +389,6 @@ describe("Unavailable metrics are not zero", () => {
         ),
       ],
       prices,
-      sourceHosts: hosts,
       memberships: [],
       filters: { timeframe: "all" },
     });
@@ -432,7 +410,6 @@ describe("Unavailable metrics are not zero", () => {
         ),
       ],
       prices,
-      sourceHosts: hosts,
       memberships: [],
       filters: { timeframe: "all" },
     });
@@ -447,7 +424,6 @@ describe("Unavailable metrics are not zero", () => {
         record("2026-07-23T11:00:00.000Z", "high", { ultra: false, fast: false }, { id: "b" }),
       ],
       prices,
-      sourceHosts: hosts,
       memberships: [],
       filters: { timeframe: "all" },
     });
@@ -524,7 +500,6 @@ describe("Task session children", () => {
         ),
       ],
       prices,
-      sourceHosts: hosts,
       memberships: [],
       filters: { timeframe: "all" },
     });
@@ -547,7 +522,6 @@ describe("Task session children", () => {
         ),
       ],
       prices,
-      sourceHosts: hosts,
       memberships: [],
       filters: { timeframe: "all" },
     });
@@ -569,7 +543,6 @@ describe("Quota snapshots in the overview", () => {
     const view = analyzeUsage({
       records: [],
       prices: [],
-      sourceHosts: [],
       memberships: [],
       quotaSnapshots: snapshots,
       filters: { timeframe: "all" },
@@ -581,7 +554,6 @@ describe("Quota snapshots in the overview", () => {
     const view = analyzeUsage({
       records: [],
       prices: [],
-      sourceHosts: [],
       memberships: [],
       filters: { timeframe: "all" },
     });
@@ -605,7 +577,6 @@ describe("Quota snapshots in the overview", () => {
     const view = analyzeUsage({
       records: [],
       prices: [],
-      sourceHosts: [],
       memberships: [],
       quotaSnapshots: snapshots,
       filters: { timeframe: "today", query: "matches-nothing", sourceHostId: "host:zzz" },
@@ -629,7 +600,6 @@ describe("Host Group labelling", () => {
     analyzeUsage({
       records: [record("2026-07-20T09:00:00.000Z")],
       prices: [],
-      sourceHosts: [],
       hostGroups,
       memberships,
       filters: { timeframe: "all" },
@@ -665,7 +635,6 @@ describe("Host Group labelling", () => {
       analyzeUsage({
         records: [record("2026-07-20T09:00:00.000Z")],
         prices: [],
-        sourceHosts: [],
         memberships: [membership("group:one")],
         filters: { timeframe: "all" },
       }).byHostGroup.map((row) => row.key),

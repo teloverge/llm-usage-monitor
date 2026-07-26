@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { SourceHost } from "@llm-usage-monitor/contracts";
-import { sourceHostLabel } from "../src/model/source-host.ts";
+import { sourceHostLabel, sourceHostLabels } from "../src/model/source-host.ts";
 
 const host = (hostname: string | null): SourceHost => ({
   id: "host:a",
@@ -48,5 +48,47 @@ describe("Source Host labels", () => {
   // was rendered in, rather than the model reconstructing English text.
   it("ignores English convention and renders exactly the injected wording", () => {
     assert.equal(sourceHostLabel(host(null), "Host de origen 1"), "Host de origen 1");
+  });
+});
+
+describe("Source Host id resolution", () => {
+  const withId = (id: string, hostname: string | null): SourceHost => ({
+    ...host(hostname),
+    id,
+  });
+  const fallback = (index: number) => `Host de origen ${index}`;
+
+  it("resolves an id to its hostname", () => {
+    const label = sourceHostLabels([withId("host:a", "workstation")], fallback);
+    assert.equal(label("host:a"), "workstation");
+  });
+
+  it("numbers the positional fallback from the catalog, not from the rows shown", () => {
+    // The unnamed host is third in the catalog, so it is "3" wherever it appears
+    // — a panel that happens to rank only this host must not renumber it to "1".
+    const label = sourceHostLabels(
+      [
+        withId("host:a", "workstation"),
+        withId("host:b", "buildbox"),
+        withId("host:c", "a1:b2:c3:d4:e5:f6"),
+      ],
+      fallback,
+    );
+    assert.equal(label("host:c"), "Host de origen 3");
+  });
+
+  it("keeps two unnamed hosts distinguishable", () => {
+    const label = sourceHostLabels([withId("host:a", null), withId("host:b", null)], fallback);
+    assert.notEqual(label("host:a"), label("host:b"));
+  });
+
+  /**
+   * The same reasoning as `usageSourceLabel`: an id the catalog does not know
+   * passes through rather than collapsing into a shared "unknown" label, so two
+   * unregistered hosts stay distinguishable from each other.
+   */
+  it("passes an unknown id through rather than inventing a name", () => {
+    const label = sourceHostLabels([withId("host:a", "workstation")], fallback);
+    assert.equal(label("host:zzz"), "host:zzz");
   });
 });

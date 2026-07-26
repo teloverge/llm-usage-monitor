@@ -4,7 +4,6 @@ import type {
   ModelPrice,
   OverviewView,
   RankedUsage,
-  SourceHost,
   UsageFilters,
   UsageHistoryRecord,
   UsageModeFlags,
@@ -16,7 +15,6 @@ import type {
 export interface AnalysisInput {
   records: UsageRecord[];
   prices: ModelPrice[];
-  sourceHosts: SourceHost[];
   /**
    * Optional so the many analysis tests that predate named groups keep
    * compiling. Absent means no group has a known name, and rows fall back to
@@ -42,9 +40,6 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
     record,
     estimatedCost: calculateCost(record, input.prices),
   }));
-  const hostNames = new Map(
-    input.sourceHosts.map((host, index) => [host.id, sourceHostLabel(host, index)]),
-  );
   const groupNames = new Map((input.hostGroups ?? []).map((group) => [group.id, group.name]));
   const groupFor = (record: UsageRecord) => {
     const groupId = effectiveGroup(input.memberships, record.sourceHostId, record.timestamp);
@@ -58,10 +53,11 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
     ).map(({ key, items }) => ({ bucket: key, ...summarize(items) })),
     byModel: rankModels(priced),
     byTask: rankTasks(priced),
-    bySourceHost: rank(
-      priced,
-      ({ record }) => hostNames.get(record.sourceHostId) ?? "Unknown Source Host",
-    ),
+    // Keyed by raw host id, not a rendered name — exactly as `byHarness` is
+    // keyed by raw harness id. The label is display copy (an unnamed host falls
+    // back to translated positional wording), and this layer does not know the
+    // reader's language. The view resolves the id against the host catalog.
+    bySourceHost: rank(priced, ({ record }) => record.sourceHostId),
     byHostGroup: rank(priced, ({ record }) => groupFor(record)),
     byHarness: rank(priced, ({ record }) => record.harnessId),
     quotaSnapshots: input.quotaSnapshots ?? [],
@@ -148,29 +144,17 @@ export function calculateCost(record: UsageRecord, prices: ModelPrice[]): number
   );
 }
 
-export function analyzeHistory(
-  records: UsageRecord[],
-  prices: ModelPrice[],
-  sourceHosts: SourceHost[],
-): UsageHistoryRecord[] {
-  const labels = new Map(sourceHosts.map((host, index) => [host.id, sourceHostLabel(host, index)]));
-  return records.map((record) => {
-    const { sourceHostId, ...publicRecord } = record;
-    return {
-      ...publicRecord,
-      sourceHostLabel: labels.get(sourceHostId) ?? "Unknown Source Host",
-      estimatedCost: calculateCost(record, prices),
-    };
-  });
-}
-
-export function sourceHostLabel(host: SourceHost, index: number): string {
-  const name = host.hostname?.trim();
-  return name && !looksLikeHardwareAddress(name) ? name : `Source Host ${index + 1}`;
-}
-
-function looksLikeHardwareAddress(value: string): boolean {
-  return /^(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}$/i.test(value) || /^[0-9a-f]{12}$/i.test(value);
+/**
+ * Prices each record and passes `sourceHostId` straight through. It deliberately
+ * does NOT resolve a host label: naming an unnamed host requires translated
+ * wording, and this layer runs on the server with no idea of the reader's
+ * language. `apps/web/src/model/source-host.ts` owns that decision.
+ */
+export function analyzeHistory(records: UsageRecord[], prices: ModelPrice[]): UsageHistoryRecord[] {
+  return records.map((record) => ({
+    ...record,
+    estimatedCost: calculateCost(record, prices),
+  }));
 }
 
 type PricedRecord = { record: UsageRecord; estimatedCost: number | null };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   HostGroup,
   HostGroupMembership,
@@ -10,7 +10,7 @@ import type {
 } from "@llm-usage-monitor/contracts";
 import { useTranslation } from "react-i18next";
 import { SearchChip, SelectChip } from "./components/chip.tsx";
-import { sourceHostLabel } from "./model/source-host.ts";
+import { sourceHostLabel, sourceHostLabels } from "./model/source-host.ts";
 import { executeAction, getCatalog, getHistory, getOverview } from "./api.ts";
 import { History } from "./views/history.tsx";
 import { Settings } from "./views/settings/index.tsx";
@@ -107,6 +107,17 @@ export function App() {
       setBusy(false);
     }
   };
+
+  /**
+   * Built once here rather than per view, so a host reads as the same
+   * "Source Host 3" in the Hosts panel, the Breakdown, and the History table.
+   * Rebuilding it per panel would renumber against whatever subset that panel
+   * ranked.
+   */
+  const hostLabel = useMemo(
+    () => sourceHostLabels(sourceHosts, (index) => t("common.sourceHostFallback", { index })),
+    [sourceHosts, t],
+  );
 
   const drillDown = (dimension: DrillDownDimension) => {
     setBreakdownDimension(dimension);
@@ -218,6 +229,7 @@ export function App() {
             hostGroups={hostGroups}
             memberships={memberships}
             sourceHosts={sourceHosts}
+            hostLabel={hostLabel}
             onSaved={refresh}
             onDrillDown={drillDown}
             breakdownDimension={breakdownDimension}
@@ -239,6 +251,7 @@ function ViewSlot({
   hostGroups,
   memberships,
   sourceHosts,
+  hostLabel,
   onSaved,
   onDrillDown,
   breakdownDimension,
@@ -252,6 +265,7 @@ function ViewSlot({
   hostGroups: HostGroup[];
   memberships: HostGroupMembership[];
   sourceHosts: SourceHost[];
+  hostLabel: (sourceHostId: string) => string;
   onSaved: () => Promise<void>;
   onDrillDown: (dimension: DrillDownDimension) => void;
   breakdownDimension: BreakdownDimension;
@@ -268,14 +282,17 @@ function ViewSlot({
       />
     );
   if (view === "overview")
-    return overview ? <Overview data={overview} onDrillDown={onDrillDown} /> : null;
+    return overview ? (
+      <Overview data={overview} hostLabel={hostLabel} onDrillDown={onDrillDown} />
+    ) : null;
   if (view === "breakdown")
     return overview ? (
       <Breakdown
         data={overview}
+        hostLabel={hostLabel}
         dimension={breakdownDimension}
         onDimensionChange={onBreakdownDimensionChange}
       />
     ) : null;
-  return <History records={history} />;
+  return <History records={history} hostLabel={hostLabel} />;
 }

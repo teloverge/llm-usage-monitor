@@ -130,8 +130,15 @@ export const usageRecordSchema = z
 export type UsageRecord = z.infer<typeof usageRecordSchema>;
 export type RateLimits = z.infer<typeof rateLimitsSchema>;
 export type UsageModeFlags = z.infer<typeof usageModeFlagsSchema>;
-export type UsageHistoryRecord = Omit<UsageRecord, "sourceHostId"> & {
-  sourceHostLabel: string;
+/**
+ * Carries `sourceHostId` rather than a rendered label. The label is display
+ * copy: a host whose hostname is a MAC address falls back to positional wording
+ * that is translated, and the analysis layer has no idea what language the
+ * reader is using. Resolving the id against the catalog is the consumer's job —
+ * the same split `byHarness` already uses, where the row key is the raw harness
+ * id and the view renders it.
+ */
+export type UsageHistoryRecord = UsageRecord & {
   estimatedCost: number | null;
 };
 

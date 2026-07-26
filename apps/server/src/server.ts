@@ -96,7 +96,6 @@ export async function startUsageMonitorServer(options: {
         analyzeUsage({
           records: ledger.records(),
           prices: ledger.prices(),
-          sourceHosts: ledger.sourceHosts(),
           hostGroups: ledger.hostGroups(),
           memberships: ledger.memberships(),
           quotaSnapshots: ledger.quotaSnapshots(),
@@ -107,11 +106,7 @@ export async function startUsageMonitorServer(options: {
     if (request.method === "GET" && resource === "api/history") {
       const limit = Math.min(500, Math.max(1, Number(url.searchParams.get("limit")) || 200));
       return sendJson(response, 200, {
-        records: analyzeHistory(
-          ledger.records().slice(0, limit),
-          ledger.prices(),
-          ledger.sourceHosts(),
-        ),
+        records: analyzeHistory(ledger.records().slice(0, limit), ledger.prices()),
       });
     }
     if (request.method === "GET" && resource === "api/catalog")

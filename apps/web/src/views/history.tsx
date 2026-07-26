@@ -6,15 +6,22 @@ import { formatCount, formatDateTime, formatMoney, formatTokens } from "../model
 import { harnessColor, harnessLabel } from "../model/harness.ts";
 import { groupHistoryByTask, type HistorySession } from "../model/usage-groups.ts";
 
-export function History({ records }: { records: UsageHistoryRecord[] }) {
+export function History({
+  records,
+  hostLabel,
+}: {
+  records: UsageHistoryRecord[];
+  hostLabel: (sourceHostId: string) => string;
+}) {
   const { t } = useTranslation();
   const groups = useMemo(
     () =>
       groupHistoryByTask(records, {
         untitledTask: t("common.untitledTask"),
         notReported: t("common.notReported"),
+        sourceHost: hostLabel,
       }),
-    [records, t],
+    [records, t, hostLabel],
   );
   // Same reason as the Breakdown rollup: `open` on a `<details>` makes React the
   // authority on the attribute, so without state behind it a collapsed group can
