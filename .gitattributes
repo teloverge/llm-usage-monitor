@@ -1,0 +1,16 @@
+# Normalize all text files to LF in the index and check them out as LF on every
+# platform. This overrides each developer's core.autocrlf, which on Windows
+# defaults to `true` and would otherwise write CRLF into the worktree — and
+# `oxfmt --check` (endOfLine: "lf", with no "auto" mode) rejects CRLF, so
+# `bun run check` would fail after every checkout, merge abort, or branch switch.
+* text=auto eol=lf
+
+# Binary assets: never touch their bytes.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.vsix binary
