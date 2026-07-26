@@ -25,7 +25,7 @@ Maintenance release. No functional changes; version bump only.
 - Add session-level children under task rankings and harness attribution to History sessions.
 - Stop counting records whose source does not report caching toward cache efficiency, which previously understated the ratio, and disclose the token coverage the ratio speaks for.
 - Report a reasoning level the source did not supply as "not reported" rather than fabricating `unknown`.
-- Fix `bun run dev`, which ran the server under Bun; Bun does not implement `node:sqlite`, so the documented development command failed on every machine. The server now runs under Node.
+- Fix `vp run dev`, which ran the server under Bun; Bun does not implement `node:sqlite`, so the documented development command failed on every machine. The server now runs under Node.
 - Add Oxlint and Oxfmt to the pinned validation workflow, remove the redundant Activity Bar import link, and rename incremental Codex imports to refresh actions.
 - Restart stale shared runtimes after an extension update, load newly added default prices such as `codex-auto-review`, and condense the Pricing workspace.
 - Add `codex-auto-review` to the default OpenAI pricing catalog using the supplied July 22, 2026 rate source.
