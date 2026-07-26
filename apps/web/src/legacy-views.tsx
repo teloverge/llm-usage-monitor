@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import type {
-  ModelPrice,
-  OverviewView,
-  RankedUsage,
-  UsageHistoryRecord,
-  UsageModeFlags,
-} from "@llm-usage-monitor/contracts";
+import type { ModelPrice, UsageHistoryRecord, UsageModeFlags } from "@llm-usage-monitor/contracts";
 import { executeAction } from "./api.ts";
-import { groupHistoryByTask, groupModelsByProvider, type HistorySession } from "./usage-groups.ts";
+import { groupHistoryByTask, type HistorySession } from "./usage-groups.ts";
 
 const money = new Intl.NumberFormat(undefined, {
   style: "currency",
@@ -16,51 +10,6 @@ const money = new Intl.NumberFormat(undefined, {
 });
 const number = new Intl.NumberFormat();
 
-function ChartCard({
-  title,
-  summary,
-  children,
-}: {
-  title: string;
-  summary: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <article className="card">
-      <header>
-        <h2>{title}</h2>
-        <p>{summary}</p>
-      </header>
-      {children}
-    </article>
-  );
-}
-function RankChart({ title, rows }: { title: string; rows: RankedUsage[] }) {
-  const maximum = Math.max(0, ...rows.map((row) => row.estimatedCost));
-  return (
-    <ChartCard title={title} summary="Ranked automatically by estimated cost">
-      <div className="ranks">
-        {rows.length ? (
-          rows.map((row) => (
-            <div className="rank" key={`${row.provider ?? ""}/${row.key}`}>
-              <span className="rank-label" title={row.key}>
-                {row.provider && <small>{row.provider}</small>}
-                <span>{row.key}</span>
-                <ModeBadges flags={row.modeFlags} />
-              </span>
-              <i>
-                <b style={{ width: `${maximum ? (row.estimatedCost / maximum) * 100 : 0}%` }} />
-              </i>
-              <strong>{money.format(row.estimatedCost)}</strong>
-            </div>
-          ))
-        ) : (
-          <p>No priced usage.</p>
-        )}
-      </div>
-    </ChartCard>
-  );
-}
 export function History({ records }: { records: UsageHistoryRecord[] }) {
   const groups = useMemo(() => groupHistoryByTask(records), [records]);
   const sessionCount = groups.reduce((sum, group) => sum + group.sessions.length, 0);
@@ -138,106 +87,6 @@ function HistorySessionTable({ sessions }: { sessions: HistorySession[] }) {
         </tbody>
       </table>
     </div>
-  );
-}
-export function Advanced({ data }: { data: OverviewView }) {
-  const [dimension, setDimension] = useState<"byModel" | "byTask" | "bySourceHost" | "byHostGroup">(
-    "byModel",
-  );
-  const rows = data[dimension];
-  return (
-    <section>
-      <div className="advanced-control">
-        <label>
-          Group analysis by
-          <select
-            value={dimension}
-            onChange={(event) => setDimension(event.target.value as typeof dimension)}
-          >
-            <option value="byModel">Model and reasoning level</option>
-            <option value="byTask">Task</option>
-            <option value="bySourceHost">Source Host</option>
-            <option value="byHostGroup">Host Group</option>
-          </select>
-        </label>
-      </div>
-      {dimension === "byModel" ? (
-        <ModelRollups rows={data.byModel} />
-      ) : (
-        <RankChart title="Advanced usage analysis" rows={rows} />
-      )}
-    </section>
-  );
-}
-function ModelRollups({ rows }: { rows: RankedUsage[] }) {
-  const providers = useMemo(() => groupModelsByProvider(rows), [rows]);
-  return (
-    <article className="card model-analysis">
-      <header>
-        <h2>Models and reasoning levels</h2>
-        <p>Providers contain model totals; expand a model to inspect its reasoning levels.</p>
-      </header>
-      <div className="provider-rollups">
-        {providers.length ? (
-          providers.map((provider, providerIndex) => (
-            <details className="provider-rollup" key={provider.key} open={providerIndex === 0}>
-              <summary>
-                <span className="provider-name">
-                  <strong>{provider.label}</strong>
-                  <small>
-                    {provider.rows.length} model{provider.rows.length === 1 ? "" : "s"} ·{" "}
-                    {formatRecordCount(provider.records)}
-                  </small>
-                </span>
-                <span className="summary-total">
-                  <small>{number.format(provider.totalTokens)} tokens</small>
-                  <strong>{money.format(provider.estimatedCost)}</strong>
-                </span>
-              </summary>
-              <div className="model-rollups">
-                {provider.rows.map((row, modelIndex) => (
-                  <details
-                    className="model-rollup"
-                    key={`${provider.key}/${row.model ?? row.key}`}
-                    open={providerIndex === 0 && modelIndex === 0}
-                  >
-                    <summary>
-                      <span className="model-name">
-                        <strong>{row.model ?? row.key}</strong>
-                        <ModeBadges flags={row.modeFlags} />
-                      </span>
-                      <span className="rollup-metrics">
-                        <small>
-                          {row.children?.length ?? 0} reasoning level
-                          {row.children?.length === 1 ? "" : "s"} · {formatRecordCount(row.records)}{" "}
-                          · {number.format(row.totalTokens)} tokens
-                        </small>
-                        <strong>{money.format(row.estimatedCost)}</strong>
-                      </span>
-                    </summary>
-                    <div className="reasoning-rows">
-                      {row.children?.map((child) => (
-                        <div className="reasoning-row" key={child.key}>
-                          <span>
-                            <strong>{title(child.reasoningLevel ?? child.key)}</strong>
-                            <ModeBadges flags={child.modeFlags} />
-                          </span>
-                          <small>{formatRecordCount(child.records)}</small>
-                          <small>{number.format(child.totalTokens)} tokens</small>
-                          <strong>{money.format(child.estimatedCost)}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                ))}
-              </div>
-            </details>
-          ))
-        ) : (
-          <p className="empty-state">No usage for the selected filters.</p>
-        )}
-      </div>
-    </article>
   );
 }
 function ModeBadges({ flags, empty = false }: { flags: UsageModeFlags; empty?: boolean }) {

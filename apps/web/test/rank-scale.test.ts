@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { RankedUsage } from "@llm-usage-monitor/contracts";
-import { rankBarWidth, rankView } from "../src/model/rank-scale.ts";
+import { rankBarWidth, rankedRowKey, rankView } from "../src/model/rank-scale.ts";
 
 const row = (key: string, estimatedCost: number): RankedUsage => ({
   key,
@@ -56,6 +56,27 @@ describe("Rank view", () => {
     const view = rankView([row("a", 10), row("b", 6), row("c", 2)], -1);
     assert.equal(view.shown.length, 0);
     assert.equal(view.remaining, 3);
+  });
+});
+
+describe("Ranked row keys", () => {
+  // `rankModels` sets `key` to the model name but groups by provider AND model,
+  // so the model name alone is not unique among siblings.
+  it("separates the same model offered by two providers", () => {
+    const openai = rankedRowKey({ key: "gpt-4", provider: "openai" });
+    const azure = rankedRowKey({ key: "gpt-4", provider: "azure" });
+    assert.notEqual(openai, azure);
+  });
+
+  it("is stable for the same row", () => {
+    assert.equal(
+      rankedRowKey({ key: "gpt-4", provider: "openai" }),
+      rankedRowKey({ key: "gpt-4", provider: "openai" }),
+    );
+  });
+
+  it("still separates rows from dimensions that carry no provider", () => {
+    assert.notEqual(rankedRowKey({ key: "task-a" }), rankedRowKey({ key: "task-b" }));
   });
 });
 

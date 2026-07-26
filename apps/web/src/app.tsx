@@ -9,19 +9,12 @@ import type {
 import { SearchChip, SelectChip } from "./components/chip.tsx";
 import { sourceHostLabel } from "./model/source-host.ts";
 import { executeAction, getCatalog, getHistory, getOverview } from "./api.ts";
-import { Advanced, History, Pricing } from "./legacy-views.tsx";
+import { History, Pricing } from "./legacy-views.tsx";
+import { Breakdown, type BreakdownDimension } from "./views/breakdown.tsx";
 import { Overview } from "./views/overview.tsx";
 import logoUrl from "../../../assets/Teloverge-lum-logo.svg?url";
 
 export type View = "overview" | "breakdown" | "history";
-
-/** Every dimension the Breakdown can group by. Task 27's view consumes this. */
-export type BreakdownDimension =
-  | "byHarness"
-  | "byModel"
-  | "byTask"
-  | "bySourceHost"
-  | "byHostGroup";
 
 /** The subset the Overview's rank panels can drill into. */
 export type DrillDownDimension = Extract<BreakdownDimension, "byHarness" | "byModel" | "byTask">;
@@ -43,6 +36,8 @@ const TIMEFRAMES = [
 
 export function App() {
   const [view, setView] = useState<View>("overview");
+  /** Which dimension the Breakdown opens on, so a drill-down lands where it was aimed. */
+  const [breakdownDimension, setBreakdownDimension] = useState<BreakdownDimension>("byModel");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filters, setFilters] = useState<UsageFilters>({ timeframe: "30" });
   const [overview, setOverview] = useState<OverviewView | null>(null);
@@ -109,15 +104,8 @@ export function App() {
     }
   };
 
-  /**
-   * Task 27 adds a `breakdownDimension` state here so the Breakdown opens on the
-   * dimension that was clicked. It is deliberately NOT added yet: today's
-   * Breakdown is still the legacy `Advanced`, which carries its own controls and
-   * cannot accept a dimension, so the state would be written and never read.
-   * The parameter is accepted now to fix the call signature Overview compiles
-   * against, and starts being used the moment there is something to use it for.
-   */
-  const drillDown = (_dimension: DrillDownDimension) => {
+  const drillDown = (dimension: DrillDownDimension) => {
+    setBreakdownDimension(dimension);
     setSettingsOpen(false);
     setView("breakdown");
   };
@@ -224,6 +212,8 @@ export function App() {
             prices={prices}
             onSaved={refresh}
             onDrillDown={drillDown}
+            breakdownDimension={breakdownDimension}
+            onBreakdownDimensionChange={setBreakdownDimension}
           />
         </main>
         <footer>
@@ -242,6 +232,8 @@ function ViewSlot({
   prices,
   onSaved,
   onDrillDown,
+  breakdownDimension,
+  onBreakdownDimensionChange,
 }: {
   view: View;
   settingsOpen: boolean;
@@ -250,10 +242,19 @@ function ViewSlot({
   prices: ModelPrice[];
   onSaved: () => Promise<void>;
   onDrillDown: (dimension: DrillDownDimension) => void;
+  breakdownDimension: BreakdownDimension;
+  onBreakdownDimensionChange: (value: BreakdownDimension) => void;
 }) {
   if (settingsOpen) return <Pricing prices={prices} onSaved={onSaved} />;
   if (view === "overview")
     return overview ? <Overview data={overview} onDrillDown={onDrillDown} /> : null;
-  if (view === "breakdown") return overview ? <Advanced data={overview} /> : null;
+  if (view === "breakdown")
+    return overview ? (
+      <Breakdown
+        data={overview}
+        dimension={breakdownDimension}
+        onDimensionChange={onBreakdownDimensionChange}
+      />
+    ) : null;
   return <History records={history} />;
 }

@@ -4642,10 +4642,26 @@ git commit -m "feat: add nested rollup with parent-relative bar scaling"
 
 - Create: `apps/web/src/views/breakdown.tsx`
 - Modify: `apps/web/src/app.tsx`
+- Modify: `apps/web/src/model/rank-scale.ts`, `apps/web/src/components/rollup.tsx` (shared row key)
+- Modify: `apps/web/src/legacy-views.tsx`, `apps/web/src/styles.css`, `apps/web/src/theme/tokens.css`
 
 - [ ] **Step 1: Write the view**
 
-Create `apps/web/src/views/breakdown.tsx`:
+Create `apps/web/src/views/breakdown.tsx`. Four corrections to the draft below:
+
+- **Name the union `BreakdownDimension`, not `Dimension`.** Task 24 already added
+  `BreakdownDimension` to `app.tsx`; a second name for the same five strings is two things to keep
+  in step. Export it from here (the view owns its vocabulary) and have `app.tsx` import it,
+  deleting its own copy. The import is type-only, so it erases and creates no runtime cycle.
+- **Relabel harness rows.** `byHarness` keys are raw ids here exactly as in the Overview panel, so
+  `unknown` would read as the name of something installed. Map through `harnessLabel` when the
+  dimension is `byHarness`.
+- **`row.records.toLocaleString()` bypasses the pinned locale.** Use `formatCount` — the same
+  bypass `format.ts` exists to prevent.
+- **The table key needs the provider too.** `${depth}/${row.key}` collides for two providers'
+  identically named models, which sit at the same depth with the same key. Use `rankedRowKey`.
+
+````tsx
 
 ```tsx
 import { useState } from "react";
@@ -4740,7 +4756,7 @@ function BreakdownTable({ rows }: { rows: RankedUsage[] }) {
     </table>
   );
 }
-```
+````
 
 - [ ] **Step 2: Add the styles**
 
@@ -4762,8 +4778,8 @@ Append to `apps/web/src/styles.css`:
   color: var(--ink);
 }
 .group-by .chip.on {
-  border-color: #2f6a52;
-  background: #12241d;
+  border-color: var(--accent-line);
+  background: var(--accent-fill);
 }
 .table-toggle {
   margin-left: auto;
@@ -4801,6 +4817,13 @@ Append to `apps/web/src/styles.css`:
 }
 ```
 
+Insert before the `@media` blocks, not at EOF — see Task 19 Step 2.
+
+`#2f6a52` and `#12241d` are raw literals in no token file. Add them to `tokens.css` as
+`--accent-line` and `--accent-fill` — a selected-state pair for controls that toggle. Kept as
+literals rather than a `color-mix()` of `--accent` so the tuned values survive; both are UI-only,
+so neither needs a `palette.ts` twin or an agreement-table row.
+
 - [ ] **Step 3: Wire it in**
 
 In `apps/web/src/app.tsx`, import `Breakdown` and its `Dimension` type, and replace the breakdown branch in `ViewSlot`:
@@ -4816,7 +4839,31 @@ if (view === "breakdown")
   ) : null;
 ```
 
-Pass `breakdownDimension` and `setBreakdownDimension` into `ViewSlot` as props.
+Pass `breakdownDimension` and `setBreakdownDimension` into `ViewSlot` as props, and add the state
+Task 24 deferred:
+
+```tsx
+const [breakdownDimension, setBreakdownDimension] = useState<BreakdownDimension>("byModel");
+```
+
+`drillDown` now sets it (rename its `_dimension` parameter back to `dimension`), so a drill-down
+lands on the panel the reader clicked.
+
+**Then delete the legacy Breakdown chain.** Removing `Advanced` from `ViewSlot` orphans
+`Advanced`, `RankChart`, `ChartCard` and `ModelRollups` in `legacy-views.tsx`, plus the
+`OverviewView`/`RankedUsage` type imports and `groupModelsByProvider`. `ModeBadges`,
+`groupHistoryByTask` and the history helpers stay — `History` still uses them.
+
+That in turn retires the `.card`, `.ranks`, `.rank`, `.rank-label`, `.rank i`, `.rank b`,
+`.model-cell`, `.advanced-control`, `.model-analysis` and `.model-rollup`/`.provider-rollup`/
+`.reasoning-row` families that Task 25 deliberately kept. Several of those selectors are **shared**
+with `.history-group` and `.summary-*`, which History still uses: prune the dead selectors out of
+each list rather than deleting the blocks, or History loses its styling with no test to notice.
+
+Verify the way Task 25 did: extract every class token used across `**/*.tsx`, confirm each deleted
+rule has zero exact-token matches and each surviving token still has a rule. Note two expected false
+positives — `.fast` and `.ultra` are styled as `.mode-badge.fast`/`.mode-badge.ultra`, and
+`.headline` is a bare hook carried alongside `.panel` with no rules of its own.
 
 - [ ] **Step 4: Verify**
 
