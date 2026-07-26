@@ -11,6 +11,7 @@ const totals = (overrides: Partial<UsageTotals>): UsageTotals => ({
   models: 0,
   inputTokens: 0,
   cachedInputTokens: 0,
+  cacheCreationInputTokens: 0,
   cacheReportingRecords: 0,
   cacheReportingInputTokens: 0,
   outputTokens: 0,

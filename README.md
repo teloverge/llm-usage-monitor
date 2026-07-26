@@ -6,13 +6,14 @@
 
 <p align="center"><strong>Local token intelligence for Codex, the browser, and eventually a fleet of hosts.</strong></p>
 
-LLM Usage Monitor reads local Codex history, stores normalized usage in SQLite, and presents automatic cost-first charts in a React browser app. The VS Code extension is a thin client for the same shared local server and starts it when necessary.
+LLM Usage Monitor reads local Codex and Claude Code history, stores normalized usage in SQLite, and presents automatic cost-first charts in a React browser app. The VS Code extension is a thin client for the same shared local server and starts it when necessary.
 
 The dollar total is an **API-equivalent estimate**: what the selected token usage would cost at configured standard API rates. It is useful for comparing subscription usage with API pricing, but it is not a billing claim.
 
 ## Current capabilities
 
-- Imports metadata from local Codex history files; it does not call ChatGPT or OpenAI account servers.
+- Imports metadata from local Codex history files and local Claude Code session transcripts; it calls no vendor account servers.
+- Prices cache reads and cache writes separately, because a read costs a fraction of base input while a write costs a premium over it.
 - Never imports prompts, responses, reasoning text, tool calls, file contents, or credentials.
 - Shows API-equivalent spend as a single headline figure with its cost drivers by harness, model, and task, plus token composition and per-source plan limits.
 - Separates usage source, harness, model provider, and model as distinct identities, so one harness may use several providers and one provider may be reached through several harnesses.
@@ -26,7 +27,7 @@ The dollar total is an **API-equivalent estimate**: what the selected token usag
 
 ```text
 apps/
-  server/              authoritative local HTTP server and Codex importer
+  server/              authoritative local HTTP server, Codex and Claude importers
   web/                 React and Vite browser dashboard
   vscode-extension/    thin VS Code lifecycle and migration adapter
   source-host-agent/   future secondary-host collector and startup plans
@@ -56,7 +57,7 @@ vp run build:server
 node apps/server/dist/cli.mjs start --open
 ```
 
-The server writes its discovery record and SQLite ledger beneath the current user's application-data directory. Set `LLM_USAGE_MONITOR_HOME` to use an isolated data directory, and `LLM_USAGE_MONITOR_WEB_DIR` to serve a different built web directory.
+The server writes its discovery record and SQLite ledger beneath the current user's application-data directory. Set `LLM_USAGE_MONITOR_HOME` to use an isolated data directory, and `LLM_USAGE_MONITOR_WEB_DIR` to serve a different built web directory. The importers read `~/.codex` and `~/.claude`, overridable with `CODEX_HOME` and `CLAUDE_CONFIG_DIR`.
 
 ## VS Code extension
 

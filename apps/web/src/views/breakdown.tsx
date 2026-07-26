@@ -56,13 +56,19 @@ export function Breakdown({
             {item.label}
           </button>
         ))}
+        {/*
+          Labelled with the view it switches TO, not the one being shown. The
+          static "Table view" label read as a state, so once pressed it claimed to
+          be the tree while showing the table — and the table's rows do not
+          collapse, which made the tree itself look broken.
+        */}
         <button
           type="button"
           className="chip table-toggle"
           aria-pressed={asTable}
           onClick={() => setAsTable(!asTable)}
         >
-          ⊞ Table view
+          {asTable ? "⊟ Tree view" : "⊞ Table view"}
         </button>
       </div>
       <div className="panel breakdown-body">
@@ -71,7 +77,10 @@ export function Breakdown({
         ) : asTable ? (
           <BreakdownTable rows={rows} />
         ) : (
-          <Rollup rows={rows} />
+          // Keyed by dimension so switching the grouping starts a fresh tree.
+          // Without it the open-row state carries over keys from the previous
+          // dimension, which match nothing, and every group lands collapsed.
+          <Rollup key={dimension} rows={rows} />
         )}
       </div>
     </section>

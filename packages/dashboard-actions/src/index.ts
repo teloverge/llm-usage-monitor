@@ -4,6 +4,7 @@ import { dashboardActionSchema, usageRecordSchema } from "@llm-usage-monitor/con
 export interface DashboardActionPorts {
   localSourceHostId: string;
   importCodex(codexHome?: string): Promise<number>;
+  importClaude(claudeHome?: string): Promise<number>;
   migrateLegacy(id: string, records: UsageRecord[]): number;
   replacePrices(prices: ModelPrice[]): void;
   clearRecords(): number;
@@ -20,6 +21,12 @@ export function createDashboardActions(ports: DashboardActionPorts) {
             ok: true,
             code: "codex-imported",
             affectedRecords: await ports.importCodex(action.codexHome),
+          };
+        case "import-claude":
+          return {
+            ok: true,
+            code: "claude-imported",
+            affectedRecords: await ports.importClaude(action.claudeHome),
           };
         case "migrate-legacy": {
           const records = action.records.map((record) =>

@@ -30,6 +30,87 @@ const record = (
   ...overrides,
 });
 
+describe("Cache-aware costing", () => {
+  const price = {
+    provider: "anthropic",
+    model: "claude-test",
+    input: 15,
+    cachedInput: 1.5,
+    cacheWrite: 18.75,
+    output: 75,
+    source: "test",
+    effectiveDate: "2026-07-26",
+  };
+  const claude = (overrides: Partial<UsageRecord> = {}) =>
+    record(
+      "2026-07-25T12:00:00.000Z",
+      undefined,
+      { ultra: false, fast: false },
+      {
+        provider: "anthropic",
+        model: "claude-test",
+        inputTokens: 1_000_000,
+        cachedInputTokens: 600_000,
+        cacheCreationInputTokens: 300_000,
+        outputTokens: 0,
+        reasoningOutputTokens: undefined,
+        totalTokens: 1_000_000,
+        ...overrides,
+      },
+    );
+
+  it("bills reads, writes, and fresh input at their own rates", () => {
+    // 100k fresh @15 + 600k read @1.50 + 300k write @18.75 = 1.5 + 0.9 + 5.625
+    const [priced] = analyzeHistory([claude()], [price], []);
+    assert.equal(priced?.estimatedCost, 8.025);
+  });
+
+  it("charges cache writes at the base input rate when the card omits one", () => {
+    const { cacheWrite: _cacheWrite, ...noWriteRate } = price;
+    // Without the surcharge the 300k write joins the 100k fresh at $15/M.
+    const [priced] = analyzeHistory([claude()], [noWriteRate], []);
+    assert.equal(priced?.estimatedCost, 6 + 0.9);
+  });
+
+  it("prices a Codex record exactly as it did before the split existed", () => {
+    const openai = {
+      provider: "openai",
+      model: "gpt-test",
+      input: 10,
+      cachedInput: 1,
+      output: 20,
+      source: "test",
+      effectiveDate: "2026-07-26",
+    };
+    // 500k fresh @10 + 500k cached @1 + 100k output @20 = 5 + 0.5 + 2
+    const [priced] = analyzeHistory([record("2026-07-25T12:00:00.000Z")], [openai], []);
+    assert.equal(priced?.estimatedCost, 7.5);
+  });
+
+  it("never lets overstated cache subsets bill more than the input total", () => {
+    const [priced] = analyzeHistory(
+      [claude({ cachedInputTokens: 900_000, cacheCreationInputTokens: 900_000 })],
+      [price],
+      [],
+    );
+    // Reads clamp to 900k, writes to the remaining 100k, fresh to nothing.
+    assert.equal(priced?.estimatedCost, (900_000 * 1.5 + 100_000 * 18.75) / 1_000_000);
+  });
+
+  it("keeps cache writes out of the cache-efficiency ratio", () => {
+    const view = analyzeUsage({
+      records: [claude()],
+      prices: [price],
+      sourceHosts: [],
+      memberships: [],
+      quotaSnapshots: [],
+      filters: { timeframe: "all" },
+    });
+    assert.equal(view.totals.cacheCreationInputTokens, 300_000);
+    assert.equal(view.totals.cacheEfficiency, 0.6);
+  });
+});
+
 describe("Usage Analysis", () => {
   it("treats Last 24 hours as a rolling window", () => {
     const now = new Date("2026-07-23T12:00:00Z");

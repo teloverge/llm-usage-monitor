@@ -8,8 +8,8 @@
  * external palette validator; the pin exists to make that change deliberate
  * rather than silent.
  */
-export const CHART_SURFACE = "#151e1a";
-export const PAGE_SURFACE = "#0d1411";
+export const CHART_SURFACE = "#17191b";
+export const PAGE_SURFACE = "#101113";
 
 /** UI only — buttons, focus, brand, hero figure. Never a chart fill: L 0.739 fails the band. */
 export const UI_ACCENT = "#16c79a";
@@ -33,10 +33,10 @@ export const STATUS = {
 } as const;
 
 export const CHART_INK = {
-  grid: "#22302a",
-  axis: "#384a41",
+  grid: "#262a2e",
+  axis: "#3e4348",
   muted: "#95a59c",
-  track: "#24342c",
+  track: "#282c31",
 } as const;
 
 /** Token-mix segment identity, keyed for lookup without assertions. */

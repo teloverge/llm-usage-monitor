@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { UsageHistoryRecord } from "@llm-usage-monitor/contracts";
 import { Zone } from "../components/panel.tsx";
 import { formatCount, formatDateTime, formatMoney, formatTokens } from "../model/format.ts";
@@ -7,6 +7,23 @@ import { groupHistoryByTask, type HistorySession } from "../model/usage-groups.t
 
 export function History({ records }: { records: UsageHistoryRecord[] }) {
   const groups = useMemo(() => groupHistoryByTask(records), [records]);
+  // Same reason as the Breakdown rollup: `open` on a `<details>` makes React the
+  // authority on the attribute, so without state behind it a collapsed group can
+  // be reopened by the next render.
+  const [openKeys, setOpenKeys] = useState<ReadonlySet<string>>(new Set());
+  const [seeded, setSeeded] = useState(false);
+  if (!seeded && groups[0]) {
+    setSeeded(true);
+    setOpenKeys(new Set([groups[0].key]));
+  }
+  const setOpen = (key: string, open: boolean) =>
+    setOpenKeys((current) => {
+      if (current.has(key) === open) return current;
+      const next = new Set(current);
+      if (open) next.add(key);
+      else next.delete(key);
+      return next;
+    });
   const sessions = groups.reduce((sum, group) => sum + group.sessions.length, 0);
   if (!groups.length) return <p className="empty-state">No usage history matches the filters.</p>;
   return (
@@ -16,8 +33,13 @@ export function History({ records }: { records: UsageHistoryRecord[] }) {
         {formatCount(records.length)} records
       </Zone>
       <div className="panel breakdown-body">
-        {groups.map((group, index) => (
-          <details className="rollup" key={group.key} open={index === 0}>
+        {groups.map((group) => (
+          <details
+            className="rollup"
+            key={group.key}
+            open={openKeys.has(group.key)}
+            onToggle={(event) => setOpen(group.key, event.currentTarget.open)}
+          >
             <summary>
               <span className="rank-name" title={group.label}>
                 {group.label}

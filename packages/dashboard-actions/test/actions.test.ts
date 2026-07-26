@@ -5,6 +5,7 @@ import { createDashboardActions } from "../src/index.ts";
 const createPorts = () => ({
   localSourceHostId: "host:local",
   importCodex: async () => 2,
+  importClaude: async () => 5,
   migrateLegacy: (_id: string, records: unknown[]) => records.length,
   replacePrices: () => {},
   clearRecords: () => 3,

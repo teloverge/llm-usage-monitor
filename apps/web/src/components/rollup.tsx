@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { RankedUsage } from "@llm-usage-monitor/contracts";
 import { formatMoney, formatTokens } from "../model/format.ts";
 import { rankedRowKey } from "../model/rank-scale.ts";
@@ -12,10 +13,30 @@ export function Rollup({
   depth?: number;
   defaultOpenFirst?: boolean;
 }) {
+  /**
+   * Which rows are open is React state, not just DOM state. Passing `open` to
+   * `<details>` makes React the authority on the attribute, so with no state
+   * behind it a row the user collapsed could be reopened by the next render —
+   * the rows read as refusing to collapse. Keyed by row rather than by index so
+   * an expansion survives the re-ranking that follows a data refresh.
+   */
+  const [openKeys, setOpenKeys] = useState<ReadonlySet<string>>(() => {
+    const first = defaultOpenFirst ? rows[0] : undefined;
+    return new Set(first ? [rankedRowKey(first)] : []);
+  });
+  const setOpen = (key: string, open: boolean) =>
+    setOpenKeys((current) => {
+      if (current.has(key) === open) return current;
+      const next = new Set(current);
+      if (open) next.add(key);
+      else next.delete(key);
+      return next;
+    });
   const siblings = rows.map((row) => row.estimatedCost);
   return (
     <>
-      {rows.map((row, index) => {
+      {rows.map((row) => {
+        const key = rankedRowKey(row);
         const bar = (
           <span className="rank-track" aria-hidden="true">
             <i style={{ width: `${shareOfParent(row.estimatedCost, siblings)}%` }} />
@@ -29,7 +50,7 @@ export function Rollup({
         );
         if (!row.children?.length) {
           return (
-            <div className={`rollup-row depth-${depth}`} key={rankedRowKey(row)}>
+            <div className={`rollup-row depth-${depth}`} key={key}>
               <span className="rank-name" title={row.key}>
                 {row.key}
               </span>
@@ -41,8 +62,9 @@ export function Rollup({
         return (
           <details
             className={`rollup depth-${depth}`}
-            key={rankedRowKey(row)}
-            open={defaultOpenFirst && index === 0}
+            key={key}
+            open={openKeys.has(key)}
+            onToggle={(event) => setOpen(key, event.currentTarget.open)}
           >
             <summary>
               <span className="rank-name" title={row.key}>

@@ -25,8 +25,37 @@ const OPENAI_DEFAULT_PRICES: ModelPrice[] = [
   effectiveDate: "2026-07-10",
 }));
 
+/**
+ * OpenRouter's cheapest listed rate per model, which for these is the standard
+ * (non-"fast") variant. Claude Code reports a bare model id like "claude-opus-5",
+ * so the "anthropic/" routing prefix is dropped here to match.
+ *
+ * The four columns are genuinely four different rates: a cache read costs a tenth
+ * of base input, a cache write costs a quarter more than it. Collapsing the two
+ * cache figures into one would misprice a Claude record by a wide margin in
+ * whichever direction the session happened to lean.
+ */
+const ANTHROPIC_DEFAULT_PRICES: ModelPrice[] = [
+  ["claude-opus-5", 5, 0.5, 6.25, 25],
+  ["claude-opus-5-fast", 10, 1, 12.5, 50],
+  ["claude-sonnet-5", 2, 0.2, 2.5, 10],
+  ["claude-opus-4.8", 5, 0.5, 6.25, 25],
+  ["claude-opus-4.8-fast", 10, 1, 12.5, 50],
+  ["claude-fable-5", 10, 1, 12.5, 50],
+].map(([model, input, cachedInput, cacheWrite, output]) => ({
+  provider: "anthropic",
+  model: String(model),
+  input: Number(input),
+  cachedInput: Number(cachedInput),
+  cacheWrite: Number(cacheWrite),
+  output: Number(output),
+  source: "https://openrouter.ai/api/v1/models",
+  effectiveDate: "2026-07-26",
+}));
+
 export const DEFAULT_PRICES: ModelPrice[] = [
   ...OPENAI_DEFAULT_PRICES,
+  ...ANTHROPIC_DEFAULT_PRICES,
   {
     provider: "openai",
     model: "codex-auto-review",
@@ -39,13 +68,28 @@ export const DEFAULT_PRICES: ModelPrice[] = [
   },
 ];
 
+/**
+ * Defaults that may land in a catalog that already exists.
+ *
+ * The rest of DEFAULT_PRICES is deliberately NOT additive: an install that has
+ * configured prices has already seen those models, so re-adding one would
+ * resurrect a row the user chose to delete. These are the entries that shipped
+ * after the initial catalog, which no existing install can have decided about.
+ * A whole new provider is the clearest case — without this, every install that
+ * predates Claude support would import Claude records and price them all at zero.
+ */
+function isAdditiveDefault(price: ModelPrice): boolean {
+  return price.provider === "anthropic" || price.model === "codex-auto-review";
+}
+
 export function mergeDefaultPrices(configured: ModelPrice[]): ModelPrice[] {
   if (configured.length === 0) return [...DEFAULT_PRICES];
   const configuredKeys = new Set(configured.map(priceKey));
-  const additiveDefaults = DEFAULT_PRICES.filter((price) => price.model === "codex-auto-review");
   return [
     ...configured,
-    ...additiveDefaults.filter((price) => !configuredKeys.has(priceKey(price))),
+    ...DEFAULT_PRICES.filter(
+      (price) => isAdditiveDefault(price) && !configuredKeys.has(priceKey(price)),
+    ),
   ];
 }
 

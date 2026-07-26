@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Import Claude Code usage from local session transcripts under the Claude home directory, populating the `claude-code` harness the dashboard already knew how to render. One record per billed request, deduplicated by message id because Claude Code writes one transcript line per content block and repeats the same usage figures on each.
+- Separate cache writes from cache reads in Usage Records and model prices. The two bill at opposite ends of the rate card, so the previous single cached figure could not price an Anthropic record correctly; Codex records, which report one undifferentiated figure, cost exactly as they always did.
+- Add Anthropic rates to the default price catalog, and let a newly supported provider's defaults reach installs whose price catalog already exists, which previously only `codex-auto-review` could do.
 - Rebuild the dashboard as a cost-first cockpit: one headline figure, a single-axis trend with a Cost/Tokens toggle, driver panels by harness, model, and task, and a context rail for token mix, plan limits, and hosts.
 - Replace the token composition donut with a stacked bar, dashed gridlines with solid hairlines, and plan-limit progress bars with status-aware meters.
 - Move rate configuration into Settings and rename Advanced to Breakdown, which now groups by harness, model, task, host, or Host Group with nested rollups and a table view.
