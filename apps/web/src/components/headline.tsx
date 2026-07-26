@@ -14,7 +14,7 @@ import {
   formatBucketLabel,
   formatCoverage,
   formatMoney,
-  formatMoneyCompact,
+  formatNumberCompact,
   formatTokens,
 } from "../model/format.ts";
 
@@ -42,7 +42,7 @@ export function Headline({ data }: { data: OverviewView }) {
   // The axis and the tooltip format the same number differently on purpose: the
   // axis gutter is 48px and clips anything longer than about seven characters,
   // while the tooltip has room for the exact figure including cents.
-  const axisFormat = measure === "cost" ? formatMoneyCompact : formatTokens;
+  const axisFormat = measure === "cost" ? formatNumberCompact : formatTokens;
   const exactFormat = measure === "cost" ? formatMoney : formatTokens;
   return (
     <section className="panel headline">

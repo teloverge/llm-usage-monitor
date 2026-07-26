@@ -45,6 +45,8 @@ function cached<T>(store: Map<SupportedLocale, T>, build: (locale: SupportedLoca
 const moneyCache = new Map<SupportedLocale, Intl.NumberFormat>();
 const plainCache = new Map<SupportedLocale, Intl.NumberFormat>();
 const compactCache = new Map<SupportedLocale, Intl.NumberFormat>();
+const percentCache = new Map<SupportedLocale, Intl.NumberFormat>();
+const wholePercentCache = new Map<SupportedLocale, Intl.NumberFormat>();
 
 /**
  * The ISO code rather than a symbol, in every locale. This dashboard reports
@@ -74,6 +76,23 @@ const compact = () =>
     (locale) => new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }),
   );
 
+const percent = () =>
+  cached(
+    percentCache,
+    (locale) =>
+      new Intl.NumberFormat(locale, {
+        style: "percent",
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }),
+  );
+
+const wholePercent = () =>
+  cached(
+    wholePercentCache,
+    (locale) => new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 0 }),
+  );
+
 export function formatMoney(value: number): string {
   return money().format(value);
 }
@@ -98,24 +117,14 @@ export function formatCount(value: number): string {
 }
 
 /**
- * Money for a chart axis, where `formatMoney` does not fit. A 48px-wide axis
- * gutter at 11px type holds roughly seven characters; "$8,947.32" is nine and
- * gets clipped, which turns a precise figure into a misread one. Ticks are for
- * scale, so they lose the cents the hero figure keeps.
- *
- * Still pinned to "en-US" rather than the active locale — Task 2 makes this
- * locale-aware (and renames it). Not touched here to keep this task's diff
- * limited to money/tokens/count/dateTime.
+ * A number for a chart axis, where `formatMoney` does not fit. A 48px-wide axis
+ * gutter at 11px type holds roughly seven characters; "USD 8,947.32" is twelve
+ * and gets clipped. Ticks are for scale, so they lose both the cents and the
+ * currency — the unit is stated once on the measure toggle above the chart, and
+ * the hero figure beside it carries the full "USD 8,947.32".
  */
-const moneyCompact = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-
-export function formatMoneyCompact(value: number): string {
-  return moneyCompact.format(value);
+export function formatNumberCompact(value: number): string {
+  return compact().format(value);
 }
 
 /**
@@ -132,8 +141,27 @@ export function formatBucketLabel(bucket: string): string {
   return bucket.length > 10 ? bucket.slice(5, 13).replace("T", " ") : bucket.slice(5);
 }
 
+/**
+ * Takes a ratio, not a percentage. `style: "percent"` performs the ×100 itself,
+ * so callers must not pre-multiply. Going through `Intl` rather than
+ * `toFixed(1) + "%"` is what gets the decimal separator and the space before the
+ * sign right — Spanish writes "68,2 %".
+ */
 export function formatPercent(ratio: number): string {
-  return `${(ratio * 100).toFixed(1)}%`;
+  return percent().format(ratio);
+}
+
+/**
+ * Takes an ALREADY-whole percentage (82, not 0.82) and renders it without a
+ * decimal, for figures read at a glance: quota meters and token-mix shares.
+ *
+ * Deliberately a second function rather than a flag on `formatPercent`, because
+ * the two differ in what they consume as well as how they render. A single
+ * function taking either would make `formatPercent(82)` — meaning 8,200% —
+ * type-check and render silently.
+ */
+export function formatWholePercent(percentage: number): string {
+  return wholePercent().format(percentage / 100);
 }
 
 /**
