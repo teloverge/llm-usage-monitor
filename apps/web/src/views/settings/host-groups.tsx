@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { HostGroup, HostGroupMembership, SourceHost } from "@llm-usage-monitor/contracts";
 import { executeAction } from "../../api.ts";
 import {
@@ -54,22 +54,30 @@ export function HostGroups({
 
     `refresh()` in app.tsx fires on any filter change and hands back fresh
     array identities, so a plain reset would silently overwrite a rename or a
-    membership tick the moment the user touched an unrelated topbar chip. The
-    rule: a card the user has actually modified (per `rowsDiffer`) keeps its
-    draft across the refetch; an untouched card takes the fresh server value,
-    so a real change from an import still shows up. Not-yet-persisted new-group
-    drafts are carried across the same way, via the append below.
+    membership tick the moment the user touched an unrelated topbar chip. But
+    comparing the draft to the newly fetched row can't tell "the user edited
+    this" apart from "the server value moved underneath an untouched card" —
+    both look like a difference. So `lastSeen` tracks the server rows we
+    last showed the user: a card is the user's (and keeps its draft) only if
+    it diverges from THAT snapshot; an untouched card always takes the fresh
+    value, so a real change from elsewhere (e.g. an import) still surfaces.
+    Not-yet-persisted new-group drafts are carried across the same way, via
+    the append below.
   */
+  const lastSeen = useRef<HostGroupRow[]>(saved);
   useEffect(() => {
     setDraft((current) => {
       const fresh = hostGroupRows(hostGroups, memberships);
-      return [
+      const merged = [
         ...fresh.map((row) => {
           const draftRow = current.find((item) => item.id === row.id);
-          return draftRow && rowsDiffer(draftRow, row) ? draftRow : row;
+          const lastSeenRow = lastSeen.current.find((item) => item.id === row.id);
+          return draftRow && lastSeenRow && rowsDiffer(draftRow, lastSeenRow) ? draftRow : row;
         }),
         ...current.filter((row) => !hostGroups.some((group) => group.id === row.id)),
       ];
+      lastSeen.current = fresh;
+      return merged;
     });
   }, [hostGroups, memberships]);
 
