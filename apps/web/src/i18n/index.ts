@@ -31,8 +31,8 @@ const initial = resolveLanguage(storedLanguage(), navigator.languages ?? [naviga
 /**
  * Registered before any component mounts, and the ordering is load-bearing
  * rather than incidental. react-i18next does not subscribe centrally in
- * `initReactI18next` — each component subscribes its own `languageChanged`
- * listener individually, inside `useTranslation`'s effect, whenever it mounts.
+ * `initReactI18next` — each component subscribes individually, via
+ * `useTranslation`'s `useSyncExternalStore` subscription, whenever it mounts.
  *
  * i18next fires `languageChanged` listeners in registration order. Registering
  * this one at module load, before any component exists to mount, guarantees it

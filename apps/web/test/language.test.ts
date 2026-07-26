@@ -28,6 +28,14 @@ describe("Language resolution", () => {
     assert.equal(resolveLanguage("es-AR", []), "es");
   });
 
+  // The primary subtag is matched case-insensitively — a browser or a
+  // hand-edited storage value may report it upper-cased (BCP 47 only
+  // requires the REGION subtag, not the primary language, to be upper-cased).
+  it("matches the base subtag regardless of case", () => {
+    assert.equal(resolveLanguage("ES-MX", []), "es");
+    assert.equal(resolveLanguage(null, ["ES-MX", "EN"]), "es");
+  });
+
   it("walks the browser list in order and takes the first supported entry", () => {
     assert.equal(resolveLanguage(null, ["fr-FR", "de", "es-ES", "en"]), "es");
   });
