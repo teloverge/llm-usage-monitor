@@ -4468,24 +4468,45 @@ Expected: FAIL — `Cannot find module '../src/model/rollup-scale.ts'`
 Create `apps/web/src/model/rollup-scale.ts`:
 
 ```ts
+import { rankBarWidth } from "./rank-scale.ts";
+
 /**
  * Width percentage for a row's bar, relative to its largest sibling — never to
  * the grand total, so a child bar cannot imply a share of the whole.
  */
 export function shareOfParent(value: number, siblings: number[]): number {
-  const maximum = Math.max(0, ...siblings);
-  return maximum > 0 ? (value / maximum) * 100 : 0;
+  const maximum = siblings.reduce((largest, sibling) => (sibling > largest ? sibling : largest), 0);
+  return rankBarWidth(value, maximum);
 }
 ```
+
+Two changes from the original draft:
+
+- **Delegates the division to Task 19's `rankBarWidth`** instead of repeating `maximum > 0 ? … : 0`.
+  That is where the divide-by-zero guard and the 0–100 clamp already live and are tested; two
+  copies of "turn a value into a bar width" are two places for the `NaN%` case to regress.
+- **Folds the maximum instead of `Math.max(0, ...siblings)`.** A Breakdown grouped by task can have
+  thousands of sibling rows, and spreading passes each as a call argument — past the engine's limit
+  that throws `RangeError`. Verified: restoring the spread makes the 200,000-sibling test throw.
 
 - [ ] **Step 4: Write the component**
 
 Create `apps/web/src/components/rollup.tsx`:
 
+The `key` must compose provider and key, not use `row.key` alone. `rankModels` groups by provider
+**and** model but sets `key: first.model`, so two providers offering the same model name produce
+two rows with the same key — React then treats them as one element, and a `<details>` open state
+follows the wrong provider while reordering moves the wrong row. The legacy `RankChart` composed
+the same pair for the same reason.
+
 ```tsx
 import type { RankedUsage } from "@llm-usage-monitor/contracts";
 import { formatMoney, formatTokens } from "../model/format.ts";
 import { shareOfParent } from "../model/rollup-scale.ts";
+
+function rowKey(row: RankedUsage): string {
+  return `${row.provider ?? ""}�${row.key}`;
+}
 
 export function Rollup({
   rows,
@@ -4513,7 +4534,7 @@ export function Rollup({
         );
         if (!row.children?.length) {
           return (
-            <div className={`rollup-row depth-${depth}`} key={row.key}>
+            <div className={`rollup-row depth-${depth}`} key={rowKey(row)}>
               <span className="rank-name" title={row.key}>
                 {row.key}
               </span>
@@ -4525,7 +4546,7 @@ export function Rollup({
         return (
           <details
             className={`rollup depth-${depth}`}
-            key={row.key}
+            key={rowKey(row)}
             open={defaultOpenFirst && index === 0}
           >
             <summary>
@@ -4568,7 +4589,7 @@ Append to `apps/web/src/styles.css`:
 .rollup > summary {
   cursor: pointer;
   list-style: none;
-  background: #131c18;
+  background: var(--sunken);
   border-bottom: 1px solid var(--line);
 }
 .rollup > summary::-webkit-details-marker {
@@ -4596,6 +4617,15 @@ Append to `apps/web/src/styles.css`:
   font-variant-numeric: tabular-nums;
 }
 ```
+
+Insert before the `@media` blocks, not at EOF — see Task 19 Step 2.
+
+The draft hardcodes `background: #131c18`, a colour in no token file, breaking the rule that
+`tokens.css` is the only home for CSS colour literals. Add it as `--sunken` there instead: it is a
+recessed header surface a shade under `--panel`, so a collapsible parent reads as sunk below the
+children it contains, where the existing `--raised` would make it stand proud of them. No chart
+mark uses it, so it needs no `palette.ts` twin and no row in the agreement table — that table
+covers only the 13 colours with a TypeScript counterpart.
 
 - [ ] **Step 7: Commit**
 

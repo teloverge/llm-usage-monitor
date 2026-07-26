@@ -744,6 +744,47 @@ footer {
   letter-spacing: -0.02em;
 }
 
+.rollup-row,
+.rollup > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1fr 96px 74px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--grid);
+  font-size: var(--size-meta);
+}
+.rollup > summary {
+  cursor: pointer;
+  list-style: none;
+  background: var(--sunken);
+  border-bottom: 1px solid var(--line);
+}
+.rollup > summary::-webkit-details-marker {
+  display: none;
+}
+.rollup > summary::before {
+  content: "▸";
+  color: var(--muted);
+  margin-right: -6px;
+}
+.rollup[open] > summary::before {
+  content: "▾";
+}
+.rollup.depth-1 > summary,
+.rollup-row.depth-1 {
+  padding-left: 30px;
+}
+.rollup.depth-2 > summary,
+.rollup-row.depth-2 {
+  padding-left: 57px;
+}
+.rollup-tokens {
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /*
  * Cockpit breakpoints. `.strip` is deliberately absent from all three: the
  * 900px block above already takes it to two columns and owns it outright.
