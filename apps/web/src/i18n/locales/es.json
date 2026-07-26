@@ -42,7 +42,6 @@
       "loading": "Cargando el catálogo de precios local…"
     },
     "language": {
-      "tab": "Idioma",
       "heading": "Idioma",
       "hint": "Se aplica solo a este navegador. Los números, las fechas y la moneda siguen el idioma que elijas."
     },
