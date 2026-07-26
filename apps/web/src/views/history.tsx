@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { UsageHistoryRecord } from "@llm-usage-monitor/contracts";
 import { Zone } from "../components/panel.tsx";
 import { formatCount, formatDateTime, formatMoney, formatTokens } from "../model/format.ts";
@@ -6,6 +7,7 @@ import { harnessColor, harnessLabel } from "../model/harness.ts";
 import { groupHistoryByTask, type HistorySession } from "../model/usage-groups.ts";
 
 export function History({ records }: { records: UsageHistoryRecord[] }) {
+  const { t } = useTranslation();
   const groups = useMemo(() => groupHistoryByTask(records), [records]);
   // Same reason as the Breakdown rollup: `open` on a `<details>` makes React the
   // authority on the attribute, so without state behind it a collapsed group can
@@ -25,12 +27,15 @@ export function History({ records }: { records: UsageHistoryRecord[] }) {
       return next;
     });
   const sessions = groups.reduce((sum, group) => sum + group.sessions.length, 0);
-  if (!groups.length) return <p className="empty-state">No usage history matches the filters.</p>;
+  if (!groups.length) return <p className="empty-state">{t("history.empty")}</p>;
   return (
     <section className="history">
       <Zone>
-        {formatCount(groups.length)} tasks · {formatCount(sessions)} sessions ·{" "}
-        {formatCount(records.length)} records
+        {t("history.summary", {
+          tasks: formatCount(groups.length),
+          sessions: formatCount(sessions),
+          records: formatCount(records.length),
+        })}
       </Zone>
       <div className="panel breakdown-body">
         {groups.map((group) => (
@@ -45,11 +50,16 @@ export function History({ records }: { records: UsageHistoryRecord[] }) {
                 {group.label}
               </span>
               <span className="rollup-tokens">
-                {formatCount(group.sessions.length)} sessions · {formatTokens(group.totalTokens)}
+                {t("history.groupSessions", {
+                  sessions: formatCount(group.sessions.length),
+                  tokens: formatTokens(group.totalTokens),
+                })}
               </span>
               <span className="rollup-tokens">{formatDateTime(group.lastActiveAt)}</span>
               <span className="rank-value">
-                {group.estimatedCost === null ? "Unpriced" : formatMoney(group.estimatedCost)}
+                {group.estimatedCost === null
+                  ? t("common.unpriced")
+                  : formatMoney(group.estimatedCost)}
               </span>
             </summary>
             <SessionTable sessions={group.sessions} />
@@ -61,18 +71,19 @@ export function History({ records }: { records: UsageHistoryRecord[] }) {
 }
 
 function SessionTable({ sessions }: { sessions: HistorySession[] }) {
+  const { t } = useTranslation();
   return (
     <table className="data-table">
       <thead>
         <tr>
-          <th>Last active</th>
-          <th>Harness</th>
-          <th>Model</th>
-          <th>Reasoning</th>
-          <th>Host</th>
-          <th className="n">Records</th>
-          <th className="n">Tokens</th>
-          <th className="n">Cost</th>
+          <th>{t("history.lastActive")}</th>
+          <th>{t("history.harness")}</th>
+          <th>{t("history.model")}</th>
+          <th>{t("history.reasoning")}</th>
+          <th>{t("history.host")}</th>
+          <th className="n">{t("table.records")}</th>
+          <th className="n">{t("table.tokens")}</th>
+          <th className="n">{t("table.cost")}</th>
         </tr>
       </thead>
       <tbody>
@@ -92,7 +103,7 @@ function SessionTable({ sessions }: { sessions: HistorySession[] }) {
                     aria-hidden="true"
                     style={{ background: harnessColor(harness) }}
                   />
-                  {harnessLabel(harness, "Unknown harness")}
+                  {harnessLabel(harness, t("common.unknownHarness"))}
                 </span>
               ))}
             </td>
@@ -102,7 +113,9 @@ function SessionTable({ sessions }: { sessions: HistorySession[] }) {
             <td className="n">{formatCount(session.records)}</td>
             <td className="n">{formatTokens(session.totalTokens)}</td>
             <td className="n">
-              {session.estimatedCost === null ? "Unpriced" : formatMoney(session.estimatedCost)}
+              {session.estimatedCost === null
+                ? t("common.unpriced")
+                : formatMoney(session.estimatedCost)}
             </td>
           </tr>
         ))}
