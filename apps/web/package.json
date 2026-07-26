@@ -7,8 +7,10 @@
   },
   "dependencies": {
     "@llm-usage-monitor/contracts": "workspace:*",
+    "i18next": "^26.3.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-i18next": "^17.0.11",
     "recharts": "^3.0.0"
   },
   "devDependencies": {
