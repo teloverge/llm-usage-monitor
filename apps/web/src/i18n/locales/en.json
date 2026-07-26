@@ -1,0 +1,21 @@
+{
+  "common": {
+    "unknownHarness": "Unknown harness",
+    "notReported": "Not reported",
+    "unpriced": "Unpriced"
+  },
+  "headline": {
+    "coverage": {
+      "none": "No records in this period",
+      "all": "{{records}} records priced",
+      "partial": "{{priced}} of {{records}} records priced"
+    }
+  },
+  "settings": {
+    "language": {
+      "tab": "Language",
+      "heading": "Language",
+      "hint": "Applies to this browser only. Numbers, dates, and currency follow the language you choose."
+    }
+  }
+}

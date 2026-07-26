@@ -1,0 +1,21 @@
+{
+  "common": {
+    "unknownHarness": "Entorno desconocido",
+    "notReported": "No informado",
+    "unpriced": "Sin tarifa"
+  },
+  "headline": {
+    "coverage": {
+      "none": "No hay registros en este periodo",
+      "all": "{{records}} registros con tarifa",
+      "partial": "{{priced}} de {{records}} registros con tarifa"
+    }
+  },
+  "settings": {
+    "language": {
+      "tab": "Idioma",
+      "heading": "Idioma",
+      "hint": "Se aplica solo a este navegador. Los números, las fechas y la moneda siguen el idioma que elijas."
+    }
+  }
+}
