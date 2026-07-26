@@ -19,6 +19,28 @@
     "empty": "No hay actividad en este periodo"
   },
   "settings": {
+    "sections": "Secciones de ajustes",
+    "tabs": {
+      "rates": "Tarifas de modelo",
+      "host-groups": "Grupos de hosts",
+      "language": "Idioma"
+    },
+    "rates": {
+      "heading": "Tarifas de modelo",
+      "subtitle": "USD por millón de tokens · {{models}} modelos configurados",
+      "caption": "Precios de modelo configurados en USD por millón de tokens",
+      "saving": "Guardando…",
+      "save": "Guardar cambios",
+      "saved": "Precios guardados",
+      "provider": "Proveedor",
+      "model": "Modelo",
+      "input": "Entrada",
+      "cachedInput": "Lectura de caché",
+      "cacheWrite": "Escritura de caché",
+      "output": "Salida",
+      "effective": "Vigente desde",
+      "loading": "Cargando el catálogo de precios local…"
+    },
     "language": {
       "tab": "Idioma",
       "heading": "Idioma",
