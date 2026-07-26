@@ -773,3 +773,55 @@ footer {
     max-width: 34ch;
   }
 }
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.settings-section {
+  overflow: clip;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.settings-section-head {
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-section-head h2 {
+  margin: 0 0 1px;
+  font-size: 14px;
+}
+.settings-section-head p {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 10px;
+}
+.host-group-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.host-group-card {
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.host-group-card:last-child {
+  border-bottom: 0;
+}
+.host-group-card h3 {
+  margin: 0 0 4px;
+  font-size: 12px;
+}
+.host-group-members,
+.host-group-ungrouped {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--size-meta);
+}
+.host-group-ungrouped {
+  padding: 10px;
+  border-top: 1px solid var(--line);
+}

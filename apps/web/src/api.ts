@@ -1,6 +1,8 @@
 import type {
   DashboardAction,
   DashboardActionOutcome,
+  HostGroup,
+  HostGroupMembership,
   ModelPrice,
   OverviewView,
   SourceHost,
@@ -19,7 +21,12 @@ export async function getOverview(filters: UsageFilters): Promise<OverviewView> 
 export async function getHistory(): Promise<UsageHistoryRecord[]> {
   return (await requestJson<{ records: UsageHistoryRecord[] }>("./api/history?limit=500")).records;
 }
-export async function getCatalog(): Promise<{ prices: ModelPrice[]; sourceHosts: SourceHost[] }> {
+export async function getCatalog(): Promise<{
+  prices: ModelPrice[];
+  sourceHosts: SourceHost[];
+  hostGroups: HostGroup[];
+  memberships: HostGroupMembership[];
+}> {
   return requestJson("./api/catalog");
 }
 export async function executeAction(action: DashboardAction): Promise<DashboardActionOutcome> {

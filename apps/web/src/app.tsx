@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
+  HostGroup,
+  HostGroupMembership,
   ModelPrice,
   OverviewView,
   SourceHost,
@@ -10,7 +12,7 @@ import { SearchChip, SelectChip } from "./components/chip.tsx";
 import { sourceHostLabel } from "./model/source-host.ts";
 import { executeAction, getCatalog, getHistory, getOverview } from "./api.ts";
 import { History } from "./views/history.tsx";
-import { Pricing } from "./views/settings/rates.tsx";
+import { Settings } from "./views/settings/index.tsx";
 import { Breakdown, type BreakdownDimension } from "./views/breakdown.tsx";
 import { Overview } from "./views/overview.tsx";
 import logoUrl from "../../../assets/Teloverge-lum-logo.svg?url";
@@ -45,6 +47,8 @@ export function App() {
   const [history, setHistory] = useState<UsageHistoryRecord[]>([]);
   const [prices, setPrices] = useState<ModelPrice[]>([]);
   const [sourceHosts, setSourceHosts] = useState<SourceHost[]>([]);
+  const [hostGroups, setHostGroups] = useState<HostGroup[]>([]);
+  const [memberships, setMemberships] = useState<HostGroupMembership[]>([]);
   const [stale, setStale] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -77,6 +81,8 @@ export function App() {
       setHistory(nextHistory);
       setPrices(catalog.prices);
       setSourceHosts(catalog.sourceHosts);
+      setHostGroups(catalog.hostGroups);
+      setMemberships(catalog.memberships);
     } catch (reason) {
       if (id === requestId.current) {
         setError(reason instanceof Error ? reason.message : String(reason));
@@ -216,6 +222,9 @@ export function App() {
             overview={overview}
             history={history}
             prices={prices}
+            hostGroups={hostGroups}
+            memberships={memberships}
+            sourceHosts={sourceHosts}
             onSaved={refresh}
             onDrillDown={drillDown}
             breakdownDimension={breakdownDimension}
@@ -236,6 +245,9 @@ function ViewSlot({
   overview,
   history,
   prices,
+  hostGroups,
+  memberships,
+  sourceHosts,
   onSaved,
   onDrillDown,
   breakdownDimension,
@@ -246,12 +258,24 @@ function ViewSlot({
   overview: OverviewView | null;
   history: UsageHistoryRecord[];
   prices: ModelPrice[];
+  hostGroups: HostGroup[];
+  memberships: HostGroupMembership[];
+  sourceHosts: SourceHost[];
   onSaved: () => Promise<void>;
   onDrillDown: (dimension: DrillDownDimension) => void;
   breakdownDimension: BreakdownDimension;
   onBreakdownDimensionChange: (value: BreakdownDimension) => void;
 }) {
-  if (settingsOpen) return <Pricing prices={prices} onSaved={onSaved} />;
+  if (settingsOpen)
+    return (
+      <Settings
+        prices={prices}
+        hostGroups={hostGroups}
+        memberships={memberships}
+        sourceHosts={sourceHosts}
+        onSaved={onSaved}
+      />
+    );
   if (view === "overview")
     return overview ? <Overview data={overview} onDrillDown={onDrillDown} /> : null;
   if (view === "breakdown")
