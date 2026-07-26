@@ -39,6 +39,12 @@ export interface HistoryTaskGroup {
 export interface HistoryLabels {
   untitledTask: string;
   notReported: string;
+  /**
+   * Resolves a raw `sourceHostId` to display text. A function rather than a
+   * string because the fallback for an unnamed host is positional, so it
+   * depends on which host is being named — see `sourceHostLabels`.
+   */
+  sourceHost: (sourceHostId: string) => string;
 }
 
 export function groupHistoryByTask(
@@ -91,7 +97,7 @@ function groupSessions(records: UsageHistoryRecord[], labels: HistoryLabels): Hi
         records: sorted.length,
         totalTokens: sorted.reduce((sum, record) => sum + record.totalTokens, 0),
         estimatedCost: sumEstimate(sorted),
-        sourceHosts: unique(sorted.map((record) => record.sourceHostLabel)),
+        sourceHosts: unique(sorted.map((record) => labels.sourceHost(record.sourceHostId))),
         models: unique(sorted.map((record) => `${record.model} · ${record.provider}`)),
         // The caller's `common.notReported` rather than "unknown": the phrasing
         // the rest of the dashboard uses for a metric a source did not supply,

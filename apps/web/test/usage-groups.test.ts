@@ -4,7 +4,13 @@ import type { UsageHistoryRecord } from "@llm-usage-monitor/contracts";
 import { groupHistoryByTask } from "../src/model/usage-groups.ts";
 
 // The translated wording is injected, exactly as the component will inject it.
-const LABELS = { untitledTask: "Untitled task", notReported: "Not reported" };
+// `sourceHost` resolves a raw id the way the view does, so the grouping is
+// exercised against injected wording rather than anything it invents itself.
+const LABELS = {
+  untitledTask: "Untitled task",
+  notReported: "Not reported",
+  sourceHost: (sourceHostId: string) => (sourceHostId === "host:a" ? "Workstation" : sourceHostId),
+};
 
 const historyRecord = (overrides: Partial<UsageHistoryRecord>): UsageHistoryRecord => ({
   id: "record:1",
@@ -25,7 +31,7 @@ const historyRecord = (overrides: Partial<UsageHistoryRecord>): UsageHistoryReco
   lastTokenUsage: null,
   modelContextWindowTokens: 1_000,
   source: "test",
-  sourceHostLabel: "Workstation",
+  sourceHostId: "host:a",
   estimatedCost: 0.1,
   ...overrides,
 });
@@ -81,7 +87,7 @@ describe("Session harness attribution", () => {
     modelContextWindowTokens: 400_000,
     source: "codex-local",
     sessionId: "session-1",
-    sourceHostLabel: "workstation",
+    sourceHostId: "host:a",
     estimatedCost: 1,
   };
 

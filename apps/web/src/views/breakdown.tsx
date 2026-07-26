@@ -28,25 +28,30 @@ const DIMENSIONS: readonly BreakdownDimension[] = [
 
 export function Breakdown({
   data,
+  hostLabel,
   dimension,
   onDimensionChange,
 }: {
   data: OverviewView;
+  hostLabel: (sourceHostId: string) => string;
   dimension: BreakdownDimension;
   onDimensionChange: (value: BreakdownDimension) => void;
 }) {
   const { t } = useTranslation();
   const [asTable, setAsTable] = useState(false);
-  // Harness rows carry raw ids, exactly as in the Overview's By-harness panel.
+  // Harness and host rows carry raw ids, exactly as in the Overview's panels.
   // Relabelled here for the same reason: `unknown` must not read as the name of
-  // something the user installed.
+  // something the user installed, and an unnamed host needs translated
+  // positional wording the analysis layer cannot supply.
   const rows =
     dimension === "byHarness"
       ? data.byHarness.map((row) => ({
           ...row,
           key: harnessLabel(row.key, t("common.unknownHarness")),
         }))
-      : data[dimension];
+      : dimension === "bySourceHost"
+        ? data.bySourceHost.map((row) => ({ ...row, key: hostLabel(row.key) }))
+        : data[dimension];
   return (
     <section className="breakdown">
       <div className="group-by">
