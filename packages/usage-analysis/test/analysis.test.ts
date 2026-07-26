@@ -614,3 +614,62 @@ describe("Quota snapshots in the overview", () => {
     assert.deepEqual(view.quotaSnapshots, snapshots);
   });
 });
+
+describe("Host Group labelling", () => {
+  const membership = (hostGroupId: string) => ({
+    hostGroupId,
+    sourceHostId: "host:a",
+    effectiveFrom: "2026-01-01T00:00:00.000Z",
+    effectiveTo: null,
+  });
+  const view = (
+    hostGroups: Array<{ id: string; name: string }>,
+    memberships: Array<ReturnType<typeof membership>>,
+  ) =>
+    analyzeUsage({
+      records: [record("2026-07-20T09:00:00.000Z")],
+      prices: [],
+      sourceHosts: [],
+      hostGroups,
+      memberships,
+      filters: { timeframe: "all" },
+    });
+
+  it("keys rows by the group's name", () => {
+    assert.deepEqual(
+      view([{ id: "group:one", name: "Laptops" }], [membership("group:one")]).byHostGroup.map(
+        (row) => row.key,
+      ),
+      ["Laptops"],
+    );
+  });
+
+  // A membership can outlive knowledge of its group only if the two reads
+  // disagree. Dropping the row would hide real spend, so the id is shown.
+  it("falls back to the group id when no group row matches", () => {
+    assert.deepEqual(
+      view([], [membership("group:one")]).byHostGroup.map((row) => row.key),
+      ["group:one"],
+    );
+  });
+
+  it("keeps Ungrouped for a host with no effective membership", () => {
+    assert.deepEqual(
+      view([{ id: "group:one", name: "Laptops" }], []).byHostGroup.map((row) => row.key),
+      ["Ungrouped"],
+    );
+  });
+
+  it("still resolves when hostGroups is omitted entirely", () => {
+    assert.deepEqual(
+      analyzeUsage({
+        records: [record("2026-07-20T09:00:00.000Z")],
+        prices: [],
+        sourceHosts: [],
+        memberships: [membership("group:one")],
+        filters: { timeframe: "all" },
+      }).byHostGroup.map((row) => row.key),
+      ["group:one"],
+    );
+  });
+});
