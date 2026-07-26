@@ -14,7 +14,9 @@ The dollar total is an **API-equivalent estimate**: what the selected token usag
 
 - Imports metadata from local Codex history files; it does not call ChatGPT or OpenAI account servers.
 - Never imports prompts, responses, reasoning text, tool calls, file contents, or credentials.
-- Shows API-equivalent spend, tokens, cache efficiency, model/task rankings, token composition, and plan-limit snapshots without requiring chart configuration.
+- Shows API-equivalent spend as a single headline figure with its cost drivers by harness, model, and task, plus token composition and per-source plan limits.
+- Separates usage source, harness, model provider, and model as distinct identities, so one harness may use several providers and one provider may be reached through several harnesses.
+- Reports metrics a source does not supply as unavailable rather than as zero.
 - Filters Today, rolling Last 24 hours, 7/30/90 days, all retained history, task name, and Source Host.
 - Uses hostname as the preferred Source Host label and retains IP addresses as informative observations.
 - Stores canonical Usage Records, Source Hosts, effective-dated Host Group membership, prices, and import state in SQLite.

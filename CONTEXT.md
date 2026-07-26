@@ -16,6 +16,18 @@ _Avoid_: VS Code global state, cache, analytics database
 A normalized, deduplicated account of model usage attributable to one Source Host and one provider operation or turn.
 _Avoid_: raw session event, prompt, telemetry event
 
+**Usage Source**:
+The adapter and source format that supplied authoritative usage evidence for a Usage Record, identified by `usageSourceId` such as `codex-local`.
+_Avoid_: provider, importer, harness
+
+**Harness**:
+The coding harness in which the work occurred, identified by `harnessId` such as `codex` or `claude-code`. Distinct from both the Usage Source and the model provider.
+_Avoid_: client, tool, provider
+
+**Usage Quota Snapshot**:
+A normalized, source-owned observation of plan limits with named windows. It never participates in cost calculation.
+_Avoid_: rate limits, plan usage, billing state
+
 **Usage Analysis**:
 The canonical interpretation of Usage Records into filters, totals, rankings, graph series, and API-equivalent estimates.
 _Avoid_: dashboard math, report aggregation
