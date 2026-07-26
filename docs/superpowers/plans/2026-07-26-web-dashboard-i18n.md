@@ -31,10 +31,12 @@
 Replaces the pinned `LOCALE` constant with per-locale formatter caching plus a setter. This task covers `formatMoney`, `formatTokens`, `formatCount`, and `formatDateTime`. The other helpers follow in Tasks 2–4.
 
 **Files:**
+
 - Modify: `apps/web/src/model/format.ts:1-46` (locale constant, formatter construction, money/tokens/count) and `:106-113` (`formatDateTime`)
 - Test: `apps/web/test/format.test.ts:14-32`, `:67-92`
 
 **Interfaces:**
+
 - Consumes: nothing
 - Produces:
   - `export type SupportedLocale = "en" | "es"`
@@ -124,7 +126,11 @@ describe("Formatters", () => {
   it("rejects an unsupported locale rather than formatting in it", () => {
     inLocale("en", () => {
       setFormatLocale("fr-CA");
-      assert.equal(formatMoney(142.3), "USD\u00a0142.30", "falls back to en, never to the OS locale");
+      assert.equal(
+        formatMoney(142.3),
+        "USD\u00a0142.30",
+        "falls back to en, never to the OS locale",
+      );
     });
   });
 });
@@ -339,11 +345,13 @@ git commit -m "Format money, tokens, counts, and instants in the active locale"
 `formatPercent` currently bypasses `Intl` entirely. `formatMoneyCompact` is renamed and loses its currency, because axis ticks cannot carry a currency code within the gutter.
 
 **Files:**
+
 - Modify: `apps/web/src/model/format.ts` (`formatPercent`, and the `moneyCompact` formatter plus `formatMoneyCompact`)
 - Modify: `apps/web/src/components/headline.tsx:17`, `:45`
 - Test: `apps/web/test/format.test.ts` (`Axis formatting` block, percent assertion)
 
 **Interfaces:**
+
 - Consumes: `setFormatLocale` from Task 1
 - Produces:
   - `formatPercent(ratio: number): string` — signature unchanged, output now locale-formatted, one decimal
@@ -355,33 +363,33 @@ git commit -m "Format money, tokens, counts, and instants in the active locale"
 Replace the percent assertion (the `it("formats a ratio as a percent with one decimal", ...)` block) and the whole `describe("Axis formatting", ...)` block's first test:
 
 ```ts
-  it("formats a ratio as a percent in the active locale", () => {
-    inLocale("en", () => {
-      assert.equal(formatPercent(0.682), "68.2%");
-    });
-    // Spanish uses a comma decimal and a NO-BREAK SPACE before the sign.
-    inLocale("es", () => {
-      assert.equal(formatPercent(0.682), "68,2\u00a0%");
-    });
+it("formats a ratio as a percent in the active locale", () => {
+  inLocale("en", () => {
+    assert.equal(formatPercent(0.682), "68.2%");
   });
+  // Spanish uses a comma decimal and a NO-BREAK SPACE before the sign.
+  inLocale("es", () => {
+    assert.equal(formatPercent(0.682), "68,2\u00a0%");
+  });
+});
 
-  /**
-   * Quota meters and token-mix shares arrive already whole and are read at a
-   * glance, so they keep no decimal — "82%", not "82.0%". Separate from
-   * `formatPercent` rather than a flag on it, because the two also differ in
-   * what they take: a ratio there, a percentage here. One function taking
-   * either would be a transposition waiting to happen.
-   */
-  it("formats an already-whole percentage without a decimal", () => {
-    inLocale("en", () => {
-      assert.equal(formatWholePercent(82), "82%");
-      assert.equal(formatWholePercent(0), "0%");
-      assert.equal(formatWholePercent(100), "100%");
-    });
-    inLocale("es", () => {
-      assert.equal(formatWholePercent(82), "82\u00a0%");
-    });
+/**
+ * Quota meters and token-mix shares arrive already whole and are read at a
+ * glance, so they keep no decimal — "82%", not "82.0%". Separate from
+ * `formatPercent` rather than a flag on it, because the two also differ in
+ * what they take: a ratio there, a percentage here. One function taking
+ * either would be a transposition waiting to happen.
+ */
+it("formats an already-whole percentage without a decimal", () => {
+  inLocale("en", () => {
+    assert.equal(formatWholePercent(82), "82%");
+    assert.equal(formatWholePercent(0), "0%");
+    assert.equal(formatWholePercent(100), "100%");
   });
+  inLocale("es", () => {
+    assert.equal(formatWholePercent(82), "82\u00a0%");
+  });
+});
 ```
 
 Add `formatWholePercent` to the test file's import list alongside `formatNumberCompact`.
@@ -487,13 +495,13 @@ export function formatNumberCompact(value: number): string {
 In `apps/web/src/components/headline.tsx`, change the import at line 17 from `formatMoneyCompact` to `formatNumberCompact`, and line 45 from:
 
 ```tsx
-  const axisFormat = measure === "cost" ? formatMoneyCompact : formatTokens;
+const axisFormat = measure === "cost" ? formatMoneyCompact : formatTokens;
 ```
 
 to:
 
 ```tsx
-  const axisFormat = measure === "cost" ? formatNumberCompact : formatTokens;
+const axisFormat = measure === "cost" ? formatNumberCompact : formatTokens;
 ```
 
 - [ ] **Step 5: Run the tests and typecheck**
@@ -515,10 +523,12 @@ git commit -m "Format percentages through Intl and drop currency from axis ticks
 The current implementation slices fixed-width ISO strings positionally. Spanish orders day before month, so this must go through `Intl`.
 
 **Files:**
+
 - Modify: `apps/web/src/model/format.ts:58-70` (`formatBucketLabel`)
 - Test: `apps/web/test/format.test.ts` (bucket label tests in `Axis formatting`)
 
 **Interfaces:**
+
 - Consumes: `setFormatLocale`, `currentFormatLocale` from Task 1
 - Produces: `formatBucketLabel(bucket: string): string` — signature unchanged
 
@@ -630,7 +640,7 @@ export function formatBucketLabel(bucket: string, timeZone?: string): string {
 `headline.tsx` passes `formatBucketLabel` as a `tickFormatter` and inside a `labelFormatter`. Both now pass a single string, which still matches the signature — but recharts calls `tickFormatter(value, index)`, and the second argument is a number, which would land in `timeZone`. Change `apps/web/src/components/headline.tsx:87` from:
 
 ```tsx
-              tickFormatter={formatBucketLabel}
+tickFormatter = { formatBucketLabel };
 ```
 
 to:
@@ -663,6 +673,7 @@ git commit -m "Render timeline bucket labels through Intl with per-shape time zo
 `formatCoverage` returns one of three English sentences. It becomes a key-and-params pair so the sentence lives in the translation files while the branching stays pure and tested.
 
 **Files:**
+
 - Modify: `apps/web/src/model/format.ts:76-90` (delete `formatCoverage`)
 - Create: `apps/web/src/model/coverage.ts`
 - Modify: `apps/web/src/components/headline.tsx:15`, `:53-59` (deferred to Task 9 — this task leaves a compile error only if the old export is removed without updating the caller, so update the caller here too)
@@ -670,6 +681,7 @@ git commit -m "Render timeline bucket labels through Intl with per-shape time zo
 - Test: `apps/web/test/format.test.ts` (remove the two `formatCoverage` tests and its import)
 
 **Interfaces:**
+
 - Consumes: nothing from earlier tasks
 - Produces:
   - `export type CoverageMessage = { key: "headline.coverage.none" | "headline.coverage.all" | "headline.coverage.partial"; params: { records: number; priced: number } }`
@@ -743,9 +755,7 @@ Create `apps/web/src/model/coverage.ts`:
 
 ```ts
 export type CoverageKey =
-  | "headline.coverage.none"
-  | "headline.coverage.all"
-  | "headline.coverage.partial";
+  "headline.coverage.none" | "headline.coverage.all" | "headline.coverage.partial";
 
 export interface CoverageMessage {
   key: CoverageKey;
@@ -799,15 +809,17 @@ import { coverageMessage } from "../model/coverage.ts";
 Replace lines 53-59 with:
 
 ```tsx
-          <p className="panel-label">
-            {/* Rendered through t() in the string-extraction task; this keeps the
+<p className="panel-label">
+  {/* Rendered through t() in the string-extraction task; this keeps the
                 component compiling in the meantime. */}
-            {coverageMessage({
-              records: data.totals.records,
-              priced: data.totals.pricedRecords,
-            }).key}{" "}
-            · estimated at your configured API rates, not a bill
-          </p>
+  {
+    coverageMessage({
+      records: data.totals.records,
+      priced: data.totals.pricedRecords,
+    }).key
+  }{" "}
+  · estimated at your configured API rates, not a bill
+</p>
 ```
 
 - [ ] **Step 6: Run the suite and commit**
@@ -825,11 +837,13 @@ git commit -m "Return a coverage message key from the model instead of English p
 ### Task 5: Harness label takes its unknown-state wording as a parameter
 
 **Files:**
+
 - Modify: `apps/web/src/model/harness.ts:24-56`
 - Modify: `apps/web/src/views/overview.tsx:20`, `apps/web/src/views/breakdown.tsx:42`, `apps/web/src/views/history.tsx:95` (call sites, temporary literal until their extraction tasks)
 - Test: `apps/web/test/harness.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing from earlier tasks
 - Produces:
   - `harnessLabel(harnessId: string, unknownLabel: string): string` — **second parameter is new and required**
@@ -960,10 +974,10 @@ These take a literal for now; their extraction tasks replace it with `t("common.
 `apps/web/src/views/overview.tsx:20`:
 
 ```tsx
-  const harnessRows = data.byHarness.map((row) => ({
-    ...row,
-    key: harnessLabel(row.key, "Unknown harness"),
-  }));
+const harnessRows = data.byHarness.map((row) => ({
+  ...row,
+  key: harnessLabel(row.key, "Unknown harness"),
+}));
 ```
 
 `apps/web/src/views/breakdown.tsx:42`:
@@ -975,7 +989,9 @@ These take a literal for now; their extraction tasks replace it with `t("common.
 `apps/web/src/views/history.tsx:95`:
 
 ```tsx
-                  {harnessLabel(harness, "Unknown harness")}
+{
+  harnessLabel(harness, "Unknown harness");
+}
 ```
 
 - [ ] **Step 5: Run the suite and commit**
@@ -995,10 +1011,12 @@ git commit -m "Inject the unknown-harness wording rather than holding it in the 
 Pure resolution logic, testable without a browser. No i18next yet.
 
 **Files:**
+
 - Create: `apps/web/src/i18n/language.ts`
 - Test: `apps/web/test/language.test.ts`
 
 **Interfaces:**
+
 - Consumes: `SupportedLocale` from `model/format.ts` (Task 1)
 - Produces:
   - `export const SUPPORTED_LANGUAGES: readonly [{ value: "en"; label: "English" }, { value: "es"; label: "Español" }]`
@@ -1137,6 +1155,7 @@ git commit -m "Resolve the UI language from stored choice and browser preference
 Wires i18next up with typed resources. After this task, `bun run typecheck` verifies that every `t()` key used anywhere exists in `en.json` — which is what makes the string-extraction tasks that follow verifiable without a React test runner.
 
 **Files:**
+
 - Modify: `apps/web/package.json` (dependencies)
 - Create: `apps/web/src/i18n/locales/en.json`
 - Create: `apps/web/src/i18n/locales/es.json`
@@ -1145,6 +1164,7 @@ Wires i18next up with typed resources. After this task, `bun run typecheck` veri
 - Modify: `apps/web/src/main.tsx`
 
 **Interfaces:**
+
 - Consumes: `setFormatLocale` (Task 1), `resolveLanguage`, `LANGUAGE_STORAGE_KEY`, `SUPPORTED_LANGUAGES` (Task 6)
 - Produces:
   - default export `i18n` from `apps/web/src/i18n/index.ts`
@@ -1358,10 +1378,12 @@ git commit -m "Initialise i18next with bundled, type-checked locale resources"
 ### Task 8: App shell strings
 
 **Files:**
+
 - Modify: `apps/web/src/app.tsx:25-38`, `:132-236`
 - Modify: `apps/web/src/i18n/locales/en.json`, `apps/web/src/i18n/locales/es.json`
 
 **Interfaces:**
+
 - Consumes: `useTranslation` (typed via Task 7)
 - Produces: keys `nav.*`, `filters.*`, `period.select.*`, `app.*`
 
@@ -1461,79 +1483,79 @@ import { useTranslation } from "react-i18next";
 Inside `App()`, add as the first line of the body:
 
 ```tsx
-  const { t } = useTranslation();
+const { t } = useTranslation();
 ```
 
 Replace the `<nav>` block (lines 135-157) with:
 
 ```tsx
-          <nav aria-label={t("app.sections")}>
-            {VIEWS.map((item) => {
-              // Settings renders over the top of whichever view is selected, so while
-              // it is open no nav item is current. Without this the nav would keep
-              // highlighting Overview — visually and to assistive tech — while
-              // Settings is on screen.
-              const current = !settingsOpen && view === item;
-              return (
-                <button
-                  key={item}
-                  type="button"
-                  className={current ? "active" : ""}
-                  aria-current={current ? "true" : undefined}
-                  onClick={() => {
-                    setSettingsOpen(false);
-                    setView(item);
-                  }}
-                >
-                  {t(`nav.${item}`)}
-                </button>
-              );
-            })}
-          </nav>
+<nav aria-label={t("app.sections")}>
+  {VIEWS.map((item) => {
+    // Settings renders over the top of whichever view is selected, so while
+    // it is open no nav item is current. Without this the nav would keep
+    // highlighting Overview — visually and to assistive tech — while
+    // Settings is on screen.
+    const current = !settingsOpen && view === item;
+    return (
+      <button
+        key={item}
+        type="button"
+        className={current ? "active" : ""}
+        aria-current={current ? "true" : undefined}
+        onClick={() => {
+          setSettingsOpen(false);
+          setView(item);
+        }}
+      >
+        {t(`nav.${item}`)}
+      </button>
+    );
+  })}
+</nav>
 ```
 
 Replace the `<div className="chips">` block (lines 158-196) with:
 
 ```tsx
-          <div className="chips">
-            <SelectChip
-              label={t("filters.period")}
-              value={filters.timeframe}
-              options={TIMEFRAMES.map((value) => ({ value, label: t(`period.select.${value}`) }))}
-              onChange={(value) => change("timeframe", value)}
-            />
-            <SelectChip
-              label={t("filters.host")}
-              value={filters.sourceHostId ?? ""}
-              options={[
-                { value: "", label: t("filters.allHosts") },
-                ...sourceHosts.map((host, index) => ({
-                  value: host.id,
-                  // Must go through sourceHostLabel, not host.hostname directly —
-                  // some machines report a MAC address as their hostname.
-                  label: sourceHostLabel(host, index),
-                })),
-              ]}
-              onChange={(value) => change("sourceHostId", value)}
-            />
-            <SearchChip
-              value={filters.query ?? ""}
-              placeholder={t("filters.searchTasks")}
-              onChange={(value) => change("query", value)}
-            />
-            <button type="button" className="primary" disabled={busy} onClick={refreshSources}>
-              {busy ? t("filters.refreshing") : t("filters.refresh")}
-            </button>
-            <button
-              type="button"
-              className="gear"
-              aria-label={t("filters.settings")}
-              aria-expanded={settingsOpen ? "true" : "false"}
-              onClick={() => setSettingsOpen(!settingsOpen)}
-            >
-              ⚙
-            </button>
-          </div>
+<div className="chips">
+  <SelectChip
+    label={t("filters.period")}
+    value={filters.timeframe}
+    options={TIMEFRAMES.map((value) => ({ value, label: t(`period.select.${value}`) }))}
+    onChange={(value) => change("timeframe", value)}
+  />
+  <SelectChip
+    label={t("filters.host")}
+    value={filters.sourceHostId ?? ""}
+    options={[
+      { value: "", label: t("filters.allHosts") },
+      ...sourceHosts.map((host, index) => ({
+        value: host.id,
+        // Must go through sourceHostLabel, not host.hostname directly —
+        // some machines report a MAC address as their hostname.
+        label: sourceHostLabel(host, index),
+      })),
+    ]}
+    onChange={(value) => change("sourceHostId", value)}
+  />
+  <SearchChip
+    value={filters.query ?? ""}
+    placeholder={t("filters.searchTasks")}
+    onChange={(value) => change("query", value)}
+  />
+  <button type="button" className="primary" disabled={busy} onClick={refreshSources}>
+    {busy ? t("filters.refreshing") : t("filters.refresh")}
+  </button>
+  <button
+    type="button"
+    className="gear"
+    aria-label={t("filters.settings")}
+    aria-expanded={settingsOpen ? "true" : "false"}
+    onClick={() => setSettingsOpen(!settingsOpen)}
+  >
+    ⚙
+  </button>
+</div>
 ```
 
 Replace the brand at line 134 with `<strong className="brand-name">{t("app.brand")}</strong>`.
@@ -1541,13 +1563,13 @@ Replace the brand at line 134 with `<strong className="brand-name">{t("app.brand
 Replace the `<h1>` (lines 211-213) with:
 
 ```tsx
-          <h1 className="sr-only">{t("app.viewHeading", { view: t(`nav.${view}`) })}</h1>
+<h1 className="sr-only">{t("app.viewHeading", { view: t(`nav.${view}`) })}</h1>
 ```
 
 Replace the footer (lines 234-236) with:
 
 ```tsx
-        <footer>{t("app.footer")}</footer>
+<footer>{t("app.footer")}</footer>
 ```
 
 - [ ] **Step 5: Verify**
@@ -1569,10 +1591,12 @@ git commit -m "Translate the dashboard shell, navigation, and filter chips"
 Includes the temporary literals left by Task 4, and moves the currency unit onto the measure toggle.
 
 **Files:**
+
 - Modify: `apps/web/src/components/headline.tsx:23-36`, `:47-73`, `:79-80`, `:117`
 - Modify: `apps/web/src/i18n/locales/en.json`, `es.json`
 
 **Interfaces:**
+
 - Consumes: `coverageMessage` (Task 4), `formatNumberCompact` (Task 2), `useTranslation`
 - Produces: keys `headline.*`, `period.inline.*`
 
@@ -1704,36 +1728,36 @@ export function Headline({ data }: { data: OverviewView }) {
 Replace lines 49-73 (`headline-head`) with:
 
 ```tsx
-      <div className="headline-head">
-        <div>
-          <p className="panel-label">{t("headline.title", { period })}</p>
-          <p className="hero">{formatMoney(data.totals.estimatedCost)}</p>
-          <p className="panel-label">
-            {t("headline.disclaimer", {
-              // Both numbers are formatted here, not by i18next: one formatting
-              // path, and "4,900" beside the hero's "USD 8,947.32" rather than a
-              // bare "4900".
-              coverage: t(coverage.key, {
-                records: formatCount(coverage.params.records),
-                priced: formatCount(coverage.params.priced),
-              }),
-            })}
-          </p>
-        </div>
-        <div className="segmented" role="group" aria-label={t("headline.measureGroup")}>
-          {MEASURES.map((item) => (
-            <button
-              type="button"
-              key={item}
-              className={measure === item ? "on" : ""}
-              aria-pressed={measure === item}
-              onClick={() => setMeasure(item)}
-            >
-              {t(`headline.${item}`)}
-            </button>
-          ))}
-        </div>
-      </div>
+<div className="headline-head">
+  <div>
+    <p className="panel-label">{t("headline.title", { period })}</p>
+    <p className="hero">{formatMoney(data.totals.estimatedCost)}</p>
+    <p className="panel-label">
+      {t("headline.disclaimer", {
+        // Both numbers are formatted here, not by i18next: one formatting
+        // path, and "4,900" beside the hero's "USD 8,947.32" rather than a
+        // bare "4900".
+        coverage: t(coverage.key, {
+          records: formatCount(coverage.params.records),
+          priced: formatCount(coverage.params.priced),
+        }),
+      })}
+    </p>
+  </div>
+  <div className="segmented" role="group" aria-label={t("headline.measureGroup")}>
+    {MEASURES.map((item) => (
+      <button
+        type="button"
+        key={item}
+        className={measure === item ? "on" : ""}
+        aria-pressed={measure === item}
+        onClick={() => setMeasure(item)}
+      >
+        {t(`headline.${item}`)}
+      </button>
+    ))}
+  </div>
+</div>
 ```
 
 Replace line 80 with `<p className="empty-state">{t("headline.empty")}</p>` and line 117 with:
@@ -1761,12 +1785,14 @@ git commit -m "Translate the headline panel and move the currency onto the measu
 Covers `overview.tsx`, `stat-strip.tsx`, `token-mix.tsx`, `quota-meters.tsx`, and `rank-list.tsx`. Also removes the user-facing labels from `theme/palette.ts`, which is a colour module and should not hold copy.
 
 **Files:**
+
 - Modify: `apps/web/src/views/overview.tsx`
 - Modify: `apps/web/src/components/stat-strip.tsx`, `token-mix.tsx`, `quota-meters.tsx`, `rank-list.tsx`
 - Modify: `apps/web/src/theme/palette.ts:42-47`
 - Modify: `apps/web/src/i18n/locales/en.json`, `es.json`
 
 **Interfaces:**
+
 - Consumes: `harnessLabel(id, unknownLabel)` (Task 5), `formatPercent` (Task 2), `useTranslation`
 - Produces:
   - keys `overview.*`, `tokenMix.*`, `quota.*`, `rank.*`
@@ -1899,31 +1925,31 @@ export function TokenMix({ totals }: { totals: UsageTotals }) {
 Replace the render block (lines 31-55) with:
 
 ```tsx
-  return (
-    <>
-      <div className="stack" role="img" aria-label={t("tokenMix.composition")}>
-        {drawn.map((segment) => (
-          <span
-            key={segment.key}
-            style={{
-              width: `${(segment.tokens / total) * 100}%`,
-              background: SEGMENT_COLOR[segment.key],
-            }}
-          />
-        ))}
-      </div>
-      <ul className="legend">
-        {listed.map((segment) => (
-          <li key={segment.key}>
-            <i className="dot" style={{ background: SEGMENT_COLOR[segment.key] }} />
-            <span>{t(`tokenMix.${segment.key}`)}</span>
-            <span className="legend-count">{formatTokens(segment.tokens)}</span>
-            <span className="legend-share">{formatWholePercent(segment.percent)}</span>
-          </li>
-        ))}
-      </ul>
-    </>
-  );
+return (
+  <>
+    <div className="stack" role="img" aria-label={t("tokenMix.composition")}>
+      {drawn.map((segment) => (
+        <span
+          key={segment.key}
+          style={{
+            width: `${(segment.tokens / total) * 100}%`,
+            background: SEGMENT_COLOR[segment.key],
+          }}
+        />
+      ))}
+    </div>
+    <ul className="legend">
+      {listed.map((segment) => (
+        <li key={segment.key}>
+          <i className="dot" style={{ background: SEGMENT_COLOR[segment.key] }} />
+          <span>{t(`tokenMix.${segment.key}`)}</span>
+          <span className="legend-count">{formatTokens(segment.tokens)}</span>
+          <span className="legend-share">{formatWholePercent(segment.percent)}</span>
+        </li>
+      ))}
+    </ul>
+  </>
+);
 ```
 
 Add `formatWholePercent` to the `format.ts` import. `segment.percent` is already a whole percentage, which is exactly what `formatWholePercent` takes — do not pre-divide it.
@@ -1967,17 +1993,17 @@ Change the map key at line 23 from `key={stat.label}` to `key={stat.key}` — a 
 Add `import { useTranslation } from "react-i18next";`. Add `const { t } = useTranslation();` as the first line of the component body, and replace line 20:
 
 ```tsx
-  if (!snapshots.length) return <p className="empty-state">{t("common.notReported")}</p>;
+if (!snapshots.length) return <p className="empty-state">{t("common.notReported")}</p>;
 ```
 
 Replace lines 36-38:
 
 ```tsx
-                  <span className={`quota-value ${status}`}>
-                    {shown === null
-                      ? t("common.notReported")
-                      : `${QUOTA_GLYPH[status]} ${formatWholePercent(shown)}`.trim()}
-                  </span>
+<span className={`quota-value ${status}`}>
+  {shown === null
+    ? t("common.notReported")
+    : `${QUOTA_GLYPH[status]} ${formatWholePercent(shown)}`.trim()}
+</span>
 ```
 
 Replace line 52 and line 58:
@@ -1987,7 +2013,9 @@ Replace line 52 and line 58:
 ```
 
 ```tsx
-                {resets && <p className="quota-reset">{t("quota.resets", { at: resets })}</p>}
+{
+  resets && <p className="quota-reset">{t("quota.resets", { at: resets })}</p>;
+}
 ```
 
 Add `formatWholePercent` to the `format.ts` import. `quotaMeterView` already rounds `shown` to a whole percent, so it is passed through unchanged. `window.label` is source-owned data from the server and is deliberately NOT translated.
@@ -2024,14 +2052,16 @@ export function RankList({
 Replace lines 44-51 with:
 
 ```tsx
-      {remaining > 0 &&
-        (onMore ? (
-          <button type="button" className="link" onClick={onMore}>
-            {t("rank.moreLink", { remaining: formatCount(remaining) })}
-          </button>
-        ) : (
-          <p className="link link-static">{t("rank.more", { remaining: formatCount(remaining) })}</p>
-        ))}
+{
+  remaining > 0 &&
+    (onMore ? (
+      <button type="button" className="link" onClick={onMore}>
+        {t("rank.moreLink", { remaining: formatCount(remaining) })}
+      </button>
+    ) : (
+      <p className="link link-static">{t("rank.more", { remaining: formatCount(remaining) })}</p>
+    ));
+}
 ```
 
 Add `formatCount` to the `format.ts` import in `rank-list.tsx`.
@@ -2041,13 +2071,13 @@ Add `formatCount` to the `format.ts` import in `rank-list.tsx`.
 Add `import { useTranslation } from "react-i18next";`, add `const { t } = useTranslation();` as the first line of the body, and replace line 20 and the panel labels:
 
 ```tsx
-  const { t } = useTranslation();
-  // Relabelled here rather than inside RankList: the list ranks rows by cost and
-  // knows nothing about harnesses, and a `byHarness` row's key IS its harness id.
-  const harnessRows = data.byHarness.map((row) => ({
-    ...row,
-    key: harnessLabel(row.key, t("common.unknownHarness")),
-  }));
+const { t } = useTranslation();
+// Relabelled here rather than inside RankList: the list ranks rows by cost and
+// knows nothing about harnesses, and a `byHarness` row's key IS its harness id.
+const harnessRows = data.byHarness.map((row) => ({
+  ...row,
+  key: harnessLabel(row.key, t("common.unknownHarness")),
+}));
 ```
 
 Replace `<Zone>What drove it</Zone>` with `<Zone>{t("overview.drivers")}</Zone>`, `<Zone>Context</Zone>` with `<Zone>{t("overview.context")}</Zone>`, and each `<Panel label="...">` with the matching key: `t("overview.byHarness")`, `t("overview.byModel")`, `t("overview.byTask")`, `t("overview.tokenMix")`, `t("overview.planLimits")`, `t("overview.hosts")`.
@@ -2067,10 +2097,12 @@ git commit -m "Translate the overview panels and move segment names out of the p
 ### Task 11: Breakdown and rollup
 
 **Files:**
+
 - Modify: `apps/web/src/views/breakdown.tsx:19-25`, `:42`, `:44-88`, `:98-107`
 - Modify: `apps/web/src/i18n/locales/en.json`, `es.json`
 
 **Interfaces:**
+
 - Consumes: `harnessLabel(id, unknownLabel)` (Task 5), `useTranslation`
 - Produces: keys `breakdown.*`, `table.*`
 
@@ -2151,34 +2183,34 @@ Add `import { useTranslation } from "react-i18next";`. Add `const { t } = useTra
 Replace the `group-by` block (lines 46-73) with:
 
 ```tsx
-      <div className="group-by">
-        <span className="panel-label">{t("breakdown.groupBy")}</span>
-        {DIMENSIONS.map((item) => (
-          <button
-            type="button"
-            key={item}
-            className={`chip ${dimension === item ? "on" : ""}`}
-            aria-pressed={dimension === item}
-            onClick={() => onDimensionChange(item)}
-          >
-            {t(`breakdown.${item}`)}
-          </button>
-        ))}
-        {/*
+<div className="group-by">
+  <span className="panel-label">{t("breakdown.groupBy")}</span>
+  {DIMENSIONS.map((item) => (
+    <button
+      type="button"
+      key={item}
+      className={`chip ${dimension === item ? "on" : ""}`}
+      aria-pressed={dimension === item}
+      onClick={() => onDimensionChange(item)}
+    >
+      {t(`breakdown.${item}`)}
+    </button>
+  ))}
+  {/*
           Labelled with the view it switches TO, not the one being shown. The
           static "Table view" label read as a state, so once pressed it claimed to
           be the tree while showing the table — and the table's rows do not
           collapse, which made the tree itself look broken.
         */}
-        <button
-          type="button"
-          className="chip table-toggle"
-          aria-pressed={asTable}
-          onClick={() => setAsTable(!asTable)}
-        >
-          {asTable ? t("breakdown.treeView") : t("breakdown.tableView")}
-        </button>
-      </div>
+  <button
+    type="button"
+    className="chip table-toggle"
+    aria-pressed={asTable}
+    onClick={() => setAsTable(!asTable)}
+  >
+    {asTable ? t("breakdown.treeView") : t("breakdown.tableView")}
+  </button>
+</div>
 ```
 
 Replace line 76 with `<p className="empty-state">{t("breakdown.empty")}</p>`.
@@ -2188,12 +2220,12 @@ Replace line 76 with `<p className="empty-state">{t("breakdown.empty")}</p>`.
 `BreakdownTable` is a separate component, so it needs its own hook. Add `const { t } = useTranslation();` as the first line of its body and replace lines 101-106 with:
 
 ```tsx
-        <tr>
-          <th>{t("table.group")}</th>
-          <th className="n">{t("table.records")}</th>
-          <th className="n">{t("table.tokens")}</th>
-          <th className="n">{t("table.cost")}</th>
-        </tr>
+<tr>
+  <th>{t("table.group")}</th>
+  <th className="n">{t("table.records")}</th>
+  <th className="n">{t("table.tokens")}</th>
+  <th className="n">{t("table.cost")}</th>
+</tr>
 ```
 
 - [ ] **Step 5: Verify and commit**
@@ -2211,10 +2243,12 @@ git commit -m "Translate the breakdown view and its table headers"
 ### Task 12: History
 
 **Files:**
+
 - Modify: `apps/web/src/views/history.tsx:28-34`, `:43-55`, `:63-107`
 - Modify: `apps/web/src/i18n/locales/en.json`, `es.json`
 
 **Interfaces:**
+
 - Consumes: `harnessLabel(id, unknownLabel)` (Task 5), `useTranslation`
 - Produces: keys `history.*`
 
@@ -2259,19 +2293,19 @@ Add `import { useTranslation } from "react-i18next";` and `const { t } = useTran
 Replace line 28:
 
 ```tsx
-  if (!groups.length) return <p className="empty-state">{t("history.empty")}</p>;
+if (!groups.length) return <p className="empty-state">{t("history.empty")}</p>;
 ```
 
 Replace the `<Zone>` block (lines 31-34):
 
 ```tsx
-      <Zone>
-        {t("history.summary", {
-          tasks: formatCount(groups.length),
-          sessions: formatCount(sessions),
-          records: formatCount(records.length),
-        })}
-      </Zone>
+<Zone>
+  {t("history.summary", {
+    tasks: formatCount(groups.length),
+    sessions: formatCount(sessions),
+    records: formatCount(records.length),
+  })}
+</Zone>
 ```
 
 Replace lines 47-53:
@@ -2294,22 +2328,24 @@ Replace lines 47-53:
 Add `const { t } = useTranslation();` as the first line of its body. Replace the header row (lines 67-76):
 
 ```tsx
-        <tr>
-          <th>{t("history.lastActive")}</th>
-          <th>{t("history.harness")}</th>
-          <th>{t("history.model")}</th>
-          <th>{t("history.reasoning")}</th>
-          <th>{t("history.host")}</th>
-          <th className="n">{t("table.records")}</th>
-          <th className="n">{t("table.tokens")}</th>
-          <th className="n">{t("table.cost")}</th>
-        </tr>
+<tr>
+  <th>{t("history.lastActive")}</th>
+  <th>{t("history.harness")}</th>
+  <th>{t("history.model")}</th>
+  <th>{t("history.reasoning")}</th>
+  <th>{t("history.host")}</th>
+  <th className="n">{t("table.records")}</th>
+  <th className="n">{t("table.tokens")}</th>
+  <th className="n">{t("table.cost")}</th>
+</tr>
 ```
 
 Replace line 95 with `{harnessLabel(harness, t("common.unknownHarness"))}` and line 105 with:
 
 ```tsx
-              {session.estimatedCost === null ? t("common.unpriced") : formatMoney(session.estimatedCost)}
+{
+  session.estimatedCost === null ? t("common.unpriced") : formatMoney(session.estimatedCost);
+}
 ```
 
 - [ ] **Step 4: Verify and commit**
@@ -2327,11 +2363,13 @@ git commit -m "Translate the history view and its session table"
 ### Task 13: Settings shell and Model rates
 
 **Files:**
+
 - Modify: `apps/web/src/views/settings/index.tsx:11-51`
 - Modify: `apps/web/src/views/settings/rates.tsx:41-111`
 - Modify: `apps/web/src/i18n/locales/en.json`, `es.json`
 
 **Interfaces:**
+
 - Consumes: `useTranslation`
 - Produces: keys `settings.tabs.*`, `settings.rates.*`; `SettingsTab` gains `"language"` (its view arrives in Task 15)
 
@@ -2419,36 +2457,46 @@ const TABS: readonly SettingsTab[] = ["rates", "host-groups", "language"];
 Add `import { useTranslation } from "react-i18next";` and `const { t } = useTranslation();` as the first line of the body. Replace lines 39-51:
 
 ```tsx
-      {/* Same chip/aria-pressed idiom as Breakdown's Group-by row. */}
-      <div className="group-by" role="group" aria-label={t("settings.sections")}>
-        {TABS.map((item) => (
-          <button
-            type="button"
-            key={item}
-            className={`chip ${tab === item ? "on" : ""}`}
-            aria-pressed={tab === item}
-            onClick={() => setTab(item)}
-          >
-            {t(`settings.tabs.${item}`)}
-          </button>
-        ))}
-      </div>
+{
+  /* Same chip/aria-pressed idiom as Breakdown's Group-by row. */
+}
+<div className="group-by" role="group" aria-label={t("settings.sections")}>
+  {TABS.map((item) => (
+    <button
+      type="button"
+      key={item}
+      className={`chip ${tab === item ? "on" : ""}`}
+      aria-pressed={tab === item}
+      onClick={() => setTab(item)}
+    >
+      {t(`settings.tabs.${item}`)}
+    </button>
+  ))}
+</div>;
 ```
 
 Replace the render branch (lines 52-61) with an explicit three-way, since the `language` tab now exists as an id. Task 15 fills in `<LanguageSettings />`; for now it renders nothing:
 
 ```tsx
-      {tab === "rates" && <Pricing prices={prices} onSaved={onSaved} />}
-      {tab === "host-groups" && (
-        <HostGroups
-          hostGroups={hostGroups}
-          memberships={memberships}
-          sourceHosts={sourceHosts}
-          onSaved={onSaved}
-        />
-      )}
-      {/* Filled in by the language-selector task. */}
-      {tab === "language" && null}
+{
+  tab === "rates" && <Pricing prices={prices} onSaved={onSaved} />;
+}
+{
+  tab === "host-groups" && (
+    <HostGroups
+      hostGroups={hostGroups}
+      memberships={memberships}
+      sourceHosts={sourceHosts}
+      onSaved={onSaved}
+    />
+  );
+}
+{
+  /* Filled in by the language-selector task. */
+}
+{
+  tab === "language" && null;
+}
 ```
 
 - [ ] **Step 3: Translate the rates view**
@@ -2511,10 +2559,12 @@ git commit -m "Translate the settings shell and the model rates table"
 ### Task 14: Host groups
 
 **Files:**
+
 - Modify: `apps/web/src/views/settings/host-groups.tsx:14-21`, `:124-133`, `:140-224`
 - Modify: `apps/web/src/i18n/locales/en.json`, `es.json`
 
 **Interfaces:**
+
 - Consumes: `useTranslation`
 - Produces: keys `settings.hostGroups.*`
 
@@ -2567,13 +2617,15 @@ Into `settings` in `es.json`:
 Remove `EFFECTIVE_HINT` and its doc comment (lines 14-21). Move the rationale to the translation key's usage site — add above the `<p>` that renders it:
 
 ```tsx
-          {/*
+{
+  /*
             Membership is written "as of now" and never backdated, so a newly
             created group explains nothing about existing history — every past
             record keeps resolving to Ungrouped. That is correct, and it looks
             exactly like a save that did nothing, so the hint is not decoration.
-          */}
-          <p>{t("settings.hostGroups.effectiveHint")}</p>
+          */
+}
+<p>{t("settings.hostGroups.effectiveHint")}</p>;
 ```
 
 - [ ] **Step 3: Translate the component**
@@ -2583,20 +2635,22 @@ Add `import { useTranslation } from "react-i18next";` and `const { t } = useTran
 Replace the confirm in `retire` (lines 125-131):
 
 ```tsx
-    const label = savedName(row.id) ?? row.name;
-    if (!window.confirm(t("settings.hostGroups.confirmRetire", { group: label }))) return;
+const label = savedName(row.id) ?? row.name;
+if (!window.confirm(t("settings.hostGroups.confirmRetire", { group: label }))) return;
 ```
 
 Replace line 144 with `<h2 id="host-groups-title">{t("settings.hostGroups.heading")}</h2>`, line 148 with `{t("settings.hostGroups.newGroup")}`, and line 157 with:
 
 ```tsx
-        <p className="empty-state">{t("settings.hostGroups.empty")}</p>
+<p className="empty-state">{t("settings.hostGroups.empty")}</p>
 ```
 
 Replace line 164 with `{t("settings.hostGroups.groupName")}`, line 178 with:
 
 ```tsx
-                    {savingId === row.id ? t("settings.hostGroups.saving") : t("settings.hostGroups.save")}
+{
+  savingId === row.id ? t("settings.hostGroups.saving") : t("settings.hostGroups.save");
+}
 ```
 
 and line 188 with `{t("settings.hostGroups.retire")}`.
@@ -2604,34 +2658,32 @@ and line 188 with `{t("settings.hostGroups.retire")}`.
 Replace line 194:
 
 ```tsx
-                <legend>
-                  {t("settings.hostGroups.hostsIn", {
-                    group: savedName(row.id) ?? t("settings.hostGroups.thisGroup"),
-                  })}
-                </legend>
+<legend>
+  {t("settings.hostGroups.hostsIn", {
+    group: savedName(row.id) ?? t("settings.hostGroups.thisGroup"),
+  })}
+</legend>
 ```
 
 Replace lines 209-211:
 
 ```tsx
-                        <span className="host-group-moving">
-                          {t("settings.hostGroups.currentlyIn", {
-                            group: savedName(elsewhere) ?? elsewhere,
-                          })}
-                        </span>
+<span className="host-group-moving">
+  {t("settings.hostGroups.currentlyIn", {
+    group: savedName(elsewhere) ?? elsewhere,
+  })}
+</span>
 ```
 
 Replace lines 221-223:
 
 ```tsx
-      <p className="host-group-ungrouped">
-        {t("settings.hostGroups.ungrouped", {
-          hosts:
-            ungrouped.length === 0
-              ? t("settings.hostGroups.none")
-              : ungrouped.map(labelFor).join(", "),
-        })}
-      </p>
+<p className="host-group-ungrouped">
+  {t("settings.hostGroups.ungrouped", {
+    hosts:
+      ungrouped.length === 0 ? t("settings.hostGroups.none") : ungrouped.map(labelFor).join(", "),
+  })}
+</p>
 ```
 
 - [ ] **Step 4: Verify and commit**
@@ -2649,10 +2701,12 @@ git commit -m "Translate the host groups settings section"
 ### Task 15: Language selector
 
 **Files:**
+
 - Create: `apps/web/src/views/settings/language.tsx`
 - Modify: `apps/web/src/views/settings/index.tsx` (fill in the `language` branch left by Task 13)
 
 **Interfaces:**
+
 - Consumes: `SUPPORTED_LANGUAGES` (Task 6), `changeLanguage` (Task 7), keys `settings.language.*` (Task 7)
 - Produces: `export function LanguageSettings(): JSX.Element`
 
@@ -2704,7 +2758,9 @@ export function LanguageSettings() {
 In `apps/web/src/views/settings/index.tsx`, add `import { LanguageSettings } from "./language.tsx";` and replace the placeholder branch:
 
 ```tsx
-      {tab === "language" && <LanguageSettings />}
+{
+  tab === "language" && <LanguageSettings />;
+}
 ```
 
 - [ ] **Step 3: Verify the gate**
@@ -2717,6 +2773,7 @@ Expected: PASS.
 Run: `bun run dev`
 
 Open the dashboard, then confirm each of:
+
 1. Settings → Language → select `Español`. Every visible label switches to Spanish without a reload.
 2. The hero figure reads `1.234,56 USD` in Spanish and `USD 1,234.56` in English.
 3. Reload the page. Spanish persists.
@@ -2740,10 +2797,12 @@ git commit -m "Add a language selector to Settings"
 The typed-key check proves every key used exists; it cannot prove every visible string became a key. This task closes that gap by inspection.
 
 **Files:**
+
 - Modify: whatever the sweep turns up
 - Modify: `apps/web/src/i18n/locales/es.json` (any gaps)
 
 **Interfaces:**
+
 - Consumes: everything above
 - Produces: no new exports
 
@@ -2822,6 +2881,7 @@ git commit -m "Sweep for untranslated strings and fix Spanish layout overflow"
 **Spec coverage.** Every section of the design doc maps to a task: scope (constraints), stack and bundling (7), currency code (1), axis ticks (2, 9), `formatPercent` (2), `formatBucketLabel` (3), model boundary (4, 5, 16 step 2), key structure and concatenation sites (8–14), glossary (locale files across 8–14), selection and `<html lang>` (6, 7, 15), testing (1–6), non-goals (16 step 3 is a one-off, not a standing test, as specified).
 
 **Known ordering hazards.**
+
 - Task 4 leaves a deliberate temporary literal in `headline.tsx` that Task 9 removes. Task 5 leaves three, removed by Tasks 10, 11, and 12. Executing out of order leaves English text in a Spanish page.
 - Task 13 leaves `{tab === "language" && null}`, filled by Task 15.
 - The `languageChanged` listener ordering in Task 7 is verified behaviourally in Task 15 step 4, not by a unit test — there is no React test runner in this repo.
@@ -2832,14 +2892,14 @@ git commit -m "Sweep for untranslated strings and fix Spanish layout overflow"
 
 **Exports each task adds**, for cross-checking as tasks land out of order:
 
-| Task | New or changed exports |
-| --- | --- |
-| 1 | `SupportedLocale`, `setFormatLocale`, `currentFormatLocale` |
-| 2 | `formatWholePercent`, `formatNumberCompact` (deletes `formatMoneyCompact`) |
-| 3 | `formatBucketLabel(bucket, timeZone?)` |
-| 4 | `coverageMessage`, `CoverageMessage`, `CoverageKey` (deletes `formatCoverage`) |
-| 5 | `harnessLabel(id, unknownLabel)` |
-| 6 | `SUPPORTED_LANGUAGES`, `LANGUAGE_STORAGE_KEY`, `resolveLanguage` |
-| 7 | default `i18n`, `changeLanguage` |
-| 10 | `TOKEN_MIX` changes shape — colours only, no `label` |
-| 15 | `LanguageSettings` |
+| Task | New or changed exports                                                         |
+| ---- | ------------------------------------------------------------------------------ |
+| 1    | `SupportedLocale`, `setFormatLocale`, `currentFormatLocale`                    |
+| 2    | `formatWholePercent`, `formatNumberCompact` (deletes `formatMoneyCompact`)     |
+| 3    | `formatBucketLabel(bucket, timeZone?)`                                         |
+| 4    | `coverageMessage`, `CoverageMessage`, `CoverageKey` (deletes `formatCoverage`) |
+| 5    | `harnessLabel(id, unknownLabel)`                                               |
+| 6    | `SUPPORTED_LANGUAGES`, `LANGUAGE_STORAGE_KEY`, `resolveLanguage`               |
+| 7    | default `i18n`, `changeLanguage`                                               |
+| 10   | `TOKEN_MIX` changes shape — colours only, no `label`                           |
+| 15   | `LanguageSettings`                                                             |

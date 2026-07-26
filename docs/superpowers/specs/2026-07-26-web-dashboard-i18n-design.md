@@ -27,16 +27,16 @@ Out of scope, deliberately:
 
 ## Decisions
 
-| Area | Decision |
-| --- | --- |
-| Locales | `en` (source of truth), `es` |
-| Stack | `i18next` + `react-i18next`, resources bundled statically |
-| Formatting | Follows the UI language; currency always renders the ISO code |
-| Axis ticks | Bare compact numbers; unit stated once on the measure toggle |
-| Selection | `navigator.language` on first load, overridable in Settings, persisted to `localStorage` |
-| Glossary | UI-visible terms translated; identifiers, field names, and log text untouched |
-| Locale plumbing | Module-level current locale in `format.ts`, set via `setFormatLocale` |
-| Testing | Format helpers exercised against both locales explicitly, never via OS locale |
+| Area            | Decision                                                                                 |
+| --------------- | ---------------------------------------------------------------------------------------- |
+| Locales         | `en` (source of truth), `es`                                                             |
+| Stack           | `i18next` + `react-i18next`, resources bundled statically                                |
+| Formatting      | Follows the UI language; currency always renders the ISO code                            |
+| Axis ticks      | Bare compact numbers; unit stated once on the measure toggle                             |
+| Selection       | `navigator.language` on first load, overridable in Settings, persisted to `localStorage` |
+| Glossary        | UI-visible terms translated; identifiers, field names, and log text untouched            |
+| Locale plumbing | Module-level current locale in `format.ts`, set via `setFormatLocale`                    |
+| Testing         | Format helpers exercised against both locales explicitly, never via OS locale            |
 
 ### Why bundled, not lazily fetched
 
@@ -53,11 +53,11 @@ paint is already in the resolved language.
 
 `Intl` output for the two locales, verified on Node 24:
 
-| | `en-US` | `es` |
-| --- | --- | --- |
-| `currencyDisplay: "code"` | `USD 1,234.56` | `1234,56 USD` |
-| compact + code | `USD 8.9K` | `8,9 mil USD` |
-| plain compact | `892.4K` | `892,4 mil` |
+|                                       | `en-US`                 | `es`                 |
+| ------------------------------------- | ----------------------- | -------------------- |
+| `currencyDisplay: "code"`             | `USD 1,234.56`          | `1234,56 USD`        |
+| compact + code                        | `USD 8.9K`              | `8,9 mil USD`        |
+| plain compact                         | `892.4K`                | `892,4 mil`          |
 | `dateStyle: medium, timeStyle: short` | `Jul 26, 2026, 3:04 PM` | `26 jul 2026, 15:04` |
 
 Note that the code precedes the number in English and follows it in Spanish, and that
@@ -188,7 +188,7 @@ off-by-one-day bug:
 
 - **Date-only buckets** (`2026-07-20`, every timeframe except `last24`) must format with
   `timeZone: "UTC"`. `new Date("2026-07-20")` parses as UTC midnight; formatting that in
-  any negative-offset zone renders the *previous* day.
+  any negative-offset zone renders the _previous_ day.
 - **Hourly buckets** (`2026-07-20T09:00:00.000Z`, `last24` only) are true instants and
   format in local time, consistent with `formatDateTime`'s existing behaviour — "resets at
   3pm" is only useful in the reader's own zone.
@@ -204,17 +204,17 @@ Fixed Spanish renderings for the `CONTEXT.md` ubiquitous language, so the terms 
 ubiquitous within each locale and later translators inherit decisions instead of
 re-guessing:
 
-| English | Spanish |
-| --- | --- |
-| Source Host | Host de origen |
-| Host Group | Grupo de hosts |
-| Usage Record | Registro de uso |
-| Harness | Entorno |
-| Fleet | Flota |
-| Model rates | Tarifas de modelo |
-| Unknown harness | Entorno desconocido |
-| Unpriced | Sin tarifa |
-| Not reported | No informado |
+| English                 | Spanish                       |
+| ----------------------- | ----------------------------- |
+| Source Host             | Host de origen                |
+| Host Group              | Grupo de hosts                |
+| Usage Record            | Registro de uso               |
+| Harness                 | Entorno                       |
+| Fleet                   | Flota                         |
+| Model rates             | Tarifas de modelo             |
+| Unknown harness         | Entorno desconocido           |
+| Unpriced                | Sin tarifa                    |
+| Not reported            | No informado                  |
 | API-equivalent estimate | Estimación equivalente de API |
 
 Product names — Codex, Claude Code, Usage Monitor, Teloverge — are never translated.
