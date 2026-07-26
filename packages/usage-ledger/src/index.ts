@@ -1,5 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import type {
+  HostGroup,
   HostGroupMembership,
   ModelPrice,
   SourceHost,
@@ -213,6 +214,13 @@ export class UsageLedger {
         effectiveFrom: String(row.effective_from),
         effectiveTo: row.effective_to === null ? null : String(row.effective_to),
       }));
+  }
+
+  hostGroups(): HostGroup[] {
+    return this.database
+      .prepare("SELECT id, name FROM host_groups ORDER BY name")
+      .all()
+      .map((row) => ({ id: String(row.id), name: String(row.name) }));
   }
 
   hasMigration(id: string): boolean {
