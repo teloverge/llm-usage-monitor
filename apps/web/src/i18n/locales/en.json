@@ -95,5 +95,22 @@
     "empty": "No usage in this period",
     "more": "{{remaining}} more",
     "moreLink": "{{remaining}} more →"
+  },
+  "breakdown": {
+    "groupBy": "Group by",
+    "byHarness": "Harness",
+    "byModel": "Model → Reasoning",
+    "byTask": "Task → Session",
+    "bySourceHost": "Host",
+    "byHostGroup": "Host Group",
+    "treeView": "⊟ Tree view",
+    "tableView": "⊞ Table view",
+    "empty": "No usage matches the current filters."
+  },
+  "table": {
+    "group": "Group",
+    "records": "Records",
+    "tokens": "Tokens",
+    "cost": "Cost"
   }
 }
