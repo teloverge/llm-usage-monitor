@@ -1,0 +1,21 @@
+# Complements .gitattributes: that pins what *git* writes on checkout, this pins
+# what the *editor* writes when authoring a new file — otherwise a brand-new
+# CRLF file fails `oxfmt --check` before git ever touches it.
+#
+# NOTE: oxfmt reads this file. The values below deliberately match oxfmt's
+# defaults (endOfLine lf, tabWidth 2, useTabs false, insertFinalNewline true),
+# so they change editor behaviour without changing formatter behaviour. Keep
+# them in sync if oxfmt config is ever added.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Markdown uses trailing double-spaces as a hard line break.
+[*.md]
+trim_trailing_whitespace = false
