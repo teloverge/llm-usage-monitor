@@ -74,6 +74,38 @@ describe("Usage Ledger", () => {
       },
     ]);
   });
+
+  it("reads back Host Group names, ordered by name", () => {
+    const ledger = create();
+    ledger.setHostGroup("group:two", "Workstations", [], "2026-07-01T00:00:00.000Z");
+    ledger.setHostGroup("group:one", "Laptops", [], "2026-07-01T00:00:00.000Z");
+    assert.deepEqual(ledger.hostGroups(), [
+      { id: "group:one", name: "Laptops" },
+      { id: "group:two", name: "Workstations" },
+    ]);
+  });
+
+  it("renaming a group keeps its id and its memberships", () => {
+    const ledger = create();
+    ledger.upsertSourceHost(
+      {
+        id: "host:a",
+        hostname: "workstation",
+        platform: "win32",
+        architecture: "x64",
+        firstSeenAt: "2026-01-01T00:00:00.000Z",
+        lastSeenAt: "2026-07-23T12:00:00.000Z",
+      },
+      [],
+    );
+    ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-01-01T00:00:00.000Z");
+    ledger.setHostGroup("group:one", "Portables", ["host:a"], "2026-07-01T00:00:00.000Z");
+    assert.deepEqual(ledger.hostGroups(), [{ id: "group:one", name: "Portables" }]);
+    assert.equal(
+      ledger.memberships().filter((membership) => membership.effectiveTo === null).length,
+      1,
+    );
+  });
 });
 
 describe("Ledger import idempotency", () => {
