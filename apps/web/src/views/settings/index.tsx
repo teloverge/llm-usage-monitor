@@ -7,6 +7,7 @@ import type {
   SourceHost,
 } from "@llm-usage-monitor/contracts";
 import { HostGroups } from "./host-groups.tsx";
+import { LanguageSettings } from "./language.tsx";
 import { Pricing } from "./rates.tsx";
 
 type SettingsTab = "rates" | "host-groups" | "language";
@@ -58,8 +59,7 @@ export function Settings({
           onSaved={onSaved}
         />
       )}
-      {/* Filled in by the language-selector task. */}
-      {tab === "language" && null}
+      {tab === "language" && <LanguageSettings />}
     </section>
   );
 }
