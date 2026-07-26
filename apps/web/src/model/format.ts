@@ -127,18 +127,50 @@ export function formatNumberCompact(value: number): string {
   return compact().format(value);
 }
 
+const dayLabelCache = new Map<SupportedLocale, Intl.DateTimeFormat>();
+
 /**
  * Renders an analysis timeline bucket as an axis label. Buckets are ISO and come
  * in exactly two shapes from `timelineBucket`: `2026-07-20` for every timeframe
  * except `last24`, and a full `2026-07-20T09:00:00.000Z` for that one. The year
  * is dropped because every bucket on an axis shares it.
  *
- * Positional slicing is fine only because both shapes are fixed-width ISO; this
- * lives here, tested, rather than inline in the chart, because a silent
- * off-by-one produces labels that still look like dates.
+ * The two shapes take DIFFERENT time zones on purpose:
+ *
+ * - A date-only bucket is a calendar day the server already decided. It parses
+ *   as UTC midnight, so formatting it in the reader's zone would render the
+ *   PREVIOUS day for anyone west of Greenwich — a wrong label that still looks
+ *   like a date. It is therefore always formatted in UTC.
+ * - An hourly bucket is a real instant, and is converted into the reader's zone
+ *   for the same reason `formatDateTime` does: an hour is only useful in the
+ *   zone the reader is sitting in.
+ *
+ * `timeZone` overrides the hourly branch for tests only; the daily branch
+ * ignores it, which the suite pins.
  */
-export function formatBucketLabel(bucket: string): string {
-  return bucket.length > 10 ? bucket.slice(5, 13).replace("T", " ") : bucket.slice(5);
+export function formatBucketLabel(bucket: string, timeZone?: string): string {
+  const instant = new Date(bucket);
+  // Anything the server did not produce is passed through untouched rather than
+  // rendered as "Invalid Date", which reads as a real label on an axis.
+  if (Number.isNaN(instant.getTime())) return bucket;
+
+  const hourly = bucket.length > 10;
+  if (!hourly) {
+    const formatter = cached(
+      dayLabelCache,
+      (locale) =>
+        new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" }),
+    );
+    return formatter.format(instant);
+  }
+
+  // Not cached: the zone varies per call, so a per-locale cache would be wrong.
+  return new Intl.DateTimeFormat(currentFormatLocale(), {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    ...(timeZone ? { timeZone } : {}),
+  }).format(instant);
 }
 
 /**

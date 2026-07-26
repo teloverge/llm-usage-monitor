@@ -144,17 +144,43 @@ describe("Axis formatting", () => {
     });
   });
 
-  // These two are what catch index drift: verified that slice(5)->slice(4) and
-  // slice(5,13)->slice(5,14) each fail one of them. The length branch itself
-  // cannot be pinned — on a 10-character bucket slice(5,13) and slice(5) return
-  // the same string, so `> 10` and `>= 10` are genuinely equivalent here.
-  it("labels a daily bucket without its year", () => {
-    assert.equal(formatBucketLabel("2026-07-20"), "07-20");
+  /**
+   * The two bucket shapes need DIFFERENT time zones, and conflating them is an
+   * off-by-one-day bug that still renders a plausible date.
+   *
+   * A date-only bucket is a calendar day the server already decided; it parses as
+   * UTC midnight, so formatting it in a negative-offset zone would render the
+   * PREVIOUS day. It is pinned here under America/Chicago precisely to catch that.
+   */
+  it("labels a daily bucket as a calendar day, without its year", () => {
+    inLocale("en", () => {
+      assert.equal(formatBucketLabel("2026-07-20"), "Jul 20");
+      assert.equal(formatBucketLabel("2026-07-20", "America/Chicago"), "Jul 20");
+    });
+    inLocale("es", () => {
+      assert.equal(formatBucketLabel("2026-07-20"), "20 jul");
+      assert.equal(formatBucketLabel("2026-07-20", "America/Chicago"), "20 jul");
+    });
   });
 
-  it("labels an hourly bucket with the hour", () => {
-    // The `last24` timeframe is the only one producing this shape.
-    assert.equal(formatBucketLabel("2026-07-20T09:00:00.000Z"), "07-20 09");
+  it("labels an hourly bucket with the hour, in the reader's zone", () => {
+    // The `last24` timeframe is the only one producing this shape. Unlike a
+    // daily bucket this IS an instant, so it converts into the reader's zone.
+    inLocale("en", () => {
+      assert.equal(formatBucketLabel("2026-07-20T09:00:00.000Z", "UTC"), "Jul 20, 9 AM");
+      assert.equal(formatBucketLabel("2026-07-20T21:00:00.000Z", "UTC"), "Jul 20, 9 PM");
+    });
+    // Spanish uses a 24-hour clock, so the hour carries no AM/PM marker.
+    inLocale("es", () => {
+      assert.equal(formatBucketLabel("2026-07-20T09:00:00.000Z", "UTC"), "20 jul, 9");
+      assert.equal(formatBucketLabel("2026-07-20T21:00:00.000Z", "UTC"), "20 jul, 21");
+    });
+  });
+
+  it("passes an unparseable bucket through rather than rendering Invalid Date", () => {
+    inLocale("en", () => {
+      assert.equal(formatBucketLabel("not-a-bucket"), "not-a-bucket");
+    });
   });
 });
 
