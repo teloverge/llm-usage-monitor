@@ -9,11 +9,20 @@ body {
 .app-shell {
   min-height: 100vh;
 }
+/**
+ * `flex-wrap` because the chip row cannot shrink: the selects size to their
+ * widest option and the buttons to their label, so past a certain width the row
+ * ran off-screen and took the Settings gear — the last item — with it, leaving
+ * it unreachable without horizontal scrolling. Wrapping keeps every control on
+ * screen instead. Translation makes this bite sooner (Spanish labels are longer,
+ * so it began at ~920px rather than ~890px), but the overflow predates it.
+ */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 10;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 9px;
   padding: 8px 12px;
