@@ -9,7 +9,14 @@
       "none": "No hay registros en este periodo",
       "all": "{{records}} registros con tarifa",
       "partial": "{{priced}} de {{records}} registros con tarifa"
-    }
+    },
+    "title": "Coste equivalente de API del trabajo · {{period}}",
+    "disclaimer": "{{coverage}} · estimado según tus tarifas de API configuradas, no es una factura",
+    "measureGroup": "Medida de la tendencia",
+    "cost": "Coste (USD)",
+    "tokens": "Tokens",
+    "seriesCost": "Coste estimado",
+    "empty": "No hay actividad en este periodo"
   },
   "settings": {
     "language": {
@@ -46,6 +53,15 @@
       "30": "Últimos 30 días",
       "90": "Últimos 90 días",
       "all": "Todo el historial"
+    },
+    "inline": {
+      "today": "hoy",
+      "last24": "últimas 24 horas",
+      "7": "últimos 7 días",
+      "30": "últimos 30 días",
+      "90": "últimos 90 días",
+      "all": "todo el historial conservado",
+      "custom": "el rango seleccionado"
     }
   }
 }

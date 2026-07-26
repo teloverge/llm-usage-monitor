@@ -9,7 +9,14 @@
       "none": "No records in this period",
       "all": "{{records}} records priced",
       "partial": "{{priced}} of {{records}} records priced"
-    }
+    },
+    "title": "API-equivalent cost of work · {{period}}",
+    "disclaimer": "{{coverage}} · estimated at your configured API rates, not a bill",
+    "measureGroup": "Trend measure",
+    "cost": "Cost (USD)",
+    "tokens": "Tokens",
+    "seriesCost": "Estimated cost",
+    "empty": "No activity in this period"
   },
   "settings": {
     "language": {
@@ -46,6 +53,15 @@
       "30": "Last 30 days",
       "90": "Last 90 days",
       "all": "All retained"
+    },
+    "inline": {
+      "today": "today",
+      "last24": "last 24 hours",
+      "7": "last 7 days",
+      "30": "last 30 days",
+      "90": "last 90 days",
+      "all": "all retained history",
+      "custom": "the selected range"
     }
   }
 }
