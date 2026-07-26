@@ -16,6 +16,7 @@
 - Only two new runtime dependencies are permitted: `i18next` and `react-i18next`. Do not add `i18next-http-backend`, `i18next-browser-languagedetector`, or any other i18n plugin.
 - Locale resources are imported statically and bundled. Never fetch them over HTTP.
 - Nothing may read the OS/runtime default locale. Every `Intl` call receives an explicit locale resolved by the app.
+- **CLDR separates a currency code, a compact unit (`mil`, `M`), and the `%` sign from their number with U+00A0 NO-BREAK SPACE, not an ASCII space.** Spanish output is full of them; English output has one, between `USD` and the amount. Every expected string in this plan that contains one is written `\u00a0`, and tests must keep the escape rather than pasting the literal character — U+00A0 is invisible in an editor and silently "tidied" into a space by a well-meaning edit, turning a passing test into a baffling one. This follows the same convention `model/quota-meter.ts` documents for its U+FE0E variation selectors.
 - `apps/web/src/model/**` must never import `t`, `i18next`, or `react-i18next`.
 - Product names are never translated, in any locale: `Codex`, `Claude Code`, `Usage Monitor`, `Teloverge`.
 - Supported languages are exactly `en` and `es`. `en` is the source of truth.
@@ -79,13 +80,13 @@ function inLocale(locale: string, body: () => void): void {
 describe("Formatters", () => {
   it("formats money to cents with an explicit currency code", () => {
     inLocale("en", () => {
-      assert.equal(formatMoney(142.3), "USD 142.30");
-      assert.equal(formatMoney(0), "USD 0.00");
+      assert.equal(formatMoney(142.3), "USD\u00a0142.30");
+      assert.equal(formatMoney(0), "USD\u00a00.00");
     });
     // Spanish puts the code after the amount and uses a comma decimal.
     inLocale("es", () => {
-      assert.equal(formatMoney(142.3), "142,30 USD");
-      assert.equal(formatMoney(0), "0,00 USD");
+      assert.equal(formatMoney(142.3), "142,30\u00a0USD");
+      assert.equal(formatMoney(0), "0,00\u00a0USD");
     });
   });
 
@@ -100,10 +101,10 @@ describe("Formatters", () => {
       assert.equal(formatTokens(1_000), "1K");
     });
     inLocale("es", () => {
-      assert.equal(formatTokens(645_000), "645 mil");
-      assert.equal(formatTokens(1_240_000), "1,2 M");
+      assert.equal(formatTokens(645_000), "645\u00a0mil");
+      assert.equal(formatTokens(1_240_000), "1,2\u00a0M");
       assert.equal(formatTokens(999), "999");
-      assert.equal(formatTokens(1_000), "1 mil");
+      assert.equal(formatTokens(1_000), "1\u00a0mil");
     });
   });
 
@@ -123,7 +124,7 @@ describe("Formatters", () => {
   it("rejects an unsupported locale rather than formatting in it", () => {
     inLocale("en", () => {
       setFormatLocale("fr-CA");
-      assert.equal(formatMoney(142.3), "USD 142.30", "falls back to en, never to the OS locale");
+      assert.equal(formatMoney(142.3), "USD\u00a0142.30", "falls back to en, never to the OS locale");
     });
   });
 });
@@ -358,9 +359,9 @@ Replace the percent assertion (the `it("formats a ratio as a percent with one de
     inLocale("en", () => {
       assert.equal(formatPercent(0.682), "68.2%");
     });
-    // Spanish uses a comma decimal and a space before the sign.
+    // Spanish uses a comma decimal and a NO-BREAK SPACE before the sign.
     inLocale("es", () => {
-      assert.equal(formatPercent(0.682), "68,2 %");
+      assert.equal(formatPercent(0.682), "68,2\u00a0%");
     });
   });
 
@@ -378,7 +379,7 @@ Replace the percent assertion (the `it("formats a ratio as a percent with one de
       assert.equal(formatWholePercent(100), "100%");
     });
     inLocale("es", () => {
-      assert.equal(formatWholePercent(82), "82 %");
+      assert.equal(formatWholePercent(82), "82\u00a0%");
     });
   });
 ```
@@ -398,8 +399,8 @@ describe("Axis formatting", () => {
       assert.equal(formatNumberCompact(0), "0");
     });
     inLocale("es", () => {
-      assert.equal(formatNumberCompact(8947), "8,9 mil");
-      assert.equal(formatNumberCompact(1_240_000), "1,2 M");
+      assert.equal(formatNumberCompact(8947), "8,9\u00a0mil");
+      assert.equal(formatNumberCompact(1_240_000), "1,2\u00a0M");
       assert.equal(formatNumberCompact(142.3), "142,3");
       assert.equal(formatNumberCompact(0), "0");
     });
