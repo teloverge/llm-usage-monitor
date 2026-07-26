@@ -73,6 +73,54 @@ describe("Usage Monitor Server", () => {
     await running.close();
     await assert.rejects(fetch(running.discovery.healthUrl));
   });
+  it("serves Host Groups in the catalog and names them in the overview", async () => {
+    const root = await mkdtemp(join(tmpdir(), "usage-monitor-server-"));
+    const web = join(root, "web");
+    await mkdir(web);
+    await writeFile(join(web, "index.html"), "<!doctype html><title>test</title>");
+    const running = await startUsageMonitorServer({
+      dataDirectory: join(root, "data"),
+      webDirectory: web,
+    });
+    cleanup.push(async () => {
+      await running.close();
+      await rm(root, { recursive: true, force: true });
+    });
+    const [localHost] = running.ledger.sourceHosts();
+    assert.ok(localHost, "the server registers its local Source Host on start");
+    running.ledger.upsertRecords([
+      {
+        id: "record:1",
+        sourceHostId: localHost.id,
+        usageSourceId: "codex-local",
+        harnessId: "codex",
+        timestamp: "2026-07-20T09:00:00.000Z",
+        taskName: "Task",
+        provider: "openai",
+        model: "gpt-test",
+        modeFlags: { ultra: false, fast: false },
+        inputTokens: 10,
+        outputTokens: 2,
+        totalTokens: 12,
+        lastTokenUsage: null,
+        source: "codex-local",
+      },
+    ]);
+    running.ledger.setHostGroup("group:one", "Laptops", [localHost.id], "2026-01-01T00:00:00.000Z");
+
+    const catalog = (await fetch(`${running.discovery.dashboardUrl}api/catalog`).then((response) =>
+      response.json(),
+    )) as { hostGroups?: Array<{ id: string; name: string }> };
+    assert.deepEqual(catalog.hostGroups, [{ id: "group:one", name: "Laptops" }]);
+
+    const overview = (await fetch(
+      `${running.discovery.dashboardUrl}api/overview?timeframe=all`,
+    ).then((response) => response.json())) as OverviewView;
+    assert.deepEqual(
+      overview.byHostGroup.map((row) => row.key),
+      ["Laptops"],
+    );
+  });
 });
 
 describe("Harness filter transport", () => {
