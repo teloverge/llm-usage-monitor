@@ -152,38 +152,16 @@ select {
   background: #0f1713;
   color: #fff;
 }
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-.metric,
+/*
+ * `.card` keeps the border/background it used to share with `.metric`. It is
+ * still worn by ChartCard and ModelRollups, which the legacy Breakdown renders
+ * until Task 27 replaces it — deleting it here would leave that view unstyled
+ * with nothing to catch it, since .tsx has no tests.
+ */
 .card {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--panel);
-}
-.metric {
-  padding: 13px;
-}
-.metric span,
-.metric small {
-  color: var(--muted);
-}
-.metric strong {
-  display: block;
-  margin: 5px 0 1px;
-  font-size: clamp(22px, 2.7vw, 31px);
-}
-.metric.featured strong {
-  color: var(--accent);
-}
-.chart-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-.card {
   padding: 13px;
   min-height: 280px;
 }
@@ -257,27 +235,6 @@ select {
 }
 .mode-empty {
   color: var(--muted);
-}
-.limit-list {
-  display: grid;
-  gap: 16px;
-  margin-top: 16px;
-}
-.limit-list div {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 6px;
-}
-.limit-list progress,
-.limit-list small {
-  grid-column: 1 / -1;
-  width: 100%;
-}
-.limit-list small {
-  color: var(--muted);
-}
-progress {
-  accent-color: var(--accent);
 }
 .table-card {
   overflow: auto;
@@ -833,10 +790,6 @@ footer {
     grid-column: 1 / -1;
     grid-row: 2;
   }
-  .metrics,
-  .chart-grid {
-    grid-template-columns: 1fr 1fr;
-  }
   /*
    * The divider is a left border, so wrapping to two columns would leave the
    * third cell carrying one at the start of its row. Reset it on whichever cell
@@ -872,10 +825,6 @@ footer {
   }
   .brand small {
     display: none;
-  }
-  .metrics,
-  .chart-grid {
-    grid-template-columns: 1fr;
   }
   .rank {
     grid-template-columns: 1fr auto;

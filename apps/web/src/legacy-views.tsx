@@ -1,19 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import type {
   ModelPrice,
   OverviewView,
@@ -30,121 +15,7 @@ const money = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 4,
 });
 const number = new Intl.NumberFormat();
-const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
-const colors = ["#16c79a", "#4d8dff", "#f4b942", "#ed6a8b"];
 
-export function Overview({ data }: { data: OverviewView }) {
-  const tokenComposition = [
-    { name: "Uncached input", value: data.totals.inputTokens - data.totals.cachedInputTokens },
-    { name: "Cached input", value: data.totals.cachedInputTokens },
-    { name: "Output", value: data.totals.outputTokens },
-  ];
-  return (
-    <>
-      <section className="metrics">
-        <Metric
-          featured
-          label="API-equivalent estimate"
-          value={money.format(data.totals.estimatedCost)}
-          note={`${data.totals.pricedRecords} priced records`}
-        />
-        <Metric
-          label="Total tokens"
-          value={number.format(data.totals.totalTokens)}
-          note={`${data.totals.records} records`}
-        />
-        <Metric
-          label="Cache efficiency"
-          value={`${(data.totals.cacheEfficiency * 100).toFixed(1)}%`}
-          note="of input tokens"
-        />
-        <Metric
-          label="Active work"
-          value={number.format(data.totals.tasks)}
-          note={`${data.totals.models} models`}
-        />
-      </section>
-      <section className="chart-grid">
-        <ChartCard
-          title="API-equivalent estimate over time"
-          summary={`${money.format(data.totals.estimatedCost)} across ${data.timeline.length} periods`}
-        >
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={data.timeline} accessibilityLayer>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="bucket" tickFormatter={shortDate} />
-              <YAxis tickFormatter={(value) => `$${value}`} />
-              <Tooltip formatter={(value) => money.format(Number(value))} />
-              <Area
-                type="monotone"
-                dataKey="estimatedCost"
-                stroke={colors[0]}
-                fill="#16c79a33"
-                name="Estimate"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
-        <ChartCard
-          title="Tokens over time"
-          summary={`${number.format(data.totals.totalTokens)} total tokens`}
-        >
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={data.timeline} accessibilityLayer>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="bucket" tickFormatter={shortDate} />
-              <YAxis tickFormatter={(value) => compact.format(Number(value))} />
-              <Tooltip formatter={(value) => number.format(Number(value))} />
-              <Bar dataKey="inputTokens" stackId="tokens" fill={colors[1]} name="Input" />
-              <Bar dataKey="outputTokens" stackId="tokens" fill={colors[2]} name="Output" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-        <RankChart title="Cost by model" rows={data.byModel.slice(0, 8)} />
-        <RankChart title="Top tasks" rows={data.byTask.slice(0, 8)} />
-        <ChartCard title="Token composition" summary="Input, cache, and output">
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart accessibilityLayer>
-              <Pie
-                data={tokenComposition}
-                dataKey="value"
-                nameKey="name"
-                innerRadius={52}
-                outerRadius={82}
-              >
-                {tokenComposition.map((item, index) => (
-                  <Cell key={item.name} fill={colors[index]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => number.format(Number(value))} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-        <LimitsCard data={data} />
-      </section>
-    </>
-  );
-}
-function Metric({
-  label,
-  value,
-  note,
-  featured,
-}: {
-  label: string;
-  value: string;
-  note: string;
-  featured?: boolean;
-}) {
-  return (
-    <article className={`metric ${featured ? "featured" : ""}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{note}</small>
-    </article>
-  );
-}
 function ChartCard({
   title,
   summary,
@@ -185,41 +56,6 @@ function RankChart({ title, rows }: { title: string; rows: RankedUsage[] }) {
           ))
         ) : (
           <p>No priced usage.</p>
-        )}
-      </div>
-    </ChartCard>
-  );
-}
-function LimitsCard({ data }: { data: OverviewView }) {
-  // Only the first snapshot, because this legacy card has room for one source.
-  // Task 24 replaces it with a meter per source that renders all of them.
-  const snapshot = data.quotaSnapshots[0];
-  return (
-    <ChartCard title="Plan limits" summary={snapshot?.plan || "No limit snapshot"}>
-      <div className="limit-list">
-        {snapshot?.windows.length ? (
-          snapshot.windows.map((window) => (
-            <div key={window.id}>
-              <span>{window.label}</span>
-              {/*
-                An omitted usedPercent means the source did not report this window,
-                which is not the same as reporting zero. The em dash and the
-                value-less (indeterminate) progress bar both say "unmeasured"; a
-                `?? 0` here would draw an empty bar that reads as "none used".
-              */}
-              <strong>
-                {window.usedPercent === undefined ? "—" : `${window.usedPercent.toFixed(1)}%`}
-              </strong>
-              <progress max="100" value={window.usedPercent} />
-              <small>
-                {window.resetsAt
-                  ? `Resets ${new Date(window.resetsAt).toLocaleString()}`
-                  : "No reset available"}
-              </small>
-            </div>
-          ))
-        ) : (
-          <p>No quota snapshot.</p>
         )}
       </div>
     </ChartCard>
@@ -509,7 +345,4 @@ export function Pricing({
 }
 function title(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-function shortDate(value: string) {
-  return value.length > 10 ? value.slice(5, 13) : value.slice(5);
 }
