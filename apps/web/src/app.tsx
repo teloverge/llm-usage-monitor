@@ -9,7 +9,8 @@ import type {
 import { SearchChip, SelectChip } from "./components/chip.tsx";
 import { sourceHostLabel } from "./model/source-host.ts";
 import { executeAction, getCatalog, getHistory, getOverview } from "./api.ts";
-import { History, Pricing } from "./legacy-views.tsx";
+import { History } from "./views/history.tsx";
+import { Pricing } from "./views/settings/rates.tsx";
 import { Breakdown, type BreakdownDimension } from "./views/breakdown.tsx";
 import { Overview } from "./views/overview.tsx";
 import logoUrl from "../../../assets/Teloverge-lum-logo.svg?url";

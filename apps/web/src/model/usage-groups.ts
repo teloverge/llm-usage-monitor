@@ -1,4 +1,4 @@
-import type { RankedUsage, UsageHistoryRecord, UsageModeFlags } from "@llm-usage-monitor/contracts";
+import type { UsageHistoryRecord, UsageModeFlags } from "@llm-usage-monitor/contracts";
 
 export interface HistorySession {
   key: string;
@@ -9,7 +9,12 @@ export interface HistorySession {
   sourceHosts: string[];
   models: string[];
   reasoningLevels: string[];
-  plans: string[];
+  /**
+   * Harness ids, in the order they last appeared. Raw ids, not labels — a view
+   * renders them through `harnessLabel`, which is also what turns the "unknown"
+   * sentinel into readable text.
+   */
+  harnesses: string[];
   modeFlags: UsageModeFlags;
 }
 
@@ -21,15 +26,6 @@ export interface HistoryTaskGroup {
   lastActiveAt: string;
   totalTokens: number;
   estimatedCost: number | null;
-}
-
-export interface ProviderModelGroup {
-  key: string;
-  label: string;
-  rows: RankedUsage[];
-  records: number;
-  totalTokens: number;
-  estimatedCost: number;
 }
 
 export function groupHistoryByTask(records: UsageHistoryRecord[]): HistoryTaskGroup[] {
@@ -60,29 +56,6 @@ export function groupHistoryByTask(records: UsageHistoryRecord[]): HistoryTaskGr
     .sort((left, right) => Date.parse(right.lastActiveAt) - Date.parse(left.lastActiveAt));
 }
 
-export function groupModelsByProvider(rows: RankedUsage[]): ProviderModelGroup[] {
-  const providers = new Map<string, RankedUsage[]>();
-  for (const row of rows) {
-    const label = row.provider?.trim() || "Unknown provider";
-    const bucket = providers.get(label);
-    if (bucket) bucket.push(row);
-    else providers.set(label, [row]);
-  }
-  return [...providers]
-    .map(([label, providerRows]) => ({
-      key: label.toLocaleLowerCase(),
-      label,
-      rows: providerRows,
-      records: providerRows.reduce((sum, row) => sum + row.records, 0),
-      totalTokens: providerRows.reduce((sum, row) => sum + row.totalTokens, 0),
-      estimatedCost: providerRows.reduce((sum, row) => sum + row.estimatedCost, 0),
-    }))
-    .sort(
-      (left, right) =>
-        right.estimatedCost - left.estimatedCost || right.totalTokens - left.totalTokens,
-    );
-}
-
 function groupSessions(records: UsageHistoryRecord[]): HistorySession[] {
   const sessions = new Map<string, UsageHistoryRecord[]>();
   for (const record of records) {
@@ -104,14 +77,11 @@ function groupSessions(records: UsageHistoryRecord[]): HistorySession[] {
         estimatedCost: sumEstimate(sorted),
         sourceHosts: unique(sorted.map((record) => record.sourceHostLabel)),
         models: unique(sorted.map((record) => `${record.model} · ${record.provider}`)),
-        reasoningLevels: unique(sorted.map((record) => record.reasoningLevel || "unknown")),
-        // PLACEHOLDER (Task 9/10 of the 2026-07-24 dashboard-redesign plan): plan-type
-        // no longer lives on the record — `rateLimits` was removed from UsageRecord.
-        // Always empty until Tasks 15-18 land normalized quota snapshots and this
-        // reads from those instead. The "Plan" column renders "—" for every session
-        // in the meantime, which is honest (no data), not a regression in behavior
-        // this task is responsible for restoring.
-        plans: [] as string[],
+        // "not reported" rather than "unknown": the phrasing the rest of the
+        // dashboard uses for a metric a source did not supply, and it must not
+        // read as a reasoning level literally named "unknown".
+        reasoningLevels: unique(sorted.map((record) => record.reasoningLevel ?? "not reported")),
+        harnesses: unique(sorted.map((record) => record.harnessId)),
         modeFlags: {
           ultra: sorted.some((record) => record.modeFlags.ultra),
           fast: sorted.some((record) => record.modeFlags.fast),

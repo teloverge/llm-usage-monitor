@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { RankedUsage, UsageHistoryRecord } from "@llm-usage-monitor/contracts";
-import { groupHistoryByTask, groupModelsByProvider } from "../src/usage-groups.ts";
+import type { UsageHistoryRecord } from "@llm-usage-monitor/contracts";
+import { groupHistoryByTask } from "../src/model/usage-groups.ts";
 
 const historyRecord = (overrides: Partial<UsageHistoryRecord>): UsageHistoryRecord => ({
   id: "record:1",
@@ -53,22 +53,42 @@ describe("usage display grouping", () => {
     assert.ok(Math.abs((groups[0]?.estimatedCost ?? 0) - 0.3) < Number.EPSILON);
     assert.equal(groups[0]?.sessions.find((session) => session.key === "session:1")?.records, 2);
   });
+});
 
-  it("groups model rollups by provider and sums provider totals", () => {
-    const row = (model: string, estimatedCost: number): RankedUsage => ({
-      key: model,
-      provider: "openai",
-      model,
-      estimatedCost,
-      totalTokens: 100,
-      records: 1,
-      modeFlags: { ultra: false, fast: false },
-      children: [],
-    });
-    const groups = groupModelsByProvider([row("gpt-a", 1), row("gpt-b", 2)]);
-    assert.equal(groups.length, 1);
-    assert.equal(groups[0]?.rows.length, 2);
-    assert.equal(groups[0]?.estimatedCost, 3);
-    assert.equal(groups[0]?.totalTokens, 200);
+describe("Session harness attribution", () => {
+  const base = {
+    id: "a",
+    usageSourceId: "codex-local",
+    harnessId: "codex",
+    timestamp: "2026-07-20T09:00:00.000Z",
+    taskName: "portable-usage-host",
+    provider: "openai",
+    model: "gpt-5-codex",
+    reasoningLevel: "high",
+    modeFlags: { ultra: false, fast: false },
+    inputTokens: 10,
+    cachedInputTokens: 4,
+    outputTokens: 2,
+    reasoningOutputTokens: 1,
+    totalTokens: 12,
+    lastTokenUsage: null,
+    modelContextWindowTokens: 400_000,
+    source: "codex-local",
+    sessionId: "session-1",
+    sourceHostLabel: "workstation",
+    estimatedCost: 1,
+  };
+
+  it("collects the harnesses that contributed to a session", () => {
+    const [group] = groupHistoryByTask([
+      base,
+      { ...base, id: "b", harnessId: "claude-code", usageSourceId: "claude-code-local" },
+    ]);
+    assert.deepEqual(group?.sessions[0]?.harnesses, ["codex", "claude-code"]);
+  });
+
+  it("labels a missing reasoning level as not reported", () => {
+    const [group] = groupHistoryByTask([{ ...base, reasoningLevel: undefined }]);
+    assert.deepEqual(group?.sessions[0]?.reasoningLevels, ["not reported"]);
   });
 });

@@ -148,29 +148,6 @@ select {
   background: #0f1713;
   color: #fff;
 }
-.mode-badges {
-  display: inline-flex;
-  gap: 4px;
-}
-.mode-badge {
-  padding: 2px 6px;
-  border-radius: 99px;
-  font-size: 9px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.mode-badge.ultra {
-  background: #5c3c78;
-  color: #f0dcff;
-}
-.mode-badge.fast {
-  background: #174d42;
-  color: #8fffdc;
-}
-.mode-empty {
-  color: var(--muted);
-}
 .table-card {
   overflow: auto;
 }
@@ -196,10 +173,6 @@ th {
 }
 .table-card input {
   min-width: 80px;
-}
-.save {
-  margin-top: 10px;
-  float: right;
 }
 .pricing-panel {
   overflow: clip;
@@ -273,76 +246,6 @@ th {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-/*
- * These were shared with the legacy Breakdown's provider/model rollups, which
- * Task 27 deleted. Only the `.history-group` and `.summary-*` selectors remain
- * live; the rest were pruned from each list rather than the blocks being
- * dropped. Task 28 rewrites History and can retire what is left.
- */
-.history-groups {
-  display: grid;
-  gap: 6px;
-}
-.history-group {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #111915;
-}
-.history-group > summary {
-  display: grid;
-  align-items: center;
-  cursor: pointer;
-  list-style: none;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  padding: 9px 11px 9px 32px;
-  position: relative;
-}
-.history-group > summary::-webkit-details-marker {
-  display: none;
-}
-.history-group > summary::before {
-  content: "";
-  position: absolute;
-  left: 12px;
-  width: 7px;
-  height: 7px;
-  border-right: 1.5px solid var(--muted);
-  border-bottom: 1.5px solid var(--muted);
-  transform: rotate(-45deg);
-  transition: transform 120ms ease-out;
-}
-.history-group[open] > summary::before {
-  transform: rotate(45deg) translate(-2px, -2px);
-}
-.summary-copy,
-.summary-total {
-  display: grid;
-  gap: 2px;
-}
-.summary-copy small,
-.summary-total small {
-  color: var(--muted);
-  font-weight: 400;
-}
-.summary-total {
-  text-align: right;
-}
-.section-summary {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 7px;
-  color: var(--muted);
-  font-size: 11px;
-}
-.section-summary strong {
-  color: #e6eee9;
-  font-size: 12px;
-}
-.history-group > .table-card {
-  border-top: 1px solid var(--line);
 }
 .empty-state {
   margin: 0;
@@ -614,9 +517,18 @@ footer {
   letter-spacing: -0.02em;
 }
 
-.breakdown {
+.breakdown,
+.history {
   display: grid;
   gap: 10px;
+}
+.harness {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.harness + .harness {
+  margin-left: 10px;
 }
 .group-by {
   display: flex;
