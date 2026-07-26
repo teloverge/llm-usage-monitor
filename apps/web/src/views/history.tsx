@@ -92,7 +92,7 @@ function SessionTable({ sessions }: { sessions: HistorySession[] }) {
                     aria-hidden="true"
                     style={{ background: harnessColor(harness) }}
                   />
-                  {harnessLabel(harness)}
+                  {harnessLabel(harness, "Unknown harness")}
                 </span>
               ))}
             </td>

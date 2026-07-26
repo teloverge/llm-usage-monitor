@@ -39,7 +39,7 @@ export function Breakdown({
   // something the user installed.
   const rows =
     dimension === "byHarness"
-      ? data.byHarness.map((row) => ({ ...row, key: harnessLabel(row.key) }))
+      ? data.byHarness.map((row) => ({ ...row, key: harnessLabel(row.key, "Unknown harness") }))
       : data[dimension];
   return (
     <section className="breakdown">

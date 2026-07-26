@@ -17,7 +17,10 @@ export function Overview({
 }) {
   // Relabelled here rather than inside RankList: the list ranks rows by cost and
   // knows nothing about harnesses, and a `byHarness` row's key IS its harness id.
-  const harnessRows = data.byHarness.map((row) => ({ ...row, key: harnessLabel(row.key) }));
+  const harnessRows = data.byHarness.map((row) => ({
+    ...row,
+    key: harnessLabel(row.key, "Unknown harness"),
+  }));
   return (
     <div className="cockpit">
       <div className="cockpit-main">
