@@ -2,6 +2,16 @@ import { useEffect, useState } from "react";
 import type { ModelPrice } from "@llm-usage-monitor/contracts";
 import { executeAction } from "../../api.ts";
 
+/**
+ * Only `cacheWrite` may be cleared back to "unset"; the other three are required
+ * by `modelPriceSchema`, so an emptied field there becomes 0 rather than
+ * `undefined` — which would fail validation on save and lose the whole edit.
+ */
+function rateFromInput(value: string, key: keyof ModelPrice): number | undefined {
+  if (value.trim() === "") return key === "cacheWrite" ? undefined : 0;
+  return Math.max(0, Number(value) || 0);
+}
+
 export function Pricing({
   prices,
   onSaved,
@@ -44,7 +54,8 @@ export function Pricing({
                 <th>Provider</th>
                 <th>Model</th>
                 <th>Input</th>
-                <th>Cached</th>
+                <th>Cache read</th>
+                <th>Cache write</th>
                 <th>Output</th>
                 <th>Effective</th>
               </tr>
@@ -54,7 +65,7 @@ export function Pricing({
                 <tr key={`${price.provider}/${price.model}`}>
                   <td className="provider-cell">{price.provider}</td>
                   <td className="pricing-model">{price.model}</td>
-                  {(["input", "cachedInput", "output"] as const).map((key) => (
+                  {(["input", "cachedInput", "cacheWrite", "output"] as const).map((key) => (
                     <td key={key}>
                       <input
                         aria-label={`${price.model} ${key}`}
@@ -62,12 +73,15 @@ export function Pricing({
                         inputMode="decimal"
                         min="0"
                         step="0.001"
-                        value={price[key]}
+                        // Blank rather than 0 for an unset cache-write rate, so the
+                        // cell shows "this card does not surcharge writes" instead of
+                        // claiming writes are free — the two price very differently.
+                        value={price[key] ?? ""}
                         onChange={(event) =>
                           setDraft((current) =>
                             current.map((item, itemIndex) =>
                               itemIndex === index
-                                ? { ...item, [key]: Number(event.target.value) }
+                                ? { ...item, [key]: rateFromInput(event.target.value, key) }
                                 : item,
                             ),
                           )

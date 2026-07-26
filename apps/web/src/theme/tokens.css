@@ -7,19 +7,24 @@
 :root {
   color-scheme: dark;
 
-  --page: #0d1411;
-  --panel: #151e1a;
-  --raised: #1b2621;
+  /* Neutral greys. These carried a green tint that read as a colour cast across
+     every surface rather than as brand; the green identity now lives only in
+     --accent and the chart series. Luminance was held close to the tinted values
+     they replace, so the contrast gates in ../../test/palette.test.ts keep their
+     margin — all six series and status colours in fact gained a little. */
+  --page: #101113;
+  --panel: #17191b;
+  --raised: #1f2124;
   /* Recessed header surface, a shade under --panel. Worn by rollup group rows so
      a collapsible parent reads as sunk below the children it contains, where
      --raised would make it stand proud of them instead. CSS-only: no chart mark
      uses it, so it has no palette.ts twin and no agreement-table row. */
-  --sunken: #131c18;
-  --field: #0f1713;
-  --line: #2b3831;
-  --grid: #22302a;
-  --axis: #384a41;
-  --track: #24342c;
+  --sunken: #141618;
+  --field: #121315;
+  --line: #2e3134;
+  --grid: #262a2e;
+  --axis: #3e4348;
+  --track: #282c31;
 
   --ink: #e6eee9;
   --ink-strong: #ffffff;

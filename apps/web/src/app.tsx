@@ -93,7 +93,12 @@ export function App() {
   const refreshSources = async () => {
     setBusy(true);
     try {
+      // Sequential, and neither is allowed to cancel the other: a machine with
+      // only one harness installed still has the other's import succeed trivially
+      // with zero records, so a hard failure here is a real fault worth surfacing
+      // rather than an expected "not installed" case.
       await executeAction({ version: 1, type: "import-codex" });
+      await executeAction({ version: 1, type: "import-claude" });
       await refresh();
     } catch (reason) {
       // Without this the import failure is an unhandled rejection: refresh() never

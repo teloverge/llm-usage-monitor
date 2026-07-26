@@ -4,6 +4,7 @@ export const tokenShapeSchema = z
   .object({
     inputTokens: z.number().nonnegative(),
     cachedInputTokens: z.number().nonnegative(),
+    cacheCreationInputTokens: z.number().nonnegative().optional(),
     outputTokens: z.number().nonnegative(),
     reasoningOutputTokens: z.number().nonnegative(),
     totalTokens: z.number().nonnegative(),
@@ -98,8 +99,24 @@ export const usageRecordSchema = z
     model: z.string().min(1).max(200),
     reasoningLevel: z.string().min(1).max(100).optional(),
     modeFlags: usageModeFlagsSchema.default({ ultra: false, fast: false }),
+    /**
+     * TOTAL input, inclusive of both cache subsets below. Importers whose source
+     * reports the three figures disjointly (Anthropic does) must add them up
+     * before setting this, or every input-token total in the dashboard
+     * under-reports by the cached volume.
+     */
     inputTokens: z.number().int().nonnegative(),
+    /** Input served from cache at the discounted read rate. A subset of `inputTokens`. */
     cachedInputTokens: z.number().int().nonnegative().optional(),
+    /**
+     * Input written INTO the cache, a disjoint subset of `inputTokens` alongside
+     * `cachedInputTokens`. Separate from a cache read because the two bill at
+     * opposite ends of the rate card: a read is discounted well below base input,
+     * a write is charged at a premium above it. Codex reports one undifferentiated
+     * cached figure and leaves this undefined, which costs identically to how it
+     * always has; only a source that distinguishes the two sets it.
+     */
+    cacheCreationInputTokens: z.number().int().nonnegative().optional(),
     outputTokens: z.number().int().nonnegative(),
     reasoningOutputTokens: z.number().int().nonnegative().optional(),
     totalTokens: z.number().int().nonnegative(),
@@ -148,6 +165,12 @@ export interface ModelPrice {
   model: string;
   input: number;
   cachedInput: number;
+  /**
+   * Rate for writing input into the cache. Optional because most rate cards do
+   * not bill it separately; when absent, cache writes cost the base `input` rate,
+   * which is exactly right for a provider that does not surcharge them.
+   */
+  cacheWrite?: number;
   output: number;
   source: string;
   effectiveDate: string;
@@ -176,6 +199,13 @@ export interface UsageTotals {
   models: number;
   inputTokens: number;
   cachedInputTokens: number;
+  /**
+   * Cache writes across the selection. Kept out of `cachedInputTokens` so the
+   * cache-efficiency ratio keeps meaning "share of input served from cache" —
+   * folding writes in would let a cold run that merely populated the cache read
+   * as though it had been served by one.
+   */
+  cacheCreationInputTokens: number;
   /**
    * Coverage for `cacheEfficiency`, which is token-weighted rather than
    * record-weighted. Both are exposed because they can diverge: a handful of large
@@ -246,6 +276,7 @@ export const modelPriceSchema = z
     model: z.string().min(1).max(200),
     input: z.number().nonnegative(),
     cachedInput: z.number().nonnegative(),
+    cacheWrite: z.number().nonnegative().optional(),
     output: z.number().nonnegative(),
     source: z.string().max(500),
     effectiveDate: z.string().max(20),
@@ -257,6 +288,13 @@ export const dashboardActionSchema = z.discriminatedUnion("type", [
       version: z.literal(1),
       type: z.literal("import-codex"),
       codexHome: z.string().max(2_000).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      version: z.literal(1),
+      type: z.literal("import-claude"),
+      claudeHome: z.string().max(2_000).optional(),
     })
     .strict(),
   z

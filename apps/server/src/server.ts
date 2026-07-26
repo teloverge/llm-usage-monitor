@@ -10,6 +10,7 @@ import {
 import { createDashboardActions } from "@llm-usage-monitor/dashboard-actions";
 import { analyzeHistory, analyzeUsage } from "@llm-usage-monitor/usage-analysis";
 import { UsageLedger } from "@llm-usage-monitor/usage-ledger";
+import { ClaudeSessionProvider } from "./claude-importer.ts";
 import { CodexSessionProvider } from "./codex-importer.ts";
 import { mergeDefaultPrices } from "./default-prices.ts";
 import { resolveLocalSourceHost } from "./local-source-host.ts";
@@ -39,17 +40,22 @@ export async function startUsageMonitorServer(options: {
   const mergedPrices = mergeDefaultPrices(configuredPrices);
   if (mergedPrices.length !== configuredPrices.length) ledger.replacePrices(mergedPrices);
   const importer = new CodexSessionProvider();
+  const claudeImporter = new ClaudeSessionProvider();
+  // Each provider keeps its own import state and its own records, so the two
+  // imports are independent: one failing or finding nothing leaves the other's
+  // history untouched.
+  const runImport = async (
+    provider: CodexSessionProvider | ClaudeSessionProvider,
+    home: string | undefined,
+  ) => {
+    const result = await provider.collect(local.host.id, home, ledger.importState(provider.id));
+    ledger.replaceQuotaSnapshots(result.quotaSnapshots);
+    return ledger.commitProviderImport(provider.id, result.records, result.state);
+  };
   const actions = createDashboardActions({
     localSourceHostId: local.host.id,
-    async importCodex(codexHome) {
-      const result = await importer.collect(
-        local.host.id,
-        codexHome,
-        ledger.importState(importer.id),
-      );
-      ledger.replaceQuotaSnapshots(result.quotaSnapshots);
-      return ledger.commitProviderImport(importer.id, result.records, result.state);
-    },
+    importCodex: (codexHome) => runImport(importer, codexHome),
+    importClaude: (claudeHome) => runImport(claudeImporter, claudeHome),
     migrateLegacy: (id, records) => ledger.applyMigration(id, records),
     replacePrices: (prices) => ledger.replacePrices(prices),
     clearRecords: () => ledger.clearRecords(),

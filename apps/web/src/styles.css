@@ -145,8 +145,21 @@ select {
   padding: 0 8px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #0f1713;
-  color: #fff;
+  background: var(--field);
+  color: var(--ink-strong);
+}
+
+/**
+ * The native dropdown popup is painted by the browser, not by the rules above,
+ * and it does NOT inherit a transparent background from its select — it falls
+ * back to the browser's own dark-mode option colours, which land at roughly 2:1
+ * against the popup and are what made these unreadable. An explicit opaque pair
+ * is the only way to control them, and `--raised` rather than `--field` because
+ * the popup floats above the page instead of sitting in it.
+ */
+option {
+  background: var(--raised);
+  color: var(--ink-strong);
 }
 .table-card {
   overflow: auto;
@@ -191,7 +204,10 @@ th {
   min-height: 51px;
   padding: 7px 10px;
   border-bottom: 1px solid var(--line);
-  background: #151e1af5;
+  /* --panel at 96% so the blur behind it still reads. Written as a color-mix of
+     the token rather than a hand-copied hex+alpha, which is how this one kept its
+     green tint after the surfaces were neutralized. */
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
   backdrop-filter: blur(12px);
 }
 .pricing-toolbar h2 {
@@ -579,15 +595,25 @@ footer {
   border-bottom: 0;
 }
 
+/*
+ * Five columns, not four. `summary::before` (the disclosure caret) is a grid item
+ * in its own right, so a four-column track spent column 1 on the caret, shifted
+ * the name into the bar's column, and wrapped the cost onto a second row. Leaf
+ * rows emit an empty first cell so their columns line up with the parent rows
+ * above them instead of running half a column out.
+ */
 .rollup-row,
 .rollup > summary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 1fr 96px 74px;
+  grid-template-columns: 12px minmax(0, 1fr) 1fr 96px 74px;
   gap: 12px;
   align-items: center;
   padding: 8px 12px;
   border-bottom: 1px solid var(--grid);
   font-size: var(--size-meta);
+}
+.rollup-row::before {
+  content: "";
 }
 .rollup > summary {
   cursor: pointer;
@@ -595,13 +621,15 @@ footer {
   background: var(--sunken);
   border-bottom: 1px solid var(--line);
 }
+.rollup > summary:hover {
+  background: var(--raised);
+}
 .rollup > summary::-webkit-details-marker {
   display: none;
 }
 .rollup > summary::before {
   content: "▸";
   color: var(--muted);
-  margin-right: -6px;
 }
 .rollup[open] > summary::before {
   content: "▾";
@@ -612,12 +640,22 @@ footer {
 }
 .rollup.depth-2 > summary,
 .rollup-row.depth-2 {
-  padding-left: 57px;
+  padding-left: 48px;
 }
 .rollup-tokens {
   text-align: right;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * History reuses `.rollup` but fills the Breakdown's bar column with text, and
+ * its last-active cell is a medium date plus a short time ("Jul 26, 2026, 1:15 AM")
+ * that the Breakdown's 96px token column would clip. Same five cells, sized for
+ * what History actually puts in them.
+ */
+.history .rollup > summary {
+  grid-template-columns: 12px minmax(0, 1fr) 150px 140px 80px;
 }
 
 /*
@@ -709,18 +747,18 @@ footer {
     grid-column: 1 / -1;
     grid-row: 2;
   }
-  .provider-rollup > summary,
-  .model-rollup > summary,
-  .history-group > summary {
-    grid-template-columns: 1fr;
+  /*
+   * Drops the bar rather than stacking the cells, so a narrow row keeps name,
+   * tokens and cost on one line. The bar is aria-hidden decoration whose only job
+   * is comparing siblings, which is the first thing worth losing at this width.
+   */
+  .rollup-row,
+  .rollup > summary {
+    grid-template-columns: 12px minmax(0, 1fr) 70px 74px;
+    gap: 8px;
   }
-  .summary-total,
-  .rollup-metrics {
-    margin-top: 4px;
-    text-align: left;
-  }
-  .provider-rollup > .model-rollups {
-    padding-left: 6px;
+  .rank-track {
+    display: none;
   }
   nav {
     overflow: auto;

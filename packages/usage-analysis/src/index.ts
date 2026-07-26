@@ -109,18 +109,30 @@ export function calculateCost(record: UsageRecord, prices: ModelPrice[]): number
       normalize(item.model) === normalize(record.model),
   );
   if (!price) return null;
-  // A source that does not report caching is costed as if nothing were cached, so
-  // all input bills at the full rate. This is a deliberate assumption, not an
-  // oversight: it is the conservative direction (over- rather than under-stating
-  // an estimate the user reads as a spend figure), and the alternative — refusing
-  // to price the record at all — would hide real usage entirely. Ratios get the
+  // Input is partitioned into three shares that bill at different rates: fresh,
+  // read from cache, and written to cache. Reads and writes are clamped in
+  // sequence and fresh takes what survives, so the shares sum to `inputTokens`
+  // exactly even if a source reports subsets that overstate their total. Order
+  // decides only which share absorbs a malformed overage; reads win because a
+  // read is the figure sources report most reliably.
+  //
+  // A source that reports no caching at all is costed as if nothing were cached,
+  // so every share collapses into `fresh` and all input bills at the full rate.
+  // That is a deliberate assumption, not an oversight: it errs toward over- rather
+  // than under-stating a figure the user reads as spend, and the alternative —
+  // refusing to price the record — would hide real usage entirely. Ratios get the
   // opposite treatment: cacheEfficiency EXCLUDES non-reporting records rather than
   // counting them as zero, because a ratio can honestly say "not measured" where a
   // total cannot.
-  const cached = Math.min(record.inputTokens, record.cachedInputTokens ?? 0);
+  const cacheRead = Math.min(record.inputTokens, record.cachedInputTokens ?? 0);
+  const cacheWrite = Math.min(record.inputTokens - cacheRead, record.cacheCreationInputTokens ?? 0);
+  const fresh = record.inputTokens - cacheRead - cacheWrite;
   return (
-    ((record.inputTokens - cached) * price.input +
-      cached * price.cachedInput +
+    (fresh * price.input +
+      cacheRead * price.cachedInput +
+      // Falls back to the base input rate rather than to zero: an unpriced cache
+      // write is one the rate card does not surcharge, not one that is free.
+      cacheWrite * (price.cacheWrite ?? price.input) +
       record.outputTokens * price.output) /
     1_000_000
   );
@@ -160,6 +172,8 @@ function summarize(items: PricedRecord[]): UsageTotals {
       records: sum.records + 1,
       inputTokens: sum.inputTokens + record.inputTokens,
       cachedInputTokens: sum.cachedInputTokens + (record.cachedInputTokens ?? 0),
+      cacheCreationInputTokens:
+        sum.cacheCreationInputTokens + (record.cacheCreationInputTokens ?? 0),
       cacheReportingRecords:
         sum.cacheReportingRecords + (record.cachedInputTokens === undefined ? 0 : 1),
       cacheReportingInputTokens:
@@ -175,6 +189,7 @@ function summarize(items: PricedRecord[]): UsageTotals {
       records: 0,
       inputTokens: 0,
       cachedInputTokens: 0,
+      cacheCreationInputTokens: 0,
       cacheReportingRecords: 0,
       cacheReportingInputTokens: 0,
       outputTokens: 0,

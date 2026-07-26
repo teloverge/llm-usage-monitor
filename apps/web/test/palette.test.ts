@@ -44,6 +44,11 @@ describe("Chart palette gates", () => {
     assert.deepEqual(SERIES, { teal: "#0fae83", blue: "#3987e5", orange: "#d95926" });
     assert.deepEqual(STATUS, { good: "#0ca30c", warning: "#fab219", critical: "#d03b3b" });
     assert.equal(UI_ACCENT, "#16c79a");
-    assert.equal(CHART_SURFACE, "#151e1a");
+    // Re-pinned when the surfaces were de-tinted from green to neutral grey. The
+    // externally validated values above did NOT change and did not need
+    // re-validating: CVD separation and ΔE are properties of the series colours
+    // against each other, not of the surface. The surface only enters the contrast
+    // gate above, which every colour still clears with more margin than before.
+    assert.equal(CHART_SURFACE, "#17191b");
   });
 });
