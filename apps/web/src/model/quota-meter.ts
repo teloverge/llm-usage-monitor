@@ -1,6 +1,31 @@
 import type { UsageQuotaWindow } from "@llm-usage-monitor/contracts";
 import { quotaStatus, type QuotaStatus } from "./format.ts";
 
+/**
+ * Warning and critical must never share a glyph: colour alone is not a
+ * discriminator for a red/orange confusable viewer, and these two sit in the
+ * same column reading "⚠ 82%" and "✖ 94%". Good and unreported carry none —
+ * there is nothing to flag, and a glyph on every row makes the flagged ones stop
+ * standing out.
+ *
+ * The trailing U+FE0E selects TEXT presentation. Without it these render as
+ * emoji on platforms that default that way, which paints them in the font's own
+ * red and yellow instead of inheriting `var(--status-critical)` /
+ * `var(--status-warning)` — putting a fourth, unvalidated red beside the
+ * palette's guarded one.
+ *
+ * U+FE0E is invisible in an editor, so each value below looks like a lone glyph
+ * with a stray byte after it and is easy to "tidy up" by accident. The test
+ * asserts on the code points rather than the rendered strings, so doing that
+ * fails loudly instead of silently restoring emoji colours.
+ */
+export const QUOTA_GLYPH: Record<QuotaStatus, string> = {
+  good: "",
+  warning: "⚠︎",
+  critical: "✖︎",
+  unreported: "",
+};
+
 export interface QuotaMeterView {
   status: QuotaStatus;
   /** Whole percent to display, or null when the source reported nothing. */
