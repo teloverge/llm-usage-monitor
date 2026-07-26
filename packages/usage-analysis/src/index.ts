@@ -1,4 +1,5 @@
 import type {
+  HostGroup,
   HostGroupMembership,
   ModelPrice,
   OverviewView,
@@ -16,6 +17,12 @@ export interface AnalysisInput {
   records: UsageRecord[];
   prices: ModelPrice[];
   sourceHosts: SourceHost[];
+  /**
+   * Optional so the many analysis tests that predate named groups keep
+   * compiling. Absent means no group has a known name, and rows fall back to
+   * the raw group id rather than disappearing.
+   */
+  hostGroups?: HostGroup[];
   memberships: HostGroupMembership[];
   filters: UsageFilters;
   /**
@@ -38,8 +45,11 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
   const hostNames = new Map(
     input.sourceHosts.map((host, index) => [host.id, sourceHostLabel(host, index)]),
   );
-  const groupFor = (record: UsageRecord) =>
-    effectiveGroup(input.memberships, record.sourceHostId, record.timestamp) ?? "Ungrouped";
+  const groupNames = new Map((input.hostGroups ?? []).map((group) => [group.id, group.name]));
+  const groupFor = (record: UsageRecord) => {
+    const groupId = effectiveGroup(input.memberships, record.sourceHostId, record.timestamp);
+    return groupId === null ? "Ungrouped" : (groupNames.get(groupId) ?? groupId);
+  };
   return {
     filters: input.filters,
     totals: summarize(priced),
