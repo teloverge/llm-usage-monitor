@@ -163,7 +163,10 @@ export function App() {
                   value: host.id,
                   // Must go through sourceHostLabel, not host.hostname directly —
                   // some machines report a MAC address as their hostname.
-                  label: sourceHostLabel(host, index),
+                  label: sourceHostLabel(
+                    host,
+                    t("common.sourceHostFallback", { index: index + 1 }),
+                  ),
                 })),
               ]}
               onChange={(value) => change("sourceHostId", value)}

@@ -72,7 +72,9 @@ export function HostGroups({
   const labelFor = (sourceHostId: string) => {
     const index = sourceHosts.findIndex((host) => host.id === sourceHostId);
     const host = sourceHosts[index];
-    return host ? sourceHostLabel(host, index) : sourceHostId;
+    return host
+      ? sourceHostLabel(host, t("common.sourceHostFallback", { index: index + 1 }))
+      : sourceHostId;
   };
   const savedName = (groupId: string) => hostGroups.find((group) => group.id === groupId)?.name;
   const update = (id: string, change: Partial<HostGroupRow>) =>
@@ -202,7 +204,12 @@ export function HostGroups({
                         checked={row.memberHostIds.includes(host.id)}
                         onChange={() => toggleHost(row, host.id)}
                       />
-                      <span>{sourceHostLabel(host, index)}</span>
+                      <span>
+                        {sourceHostLabel(
+                          host,
+                          t("common.sourceHostFallback", { index: index + 1 }),
+                        )}
+                      </span>
                       {/* Shown before the move, not after, so the consequence
                           is visible while the choice is still reversible. */}
                       {moving && (
