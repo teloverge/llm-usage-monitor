@@ -17,5 +17,35 @@
       "heading": "Idioma",
       "hint": "Se aplica solo a este navegador. Los números, las fechas y la moneda siguen el idioma que elijas."
     }
+  },
+  "app": {
+    "brand": "Usage Monitor",
+    "sections": "Secciones del panel",
+    "viewHeading": "Usage Monitor — {{view}}",
+    "footer": "Todo permanece en este equipo · Las estimaciones equivalentes de API no son cargos reales"
+  },
+  "nav": {
+    "overview": "Resumen",
+    "breakdown": "Desglose",
+    "history": "Historial"
+  },
+  "filters": {
+    "period": "Periodo",
+    "host": "Host",
+    "allHosts": "Todos",
+    "searchTasks": "Filtrar tareas",
+    "refresh": "Actualizar fuentes",
+    "refreshing": "Actualizando…",
+    "settings": "Ajustes"
+  },
+  "period": {
+    "select": {
+      "today": "Hoy",
+      "last24": "Últimas 24 horas",
+      "7": "Últimos 7 días",
+      "30": "Últimos 30 días",
+      "90": "Últimos 90 días",
+      "all": "Todo el historial"
+    }
   }
 }
