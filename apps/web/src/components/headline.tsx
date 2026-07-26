@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Area,
   AreaChart,
@@ -12,6 +13,7 @@ import type { OverviewView } from "@llm-usage-monitor/contracts";
 import { CHART_INK, CHART_SURFACE, PAGE_SURFACE, SERIES } from "../theme/palette.ts";
 import {
   formatBucketLabel,
+  formatCount,
   formatMoney,
   formatNumberCompact,
   formatTokens,
@@ -20,58 +22,72 @@ import { coverageMessage } from "../model/coverage.ts";
 
 type Measure = "cost" | "tokens";
 
-const TIMEFRAME_LABEL: Record<string, string> = {
-  today: "today",
-  last24: "last 24 hours",
-  "7": "last 7 days",
-  "30": "last 30 days",
-  "90": "last 90 days",
-  all: "all retained history",
-  custom: "the selected range",
-};
+const MEASURES = ["cost", "tokens"] as const;
 
-const MEASURES: Array<{ value: Measure; label: string }> = [
-  { value: "cost", label: "Cost" },
-  { value: "tokens", label: "Tokens" },
-];
+/**
+ * The inline period labels are a SEPARATE key set from the Period dropdown's,
+ * not a case transformation of it. English wants "Last 7 days" in a chip and
+ * "last 7 days" mid-sentence; Spanish title-cases neither, and other languages
+ * differ again. Sentence-position casing is a per-locale decision, so both forms
+ * are authored per locale rather than derived.
+ */
+const INLINE_PERIODS = ["today", "last24", "7", "30", "90", "all"] as const;
+
+type InlinePeriod = (typeof INLINE_PERIODS)[number];
+
+/**
+ * Narrows the server-supplied timeframe to a key that exists, rather than
+ * casting. `filters.timeframe` is a plain string, so an unrecognised value
+ * would otherwise interpolate into a missing key and render the key itself.
+ * The `custom` fallback is the same one the old TIMEFRAME_LABEL lookup used.
+ */
+function inlinePeriodKey(timeframe: string): `period.inline.${InlinePeriod | "custom"}` {
+  const match = INLINE_PERIODS.find((period) => period === timeframe);
+  return match ? `period.inline.${match}` : "period.inline.custom";
+}
 
 export function Headline({ data }: { data: OverviewView }) {
+  const { t } = useTranslation();
   const [measure, setMeasure] = useState<Measure>("cost");
-  const period = TIMEFRAME_LABEL[data.filters.timeframe] ?? "the selected range";
+  const period = t(inlinePeriodKey(data.filters.timeframe));
   const key = measure === "cost" ? "estimatedCost" : "totalTokens";
   // The axis and the tooltip format the same number differently on purpose: the
   // axis gutter is 48px and clips anything longer than about seven characters,
-  // while the tooltip has room for the exact figure including cents.
+  // while the tooltip has room for the exact figure including its currency.
   const axisFormat = measure === "cost" ? formatNumberCompact : formatTokens;
   const exactFormat = measure === "cost" ? formatMoney : formatTokens;
+  const coverage = coverageMessage({
+    records: data.totals.records,
+    priced: data.totals.pricedRecords,
+  });
   return (
     <section className="panel headline">
       <div className="headline-head">
         <div>
-          <p className="panel-label">API-equivalent cost of work · {period}</p>
+          <p className="panel-label">{t("headline.title", { period })}</p>
           <p className="hero">{formatMoney(data.totals.estimatedCost)}</p>
           <p className="panel-label">
-            {/* Rendered through t() in the string-extraction task; this keeps the
-                component compiling in the meantime. */}
-            {
-              coverageMessage({
-                records: data.totals.records,
-                priced: data.totals.pricedRecords,
-              }).key
-            }{" "}
-            · estimated at your configured API rates, not a bill
+            {t("headline.disclaimer", {
+              // Both numbers are formatted here, not by i18next: one formatting
+              // path, and "4,900" beside the hero's "USD 8,947.32" rather than a
+              // bare "4900".
+              coverage: t(coverage.key, {
+                records: formatCount(coverage.params.records),
+                priced: formatCount(coverage.params.priced),
+              }),
+            })}
           </p>
         </div>
-        <div className="segmented" role="group" aria-label="Trend measure">
+        <div className="segmented" role="group" aria-label={t("headline.measureGroup")}>
           {MEASURES.map((item) => (
             <button
               type="button"
-              key={item.value}
-              className={measure === item.value ? "on" : ""}
-              aria-pressed={measure === item.value}
-              onClick={() => setMeasure(item.value)}
+              key={item}
+              className={measure === item ? "on" : ""}
+              aria-pressed={measure === item}
+              onClick={() => setMeasure(item)}
             >
-              {item.label}
+              {t(`headline.${item}`)}
             </button>
           ))}
         </div>
@@ -81,7 +97,7 @@ export function Headline({ data }: { data: OverviewView }) {
         a chart that failed to load rather than a period with nothing in it.
       */}
       {data.timeline.length === 0 ? (
-        <p className="empty-state">No activity in this period</p>
+        <p className="empty-state">{t("headline.empty")}</p>
       ) : (
         <ResponsiveContainer width="100%" height={168}>
           <AreaChart data={data.timeline} margin={{ top: 10, right: 4, bottom: 0, left: 4 }}>
@@ -121,7 +137,7 @@ export function Headline({ data }: { data: OverviewView }) {
               strokeWidth={2}
               fill={SERIES.teal}
               fillOpacity={0.13}
-              name={measure === "cost" ? "Estimated cost" : "Tokens"}
+              name={measure === "cost" ? t("headline.seriesCost") : t("headline.tokens")}
               activeDot={{ r: 4.5, strokeWidth: 2, stroke: CHART_SURFACE }}
             />
           </AreaChart>
