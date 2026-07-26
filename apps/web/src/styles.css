@@ -728,6 +728,46 @@ footer {
   font-weight: 600;
 }
 
+.cockpit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--rail);
+  gap: var(--gap);
+}
+.cockpit-main,
+.cockpit-rail {
+  display: grid;
+  gap: var(--gap);
+  align-content: start;
+  min-width: 0;
+}
+.drivers {
+  display: grid;
+  grid-template-columns: 0.82fr 1fr 1fr;
+  gap: var(--gap);
+}
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--panel);
+  padding: var(--pad-panel);
+}
+.zone {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: var(--size-zone);
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.zone::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+}
 .strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -745,6 +785,44 @@ footer {
   font-size: var(--size-stat);
   font-weight: 650;
   letter-spacing: -0.02em;
+}
+
+/*
+ * Cockpit breakpoints. `.strip` is deliberately absent from all three: the
+ * 900px block above already takes it to two columns and owns it outright.
+ * Re-declaring it here would leave it governed by three overlapping rules whose
+ * outcome depends on source order.
+ */
+@media (max-width: 1180px) {
+  .cockpit {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cockpit-rail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .cockpit-rail .zone {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 860px) {
+  .drivers,
+  .cockpit-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .drivers,
+  .cockpit-rail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .topbar {
+    flex-wrap: wrap;
+  }
+  .chips {
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 900px) {
@@ -766,7 +844,7 @@ footer {
    */
   .strip {
     grid-template-columns: 1fr 1fr;
-    row-gap: 11px;
+    gap: 9px;
   }
   .strip > div:nth-child(odd) {
     border-left: 0;
@@ -798,13 +876,6 @@ footer {
   .metrics,
   .chart-grid {
     grid-template-columns: 1fr;
-  }
-  .strip {
-    grid-template-columns: 1fr;
-  }
-  .strip > div {
-    border-left: 0;
-    padding-left: 0;
   }
   .rank {
     grid-template-columns: 1fr auto;
