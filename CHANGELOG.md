@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Host Groups are configurable from Settings: create, rename, populate and retire them. Grouping takes effect from the moment it is saved, so historical totals keep the grouping that applied when the usage happened.
+- Fixed `setHostGroup` leaving a host in two groups at once when it was moved, which made its group resolution depend on insertion order.
+- Host Group breakdown rows now show the group's name instead of its internal id.
+- Fixed a failed price save reporting success.
 - Import Claude Code usage from local session transcripts under the Claude home directory, populating the `claude-code` harness the dashboard already knew how to render. One record per billed request, deduplicated by message id because Claude Code writes one transcript line per content block and repeats the same usage figures on each.
 - Separate cache writes from cache reads in Usage Records and model prices. The two bill at opposite ends of the rate card, so the previous single cached figure could not price an Anthropic record correctly; Codex records, which report one undifferentiated figure, cost exactly as they always did.
 - Add Anthropic rates to the default price catalog, and let a newly supported provider's defaults reach installs whose price catalog already exists, which previously only `codex-auto-review` could do.
