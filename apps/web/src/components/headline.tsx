@@ -12,11 +12,11 @@ import type { OverviewView } from "@llm-usage-monitor/contracts";
 import { CHART_INK, CHART_SURFACE, PAGE_SURFACE, SERIES } from "../theme/palette.ts";
 import {
   formatBucketLabel,
-  formatCoverage,
   formatMoney,
   formatNumberCompact,
   formatTokens,
 } from "../model/format.ts";
+import { coverageMessage } from "../model/coverage.ts";
 
 type Measure = "cost" | "tokens";
 
@@ -51,10 +51,14 @@ export function Headline({ data }: { data: OverviewView }) {
           <p className="panel-label">API-equivalent cost of work · {period}</p>
           <p className="hero">{formatMoney(data.totals.estimatedCost)}</p>
           <p className="panel-label">
-            {formatCoverage({
-              records: data.totals.records,
-              priced: data.totals.pricedRecords,
-            })}{" "}
+            {/* Rendered through t() in the string-extraction task; this keeps the
+                component compiling in the meantime. */}
+            {
+              coverageMessage({
+                records: data.totals.records,
+                priced: data.totals.pricedRecords,
+              }).key
+            }{" "}
             · estimated at your configured API rates, not a bill
           </p>
         </div>
