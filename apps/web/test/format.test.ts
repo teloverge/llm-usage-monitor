@@ -27,20 +27,29 @@ function inLocale(locale: string, body: () => void): void {
   }
 }
 
+/**
+ * CLDR separates a currency code, and a compact-notation unit like "mil" or
+ * "M", from its number with U+00A0 NO-BREAK SPACE, not a regular space, so a
+ * line never wraps between the figure and its unit.
+ *
+ * U+00A0 is invisible in an editor, so a literal in a string constant is easy
+ * to "tidy up" into an ASCII space by a well-meaning edit, which would turn
+ * these into baffling failures where actual and expected print identically.
+ * Interpolating this named constant keeps the escape visible in source,
+ * mirroring the code-point convention quota-meter.ts uses for U+FE0E.
+ */
+const NBSP = "\u00A0";
+
 describe("Formatters", () => {
-  // CLDR separates a currency code, and a compact-notation unit like "mil" or
-  // "M", from its number with U+00A0 NO-BREAK SPACE, not a regular space, so
-  // a line never wraps between the figure and its unit. The space characters
-  // in the expected strings below are U+00A0, not an ASCII space.
   it("formats money to cents with an explicit currency code", () => {
     inLocale("en", () => {
-      assert.equal(formatMoney(142.3), "USD 142.30");
-      assert.equal(formatMoney(0), "USD 0.00");
+      assert.equal(formatMoney(142.3), `USD${NBSP}142.30`);
+      assert.equal(formatMoney(0), `USD${NBSP}0.00`);
     });
     // Spanish puts the code after the amount and uses a comma decimal.
     inLocale("es", () => {
-      assert.equal(formatMoney(142.3), "142,30 USD");
-      assert.equal(formatMoney(0), "0,00 USD");
+      assert.equal(formatMoney(142.3), `142,30${NBSP}USD`);
+      assert.equal(formatMoney(0), `0,00${NBSP}USD`);
     });
   });
 
@@ -55,10 +64,10 @@ describe("Formatters", () => {
       assert.equal(formatTokens(1_000), "1K");
     });
     inLocale("es", () => {
-      assert.equal(formatTokens(645_000), "645 mil");
-      assert.equal(formatTokens(1_240_000), "1,2 M");
+      assert.equal(formatTokens(645_000), `645${NBSP}mil`);
+      assert.equal(formatTokens(1_240_000), `1,2${NBSP}M`);
       assert.equal(formatTokens(999), "999");
-      assert.equal(formatTokens(1_000), "1 mil");
+      assert.equal(formatTokens(1_000), `1${NBSP}mil`);
     });
   });
 
@@ -78,7 +87,11 @@ describe("Formatters", () => {
   it("rejects an unsupported locale rather than formatting in it", () => {
     inLocale("en", () => {
       setFormatLocale("fr-CA");
-      assert.equal(formatMoney(142.3), "USD 142.30", "falls back to en, never to the OS locale");
+      assert.equal(
+        formatMoney(142.3),
+        `USD${NBSP}142.30`,
+        "falls back to en, never to the OS locale",
+      );
     });
   });
 });
