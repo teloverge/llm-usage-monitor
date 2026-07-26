@@ -40,16 +40,16 @@ Explicitly out of scope:
 
 ## Decisions
 
-| Decision           | Choice                                       | Why                                                                                              |
-| ------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Why now            | Complete the vertical slice                  | The concept is documented in CONTEXT.md and half-built in code; leaving it unreachable is the bug |
-| `effectiveAt`      | Always `now`                                 | The purest reading of effective-dating: history keeps the grouping that applied when it happened  |
-| Removal            | Retire, never hard-delete                    | Follows from `effectiveAt = now`; past totals must stay stable                                    |
-| Cardinality        | One group per host at a time                 | CONTEXT.md says *avoid: tag*; `effectiveGroup` returns a single value                             |
-| Row labelling      | Analysis keys `byHostGroup` by name          | Mirrors `bySourceHost`, which already keys by resolved label                                      |
-| Placement          | Tab strip inside Settings                    | Establishes the pattern for later settings sections; keeps each view a focused file               |
-| Group id           | `group:<uuid>`, generated once on create     | Names are editable, so a slug-derived id would break on rename                                    |
-| Test surface       | Pure functions in `model/`, not components   | Matches how `apps/web/test` tests today                                                           |
+| Decision      | Choice                                     | Why                                                                                               |
+| ------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Why now       | Complete the vertical slice                | The concept is documented in CONTEXT.md and half-built in code; leaving it unreachable is the bug |
+| `effectiveAt` | Always `now`                               | The purest reading of effective-dating: history keeps the grouping that applied when it happened  |
+| Removal       | Retire, never hard-delete                  | Follows from `effectiveAt = now`; past totals must stay stable                                    |
+| Cardinality   | One group per host at a time               | CONTEXT.md says _avoid: tag_; `effectiveGroup` returns a single value                             |
+| Row labelling | Analysis keys `byHostGroup` by name        | Mirrors `bySourceHost`, which already keys by resolved label                                      |
+| Placement     | Tab strip inside Settings                  | Establishes the pattern for later settings sections; keeps each view a focused file               |
+| Group id      | `group:<uuid>`, generated once on create   | Names are editable, so a slug-derived id would break on rename                                    |
+| Test surface  | Pure functions in `model/`, not components | Matches how `apps/web/test` tests today                                                           |
 
 ### Why `effectiveAt = now` needs visible explanation
 
@@ -197,23 +197,23 @@ for in `app.tsx`.
 
 ## Error handling
 
-| Failure                                | Behaviour                                                         |
-| -------------------------------------- | ------------------------------------------------------------------ |
-| Save rejects (network, 400, 403)       | Local `role="alert"` in the editor; draft state preserved for retry |
-| Empty group name                       | Save disabled; the action schema would reject it anyway             |
-| Group with zero members saved          | Allowed — identical to retirement                                   |
+| Failure                                  | Behaviour                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------- |
+| Save rejects (network, 400, 403)         | Local `role="alert"` in the editor; draft state preserved for retry |
+| Empty group name                         | Save disabled; the action schema would reject it anyway             |
+| Group with zero members saved            | Allowed — identical to retirement                                   |
 | Catalog omits a group a membership cites | `byHostGroup` falls back to the raw id rather than dropping the row |
 
 ## Testing
 
-| Layer          | Test                                                                             |
-| -------------- | -------------------------------------------------------------------------------- |
-| usage-ledger   | `hostGroups()` round-trips names, ordered                                        |
-| usage-ledger   | Reassigning a host closes its previous group's open membership — the defect above |
-| usage-ledger   | Retiring leaves historical membership rows intact with a closed `effective_to`   |
-| usage-analysis | `byHostGroup` keys by name; unknown group id falls back to the id                |
-| usage-analysis | `Ungrouped` still covers hosts with no effective membership                      |
-| web/model      | `hostGroupRows` selects only open memberships                                    |
+| Layer          | Test                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------- |
+| usage-ledger   | `hostGroups()` round-trips names, ordered                                             |
+| usage-ledger   | Reassigning a host closes its previous group's open membership — the defect above     |
+| usage-ledger   | Retiring leaves historical membership rows intact with a closed `effective_to`        |
+| usage-analysis | `byHostGroup` keys by name; unknown group id falls back to the id                     |
+| usage-analysis | `Ungrouped` still covers hosts with no effective membership                           |
+| web/model      | `hostGroupRows` selects only open memberships                                         |
 | web/model      | `ungroupedHostIds` excludes hosts whose membership was retired, then re-includes them |
 
 Components are not tested directly; the derivation they render is.

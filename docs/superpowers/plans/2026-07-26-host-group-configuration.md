@@ -29,10 +29,12 @@
 `host_groups.name` is written by `setHostGroup` and never read by anything. This adds the reader that makes the `HostGroup` contract interface real.
 
 **Files:**
+
 - Modify: `packages/usage-ledger/src/index.ts` (import list at line 1-8; add method after `memberships()` which ends at line 216)
 - Test: `packages/usage-ledger/test/ledger.test.ts` (add inside the existing `describe("Usage Ledger", ...)` block, after the test ending at line 76)
 
 **Interfaces:**
+
 - Consumes: `HostGroup` from `@llm-usage-monitor/contracts` — `{ id: string; name: string }`, already declared at `packages/contracts/src/index.ts:153-156`.
 - Produces: `UsageLedger.hostGroups(): HostGroup[]`, ordered by name ascending. Used by Tasks 4.
 
@@ -41,37 +43,37 @@
 Add to `packages/usage-ledger/test/ledger.test.ts`, inside `describe("Usage Ledger", ...)`:
 
 ```ts
-  it("reads back Host Group names, ordered by name", () => {
-    const ledger = create();
-    ledger.setHostGroup("group:two", "Workstations", [], "2026-07-01T00:00:00.000Z");
-    ledger.setHostGroup("group:one", "Laptops", [], "2026-07-01T00:00:00.000Z");
-    assert.deepEqual(ledger.hostGroups(), [
-      { id: "group:one", name: "Laptops" },
-      { id: "group:two", name: "Workstations" },
-    ]);
-  });
+it("reads back Host Group names, ordered by name", () => {
+  const ledger = create();
+  ledger.setHostGroup("group:two", "Workstations", [], "2026-07-01T00:00:00.000Z");
+  ledger.setHostGroup("group:one", "Laptops", [], "2026-07-01T00:00:00.000Z");
+  assert.deepEqual(ledger.hostGroups(), [
+    { id: "group:one", name: "Laptops" },
+    { id: "group:two", name: "Workstations" },
+  ]);
+});
 
-  it("renaming a group keeps its id and its memberships", () => {
-    const ledger = create();
-    ledger.upsertSourceHost(
-      {
-        id: "host:a",
-        hostname: "workstation",
-        platform: "win32",
-        architecture: "x64",
-        firstSeenAt: "2026-01-01T00:00:00.000Z",
-        lastSeenAt: "2026-07-23T12:00:00.000Z",
-      },
-      [],
-    );
-    ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-01-01T00:00:00.000Z");
-    ledger.setHostGroup("group:one", "Portables", ["host:a"], "2026-07-01T00:00:00.000Z");
-    assert.deepEqual(ledger.hostGroups(), [{ id: "group:one", name: "Portables" }]);
-    assert.equal(
-      ledger.memberships().filter((membership) => membership.effectiveTo === null).length,
-      1,
-    );
-  });
+it("renaming a group keeps its id and its memberships", () => {
+  const ledger = create();
+  ledger.upsertSourceHost(
+    {
+      id: "host:a",
+      hostname: "workstation",
+      platform: "win32",
+      architecture: "x64",
+      firstSeenAt: "2026-01-01T00:00:00.000Z",
+      lastSeenAt: "2026-07-23T12:00:00.000Z",
+    },
+    [],
+  );
+  ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-01-01T00:00:00.000Z");
+  ledger.setHostGroup("group:one", "Portables", ["host:a"], "2026-07-01T00:00:00.000Z");
+  assert.deepEqual(ledger.hostGroups(), [{ id: "group:one", name: "Portables" }]);
+  assert.equal(
+    ledger.memberships().filter((membership) => membership.effectiveTo === null).length,
+    1,
+  );
+});
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -117,10 +119,12 @@ HostGroup contract interface had no implementation behind it."
 `setHostGroup` closes open memberships for the target group id only, so moving a host from group A to group B leaves two open rows. `effectiveGroup` resolves with `.find()` over rows ordered by `effective_from`, so the host silently keeps reporting group A.
 
 **Files:**
+
 - Modify: `packages/usage-ledger/src/index.ts:187-204` (`setHostGroup`)
 - Test: `packages/usage-ledger/test/ledger.test.ts` (add inside `describe("Usage Ledger", ...)`)
 
 **Interfaces:**
+
 - Consumes: nothing new.
 - Produces: `setHostGroup(id, name, sourceHostIds, effectiveAt)` now guarantees at most one open membership per `sourceHostId` across all groups. Tasks 5-8 depend on this invariant.
 
@@ -129,64 +133,64 @@ HostGroup contract interface had no implementation behind it."
 Add to `packages/usage-ledger/test/ledger.test.ts`, inside `describe("Usage Ledger", ...)`:
 
 ```ts
-  it("moving a host into another group closes its previous membership", () => {
-    const ledger = create();
-    ledger.upsertSourceHost(
-      {
-        id: "host:a",
-        hostname: "workstation",
-        platform: "win32",
-        architecture: "x64",
-        firstSeenAt: "2026-01-01T00:00:00.000Z",
-        lastSeenAt: "2026-07-23T12:00:00.000Z",
-      },
-      [],
-    );
-    ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-01-01T00:00:00.000Z");
-    ledger.setHostGroup("group:two", "Workstations", ["host:a"], "2026-07-01T00:00:00.000Z");
-    assert.deepEqual(ledger.memberships(), [
-      {
-        hostGroupId: "group:one",
-        sourceHostId: "host:a",
-        effectiveFrom: "2026-01-01T00:00:00.000Z",
-        effectiveTo: "2026-07-01T00:00:00.000Z",
-      },
-      {
-        hostGroupId: "group:two",
-        sourceHostId: "host:a",
-        effectiveFrom: "2026-07-01T00:00:00.000Z",
-        effectiveTo: null,
-      },
-    ]);
-  });
+it("moving a host into another group closes its previous membership", () => {
+  const ledger = create();
+  ledger.upsertSourceHost(
+    {
+      id: "host:a",
+      hostname: "workstation",
+      platform: "win32",
+      architecture: "x64",
+      firstSeenAt: "2026-01-01T00:00:00.000Z",
+      lastSeenAt: "2026-07-23T12:00:00.000Z",
+    },
+    [],
+  );
+  ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-01-01T00:00:00.000Z");
+  ledger.setHostGroup("group:two", "Workstations", ["host:a"], "2026-07-01T00:00:00.000Z");
+  assert.deepEqual(ledger.memberships(), [
+    {
+      hostGroupId: "group:one",
+      sourceHostId: "host:a",
+      effectiveFrom: "2026-01-01T00:00:00.000Z",
+      effectiveTo: "2026-07-01T00:00:00.000Z",
+    },
+    {
+      hostGroupId: "group:two",
+      sourceHostId: "host:a",
+      effectiveFrom: "2026-07-01T00:00:00.000Z",
+      effectiveTo: null,
+    },
+  ]);
+});
 
-  // Two saves landing in the same millisecond collide on the membership primary
-  // key (group, host, effective_from). The close-then-insert would otherwise
-  // leave the row closed and silently drop the membership the user just saved.
-  it("re-saving an unchanged group at the same instant keeps the membership open", () => {
-    const ledger = create();
-    ledger.upsertSourceHost(
-      {
-        id: "host:a",
-        hostname: "workstation",
-        platform: "win32",
-        architecture: "x64",
-        firstSeenAt: "2026-01-01T00:00:00.000Z",
-        lastSeenAt: "2026-07-23T12:00:00.000Z",
-      },
-      [],
-    );
-    ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-07-01T00:00:00.000Z");
-    ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-07-01T00:00:00.000Z");
-    assert.deepEqual(ledger.memberships(), [
-      {
-        hostGroupId: "group:one",
-        sourceHostId: "host:a",
-        effectiveFrom: "2026-07-01T00:00:00.000Z",
-        effectiveTo: null,
-      },
-    ]);
-  });
+// Two saves landing in the same millisecond collide on the membership primary
+// key (group, host, effective_from). The close-then-insert would otherwise
+// leave the row closed and silently drop the membership the user just saved.
+it("re-saving an unchanged group at the same instant keeps the membership open", () => {
+  const ledger = create();
+  ledger.upsertSourceHost(
+    {
+      id: "host:a",
+      hostname: "workstation",
+      platform: "win32",
+      architecture: "x64",
+      firstSeenAt: "2026-01-01T00:00:00.000Z",
+      lastSeenAt: "2026-07-23T12:00:00.000Z",
+    },
+    [],
+  );
+  ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-07-01T00:00:00.000Z");
+  ledger.setHostGroup("group:one", "Laptops", ["host:a"], "2026-07-01T00:00:00.000Z");
+  assert.deepEqual(ledger.memberships(), [
+    {
+      hostGroupId: "group:one",
+      sourceHostId: "host:a",
+      effectiveFrom: "2026-07-01T00:00:00.000Z",
+      effectiveTo: null,
+    },
+  ]);
+});
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -258,10 +262,12 @@ resolved to whichever was created first."
 `byHostGroup` currently keys rows on the raw group id. This mirrors what `bySourceHost` already does with `hostNames`.
 
 **Files:**
+
 - Modify: `packages/usage-analysis/src/index.ts` (import list line 1-13; `AnalysisInput` line 15-29; `groupFor` line 41-42)
 - Test: `packages/usage-analysis/test/analysis.test.ts` (append a new `describe` block at end of file)
 
 **Interfaces:**
+
 - Consumes: `UsageLedger.hostGroups()` from Task 1 (via the server, Task 4).
 - Produces: `AnalysisInput.hostGroups?: HostGroup[]` — **optional**. It must be optional because sixteen existing call sites in `analysis.test.ts` construct `AnalysisInput` without it; making it required would force churn across tests unrelated to this feature. `quotaSnapshots?` sets the precedent.
 
@@ -353,11 +359,11 @@ Add to `AnalysisInput`, directly after the `sourceHosts` line:
 Replace the `groupFor` definition (currently lines 41-42):
 
 ```ts
-  const groupNames = new Map((input.hostGroups ?? []).map((group) => [group.id, group.name]));
-  const groupFor = (record: UsageRecord) => {
-    const groupId = effectiveGroup(input.memberships, record.sourceHostId, record.timestamp);
-    return groupId === null ? "Ungrouped" : (groupNames.get(groupId) ?? groupId);
-  };
+const groupNames = new Map((input.hostGroups ?? []).map((group) => [group.id, group.name]));
+const groupFor = (record: UsageRecord) => {
+  const groupId = effectiveGroup(input.memberships, record.sourceHostId, record.timestamp);
+  return groupId === null ? "Ungrouped" : (groupNames.get(groupId) ?? groupId);
+};
 ```
 
 - [ ] **Step 4: Run the tests to verify they pass**
@@ -381,10 +387,12 @@ unknown group id is shown rather than dropped."
 ### Task 4: Serve Host Groups from the catalog
 
 **Files:**
+
 - Modify: `apps/server/src/server.ts:91-105` (`api/overview`) and `apps/server/src/server.ts:116-121` (`api/catalog`)
 - Test: `apps/server/test/server.test.ts` (append a new `it` inside the existing `describe("Usage Monitor Server", ...)`)
 
 **Interfaces:**
+
 - Consumes: `UsageLedger.hostGroups()` (Task 1), `AnalysisInput.hostGroups` (Task 3).
 - Produces: `GET /api/catalog` returns `{ prices, sourceHosts, hostGroups, memberships }`. `GET /api/overview` returns `byHostGroup` rows keyed by name. Task 6 consumes the catalog shape.
 
@@ -393,59 +401,54 @@ unknown group id is shown rather than dropped."
 Append inside `describe("Usage Monitor Server", ...)` in `apps/server/test/server.test.ts`:
 
 ```ts
-  it("serves Host Groups in the catalog and names them in the overview", async () => {
-    const root = await mkdtemp(join(tmpdir(), "usage-monitor-server-"));
-    const web = join(root, "web");
-    await mkdir(web);
-    await writeFile(join(web, "index.html"), "<!doctype html><title>test</title>");
-    const running = await startUsageMonitorServer({
-      dataDirectory: join(root, "data"),
-      webDirectory: web,
-    });
-    cleanup.push(async () => {
-      await running.close();
-      await rm(root, { recursive: true, force: true });
-    });
-    const [localHost] = running.ledger.sourceHosts();
-    assert.ok(localHost, "the server registers its local Source Host on start");
-    running.ledger.upsertRecords([
-      {
-        id: "record:1",
-        sourceHostId: localHost.id,
-        usageSourceId: "codex-local",
-        harnessId: "codex",
-        timestamp: "2026-07-20T09:00:00.000Z",
-        taskName: "Task",
-        provider: "openai",
-        model: "gpt-test",
-        modeFlags: { ultra: false, fast: false },
-        inputTokens: 10,
-        outputTokens: 2,
-        totalTokens: 12,
-        lastTokenUsage: null,
-        source: "codex-local",
-      },
-    ]);
-    running.ledger.setHostGroup(
-      "group:one",
-      "Laptops",
-      [localHost.id],
-      "2026-01-01T00:00:00.000Z",
-    );
-
-    const catalog = (await fetch(`${running.discovery.dashboardUrl}api/catalog`).then((response) =>
-      response.json(),
-    )) as { hostGroups?: Array<{ id: string; name: string }> };
-    assert.deepEqual(catalog.hostGroups, [{ id: "group:one", name: "Laptops" }]);
-
-    const overview = (await fetch(
-      `${running.discovery.dashboardUrl}api/overview?timeframe=all`,
-    ).then((response) => response.json())) as OverviewView;
-    assert.deepEqual(
-      overview.byHostGroup.map((row) => row.key),
-      ["Laptops"],
-    );
+it("serves Host Groups in the catalog and names them in the overview", async () => {
+  const root = await mkdtemp(join(tmpdir(), "usage-monitor-server-"));
+  const web = join(root, "web");
+  await mkdir(web);
+  await writeFile(join(web, "index.html"), "<!doctype html><title>test</title>");
+  const running = await startUsageMonitorServer({
+    dataDirectory: join(root, "data"),
+    webDirectory: web,
   });
+  cleanup.push(async () => {
+    await running.close();
+    await rm(root, { recursive: true, force: true });
+  });
+  const [localHost] = running.ledger.sourceHosts();
+  assert.ok(localHost, "the server registers its local Source Host on start");
+  running.ledger.upsertRecords([
+    {
+      id: "record:1",
+      sourceHostId: localHost.id,
+      usageSourceId: "codex-local",
+      harnessId: "codex",
+      timestamp: "2026-07-20T09:00:00.000Z",
+      taskName: "Task",
+      provider: "openai",
+      model: "gpt-test",
+      modeFlags: { ultra: false, fast: false },
+      inputTokens: 10,
+      outputTokens: 2,
+      totalTokens: 12,
+      lastTokenUsage: null,
+      source: "codex-local",
+    },
+  ]);
+  running.ledger.setHostGroup("group:one", "Laptops", [localHost.id], "2026-01-01T00:00:00.000Z");
+
+  const catalog = (await fetch(`${running.discovery.dashboardUrl}api/catalog`).then((response) =>
+    response.json(),
+  )) as { hostGroups?: Array<{ id: string; name: string }> };
+  assert.deepEqual(catalog.hostGroups, [{ id: "group:one", name: "Laptops" }]);
+
+  const overview = (await fetch(`${running.discovery.dashboardUrl}api/overview?timeframe=all`).then(
+    (response) => response.json(),
+  )) as OverviewView;
+  assert.deepEqual(
+    overview.byHostGroup.map((row) => row.key),
+    ["Laptops"],
+  );
+});
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -470,13 +473,13 @@ In the `api/catalog` handler, add the same key after `sourceHosts`:
 The catalog handler becomes:
 
 ```ts
-    if (request.method === "GET" && resource === "api/catalog")
-      return sendJson(response, 200, {
-        prices: ledger.prices(),
-        sourceHosts: ledger.sourceHosts(),
-        hostGroups: ledger.hostGroups(),
-        memberships: ledger.memberships(),
-      });
+if (request.method === "GET" && resource === "api/catalog")
+  return sendJson(response, 200, {
+    prices: ledger.prices(),
+    sourceHosts: ledger.sourceHosts(),
+    hostGroups: ledger.hostGroups(),
+    memberships: ledger.memberships(),
+  });
 ```
 
 - [ ] **Step 4: Run the test to verify it passes**
@@ -499,10 +502,12 @@ git commit -m "Serve Host Groups from the catalog and overview"
 Everything the editor needs to compute, computed outside React so it can be tested the way `model/source-host.ts` and `model/harness.ts` are.
 
 **Files:**
+
 - Create: `apps/web/src/model/host-groups.ts`
 - Test: `apps/web/test/host-groups.test.ts`
 
 **Interfaces:**
+
 - Consumes: `HostGroup`, `HostGroupMembership`, `SourceHost` from `@llm-usage-monitor/contracts`.
 - Produces — Tasks 6, 7 and 8 import exactly these:
   - `interface HostGroupRow { id: string; name: string; memberHostIds: string[] }`
@@ -518,11 +523,7 @@ Create `apps/web/test/host-groups.test.ts`:
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { HostGroupMembership, SourceHost } from "@llm-usage-monitor/contracts";
-import {
-  currentGroupIdFor,
-  hostGroupRows,
-  ungroupedHostIds,
-} from "../src/model/host-groups.ts";
+import { currentGroupIdFor, hostGroupRows, ungroupedHostIds } from "../src/model/host-groups.ts";
 
 const host = (id: string): SourceHost => ({
   id,
@@ -593,10 +594,9 @@ describe("Ungrouped hosts", () => {
   });
 
   it("re-includes a host whose membership was retired", () => {
-    assert.deepEqual(
-      ungroupedHostIds([host("host:a")], [retired("group:one", "host:a")]),
-      ["host:a"],
-    );
+    assert.deepEqual(ungroupedHostIds([host("host:a")], [retired("group:one", "host:a")]), [
+      "host:a",
+    ]);
   });
 });
 ```
@@ -644,9 +644,8 @@ export function currentGroupIdFor(
   memberships: HostGroupMembership[],
 ): string | null {
   return (
-    memberships.find(
-      (membership) => isOpen(membership) && membership.sourceHostId === sourceHostId,
-    )?.hostGroupId ?? null
+    memberships.find((membership) => isOpen(membership) && membership.sourceHostId === sourceHostId)
+      ?.hostGroupId ?? null
   );
 }
 
@@ -677,9 +676,10 @@ git commit -m "Add pure Host Group derivation for the dashboard"
 
 ### Task 6: Tabbed Settings shell showing Host Groups read-only
 
-Settings is currently a full-screen swap rendering only `Pricing`. This adds the tab strip and threads the catalog's new fields through, with the Host groups tab rendering a read-only list. Editing arrives in Task 7 — this task is reviewable on its own because a user can already *see* their groups and their members.
+Settings is currently a full-screen swap rendering only `Pricing`. This adds the tab strip and threads the catalog's new fields through, with the Host groups tab rendering a read-only list. Editing arrives in Task 7 — this task is reviewable on its own because a user can already _see_ their groups and their members.
 
 **Files:**
+
 - Modify: `apps/web/src/api.ts:22-24` (`getCatalog` return type)
 - Create: `apps/web/src/views/settings/index.tsx`
 - Create: `apps/web/src/views/settings/host-groups.tsx`
@@ -687,6 +687,7 @@ Settings is currently a full-screen swap rendering only `Pricing`. This adds the
 - Modify: `apps/web/src/styles.css` (append at end)
 
 **Interfaces:**
+
 - Consumes: `hostGroupRows`, `ungroupedHostIds`, `currentGroupIdFor` from Task 5; `sourceHostLabel` from `apps/web/src/model/source-host.ts`; the catalog shape from Task 4.
 - Produces:
   - `Settings({ prices, hostGroups, memberships, sourceHosts, onSaved })` from `views/settings/index.tsx`.
@@ -860,23 +861,23 @@ import { Settings } from "./views/settings/index.tsx";
 Add state beside `sourceHosts` (after line 47):
 
 ```tsx
-  const [hostGroups, setHostGroups] = useState<HostGroup[]>([]);
-  const [memberships, setMemberships] = useState<HostGroupMembership[]>([]);
+const [hostGroups, setHostGroups] = useState<HostGroup[]>([]);
+const [memberships, setMemberships] = useState<HostGroupMembership[]>([]);
 ```
 
 In `refresh`, after `setSourceHosts(catalog.sourceHosts);`:
 
 ```tsx
-      setHostGroups(catalog.hostGroups);
-      setMemberships(catalog.memberships);
+setHostGroups(catalog.hostGroups);
+setMemberships(catalog.memberships);
 ```
 
 Pass them into `<ViewSlot>` alongside `prices`:
 
 ```tsx
-            hostGroups={hostGroups}
-            memberships={memberships}
-            sourceHosts={sourceHosts}
+hostGroups = { hostGroups };
+memberships = { memberships };
+sourceHosts = { sourceHosts };
 ```
 
 In `ViewSlot`, add to the destructured params and the props type:
@@ -890,16 +891,16 @@ In `ViewSlot`, add to the destructured params and the props type:
 and replace the settings branch:
 
 ```tsx
-  if (settingsOpen)
-    return (
-      <Settings
-        prices={prices}
-        hostGroups={hostGroups}
-        memberships={memberships}
-        sourceHosts={sourceHosts}
-        onSaved={onSaved}
-      />
-    );
+if (settingsOpen)
+  return (
+    <Settings
+      prices={prices}
+      hostGroups={hostGroups}
+      memberships={memberships}
+      sourceHosts={sourceHosts}
+      onSaved={onSaved}
+    />
+  );
 ```
 
 - [ ] **Step 5: Add the styles**
@@ -981,10 +982,12 @@ groups tabs; the groups tab is read-only until the editor lands."
 ### Task 7: Edit group names and membership
 
 **Files:**
+
 - Modify: `apps/web/src/views/settings/host-groups.tsx` (whole component)
 - Modify: `apps/web/src/styles.css` (append)
 
 **Interfaces:**
+
 - Consumes: `currentGroupIdFor` from Task 5; `executeAction` from `apps/web/src/api.ts`; the `set-host-group` action from `packages/contracts/src/index.ts:322-331`.
 - Produces: nothing new for later tasks. Task 8 adds creation and retirement to this same component.
 
@@ -1121,9 +1124,7 @@ export function HostGroups({
                 <button
                   type="button"
                   className="primary"
-                  disabled={
-                    savingId !== null || row.name.trim() === "" || !isDirty(row)
-                  }
+                  disabled={savingId !== null || row.name.trim() === "" || !isDirty(row)}
                   onClick={() => void save(row)}
                 >
                   {savingId === row.id ? "Saving…" : "Save"}
@@ -1240,10 +1241,12 @@ git commit -m "Make Host Group names and membership editable"
 ### Task 8: Create and retire groups
 
 **Files:**
+
 - Modify: `apps/web/src/views/settings/host-groups.tsx`
 - Modify: `apps/web/src/styles.css` (append)
 
 **Interfaces:**
+
 - Consumes: everything from Task 7.
 - Produces: the finished editor. No later task depends on its internals.
 
@@ -1266,66 +1269,66 @@ const newGroupId = () => `group:${crypto.randomUUID()}`;
 Add to the component body, after `save`:
 
 ```tsx
-  const addGroup = () =>
-    setDraft((current) => [...current, { id: newGroupId(), name: "", memberHostIds: [] }]);
+const addGroup = () =>
+  setDraft((current) => [...current, { id: newGroupId(), name: "", memberHostIds: [] }]);
 
-  /**
-   * Retirement, not deletion: the group keeps its historical memberships with a
-   * closed effective_to, so past totals do not move. There is deliberately no
-   * way to delete a group and rewrite history.
-   */
-  const retire = async (row: HostGroupRow) => {
-    const label = savedName(row.id) ?? row.name;
-    if (
-      !window.confirm(
-        `Retire "${label}"? Usage recorded from now on will be ungrouped. Past usage keeps this group, so no existing totals change.`,
-      )
+/**
+ * Retirement, not deletion: the group keeps its historical memberships with a
+ * closed effective_to, so past totals do not move. There is deliberately no
+ * way to delete a group and rewrite history.
+ */
+const retire = async (row: HostGroupRow) => {
+  const label = savedName(row.id) ?? row.name;
+  if (
+    !window.confirm(
+      `Retire "${label}"? Usage recorded from now on will be ungrouped. Past usage keeps this group, so no existing totals change.`,
     )
-      return;
-    await save({ ...row, name: label, memberHostIds: [] });
-  };
+  )
+    return;
+  await save({ ...row, name: label, memberHostIds: [] });
+};
 ```
 
 Add a "New group" button to the section head. Replace the `settings-section-head` block:
 
 ```tsx
-      <div className="settings-section-head host-group-head">
-        <div>
-          <h2 id="host-groups-title">Host groups</h2>
-          <p>{EFFECTIVE_HINT}</p>
-        </div>
-        <button type="button" className="primary" onClick={addGroup}>
-          New group
-        </button>
-      </div>
+<div className="settings-section-head host-group-head">
+  <div>
+    <h2 id="host-groups-title">Host groups</h2>
+    <p>{EFFECTIVE_HINT}</p>
+  </div>
+  <button type="button" className="primary" onClick={addGroup}>
+    New group
+  </button>
+</div>
 ```
 
 Add the Retire button beside Save in the card head. Replace the Save button with:
 
 ```tsx
-                <div className="host-group-actions">
-                  <button
-                    type="button"
-                    className="primary"
-                    disabled={savingId !== null || row.name.trim() === "" || !isDirty(row)}
-                    onClick={() => void save(row)}
-                  >
-                    {savingId === row.id ? "Saving…" : "Save"}
-                  </button>
-                  {/* A draft that was never saved has nothing to retire; it is
+<div className="host-group-actions">
+  <button
+    type="button"
+    className="primary"
+    disabled={savingId !== null || row.name.trim() === "" || !isDirty(row)}
+    onClick={() => void save(row)}
+  >
+    {savingId === row.id ? "Saving…" : "Save"}
+  </button>
+  {/* A draft that was never saved has nothing to retire; it is
                       discarded by reload, so the button would be a no-op. */}
-                  {savedName(row.id) !== undefined && (
-                    <button type="button" disabled={savingId !== null} onClick={() => void retire(row)}>
-                      Retire
-                    </button>
-                  )}
-                </div>
+  {savedName(row.id) !== undefined && (
+    <button type="button" disabled={savingId !== null} onClick={() => void retire(row)}>
+      Retire
+    </button>
+  )}
+</div>
 ```
 
 Update the empty state, since a draft now counts as a group:
 
 ```tsx
-        <p className="empty-state">No host groups yet. Use New group to add one.</p>
+<p className="empty-state">No host groups yet. Use New group to add one.</p>
 ```
 
 - [ ] **Step 2: Add the styles**
@@ -1379,6 +1382,7 @@ so historical totals stay stable."
 `Pricing.save` has `try`/`finally` with no `catch` — a failed save rejects unhandled and the button returns to reading "Prices saved". This is the same defect `refreshSources` was fixed for in `app.tsx`.
 
 **Files:**
+
 - Modify: `apps/web/src/views/settings/rates.tsx:26-34`
 - Modify: `README.md` (the feature list around line 21-23)
 - Modify: `CHANGELOG.md` (the top unreleased section)
@@ -1390,30 +1394,32 @@ so historical totals stay stable."
 In `apps/web/src/views/settings/rates.tsx`, add `const [error, setError] = useState("");` beside the existing state, and replace `save`:
 
 ```tsx
-  const save = async () => {
-    setSaving(true);
-    setError("");
-    try {
-      await executeAction({ version: 1, type: "replace-prices", prices: draft });
-      await onSaved();
-    } catch (reason) {
-      // Without this the rejection is unhandled, onSaved never runs, and the
-      // button returns to "Prices saved" as though nothing went wrong.
-      setError(reason instanceof Error ? reason.message : String(reason));
-    } finally {
-      setSaving(false);
-    }
-  };
+const save = async () => {
+  setSaving(true);
+  setError("");
+  try {
+    await executeAction({ version: 1, type: "replace-prices", prices: draft });
+    await onSaved();
+  } catch (reason) {
+    // Without this the rejection is unhandled, onSaved never runs, and the
+    // button returns to "Prices saved" as though nothing went wrong.
+    setError(reason instanceof Error ? reason.message : String(reason));
+  } finally {
+    setSaving(false);
+  }
+};
 ```
 
 Render it directly below the toolbar `</div>`:
 
 ```tsx
-      {error && (
-        <p role="alert" className="error host-group-error">
-          {error}
-        </p>
-      )}
+{
+  error && (
+    <p role="alert" className="error host-group-error">
+      {error}
+    </p>
+  );
+}
 ```
 
 - [ ] **Step 2: Update the README feature list**
