@@ -870,3 +870,13 @@ footer {
   margin: 0;
   padding: 8px 10px;
 }
+.host-group-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.host-group-actions {
+  display: flex;
+  gap: 6px;
+}

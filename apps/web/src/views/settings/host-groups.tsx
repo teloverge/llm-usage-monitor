@@ -19,6 +19,14 @@ const EFFECTIVE_HINT =
   "Grouping applies to usage recorded from now on. Earlier usage keeps the grouping that applied when it happened.";
 
 /**
+ * Ids are generated, never derived from the name: the name is editable and a
+ * slug-derived id would change under a rename, orphaning historical
+ * memberships. `crypto.randomUUID` is available because the dashboard is served
+ * from 127.0.0.1, which browsers treat as a secure context.
+ */
+const newGroupId = () => `group:${crypto.randomUUID()}`;
+
+/**
  * Order-insensitive comparison of a draft row against its saved counterpart.
  * Shared by `isDirty` (gates the Save button) and the refresh effect (decides
  * whether a refetch may overwrite a card) so the two never drift apart into
@@ -118,6 +126,25 @@ export function HostGroups({
     }
   };
 
+  const addGroup = () =>
+    setDraft((current) => [...current, { id: newGroupId(), name: "", memberHostIds: [] }]);
+
+  /**
+   * Retirement, not deletion: the group keeps its historical memberships with a
+   * closed effective_to, so past totals do not move. There is deliberately no
+   * way to delete a group and rewrite history.
+   */
+  const retire = async (row: HostGroupRow) => {
+    const label = savedName(row.id) ?? row.name;
+    if (
+      !window.confirm(
+        `Retire "${label}"? Usage recorded from now on will be ungrouped. Past usage keeps this group, so no existing totals change.`,
+      )
+    )
+      return;
+    await save({ ...row, name: label, memberHostIds: [] });
+  };
+
   const isDirty = (row: HostGroupRow) => {
     const original = saved.find((item) => item.id === row.id);
     return !original || rowsDiffer(original, row);
@@ -125,9 +152,14 @@ export function HostGroups({
 
   return (
     <section className="settings-section" aria-labelledby="host-groups-title">
-      <div className="settings-section-head">
-        <h2 id="host-groups-title">Host groups</h2>
-        <p>{EFFECTIVE_HINT}</p>
+      <div className="settings-section-head host-group-head">
+        <div>
+          <h2 id="host-groups-title">Host groups</h2>
+          <p>{EFFECTIVE_HINT}</p>
+        </div>
+        <button type="button" className="primary" onClick={addGroup}>
+          New group
+        </button>
       </div>
       {error && (
         <p role="alert" className="error host-group-error">
@@ -135,7 +167,7 @@ export function HostGroups({
         </p>
       )}
       {draft.length === 0 ? (
-        <p className="empty-state">No host groups yet.</p>
+        <p className="empty-state">No host groups yet. Use New group to add one.</p>
       ) : (
         <ul className="host-group-list">
           {draft.map((row) => (
@@ -149,14 +181,27 @@ export function HostGroups({
                     onChange={(event) => update(row.id, { name: event.target.value })}
                   />
                 </label>
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={savingId !== null || row.name.trim() === "" || !isDirty(row)}
-                  onClick={() => void save(row)}
-                >
-                  {savingId === row.id ? "Saving…" : "Save"}
-                </button>
+                <div className="host-group-actions">
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={savingId !== null || row.name.trim() === "" || !isDirty(row)}
+                    onClick={() => void save(row)}
+                  >
+                    {savingId === row.id ? "Saving…" : "Save"}
+                  </button>
+                  {/* A draft that was never saved has nothing to retire; it is
+                      discarded by reload, so the button would be a no-op. */}
+                  {savedName(row.id) !== undefined && (
+                    <button
+                      type="button"
+                      disabled={savingId !== null}
+                      onClick={() => void retire(row)}
+                    >
+                      Retire
+                    </button>
+                  )}
+                </div>
               </div>
               <fieldset className="host-group-hosts">
                 <legend>Hosts in {savedName(row.id) ?? "this group"}</legend>
