@@ -63,5 +63,37 @@
       "all": "todo el historial conservado",
       "custom": "el rango seleccionado"
     }
+  },
+  "overview": {
+    "drivers": "Qué lo generó",
+    "context": "Contexto",
+    "byHarness": "Por entorno",
+    "byModel": "Por modelo",
+    "byTask": "Por tarea",
+    "tokenMix": "Mezcla de tokens",
+    "planLimits": "Límites del plan",
+    "hosts": "Hosts",
+    "tokens": "Tokens",
+    "cachedInput": "Entrada en caché",
+    "cacheCoverage": "de {{tokens}} tokens que informan",
+    "tasks": "Tareas",
+    "models": "Modelos"
+  },
+  "tokenMix": {
+    "composition": "Composición de tokens",
+    "empty": "No hay tokens en este periodo",
+    "fresh": "Entrada nueva",
+    "cached": "En caché",
+    "output": "Salida",
+    "unreported": "Caché no informada"
+  },
+  "quota": {
+    "used": "{{percent}} usado",
+    "resets": "se restablece {{at}}"
+  },
+  "rank": {
+    "empty": "No hay uso en este periodo",
+    "more": "{{remaining}} más",
+    "moreLink": "{{remaining}} más →"
   }
 }
