@@ -112,5 +112,15 @@
     "records": "Records",
     "tokens": "Tokens",
     "cost": "Cost"
+  },
+  "history": {
+    "empty": "No usage history matches the filters.",
+    "summary": "{{tasks}} tasks · {{sessions}} sessions · {{records}} records",
+    "groupSessions": "{{sessions}} sessions · {{tokens}}",
+    "lastActive": "Last active",
+    "harness": "Harness",
+    "model": "Model",
+    "reasoning": "Reasoning",
+    "host": "Host"
   }
 }
