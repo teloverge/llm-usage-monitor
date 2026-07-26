@@ -2775,7 +2775,7 @@ Run: `bun run dev`
 Open the dashboard, then confirm each of:
 
 1. Settings → Language → select `Español`. Every visible label switches to Spanish without a reload.
-2. The hero figure reads `1.234,56 USD` in Spanish and `USD 1,234.56` in English.
+2. The hero figure reads `1234,56 USD` in Spanish and `USD 1,234.56` in English. (Spanish CLDR does not group a four-digit integer; grouping only starts at five digits — see the spec's formatting table.)
 3. Reload the page. Spanish persists.
 4. In devtools, run `document.documentElement.lang` — it returns `es`.
 5. Clear `localStorage`, set the browser's preferred language to Spanish, reload — the dashboard opens in Spanish.

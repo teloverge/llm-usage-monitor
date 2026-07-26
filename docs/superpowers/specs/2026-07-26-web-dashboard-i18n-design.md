@@ -265,3 +265,14 @@ attribute, so a Spanish page left marked `en` is read aloud with English phoneti
   a green suite does not mean the page is not overflowing.
 - **Deferred**: RTL support, lazy-loaded namespaces, pluralization test coverage, and
   localization of the VS Code extension and CLI surfaces.
+- **Pluralization is structurally foreclosed, not merely deferred.** Counted strings receive
+  a pre-formatted string from `model/format.ts`, not the raw number — `t()` never sees a
+  `count` interpolation value — so i18next's plural machinery cannot engage no matter how a
+  key is later authored. Adding real plurals means passing both the raw number as `count`
+  and the formatted string at every such call site, which is a call-site-by-call-site change,
+  not a locale-file change. (English already reads "1 tasks · 1 sessions · 1 records" for a
+  single-item period; this is pre-existing behaviour from before this branch, not something
+  introduced here, and is recorded rather than fixed.)
+- **Runtime API error text stays English.** `apps/web/src/api.ts`'s thrown error messages are
+  deliberately not translated, on the same searchability grounds as the equivalent CLI
+  decision: an error a user pastes into a search engine or an issue is more useful in English.
