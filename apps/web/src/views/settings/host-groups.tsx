@@ -18,6 +18,20 @@ import { sourceHostLabel } from "../../model/source-host.ts";
 const EFFECTIVE_HINT =
   "Grouping applies to usage recorded from now on. Earlier usage keeps the grouping that applied when it happened.";
 
+/**
+ * Order-insensitive comparison of a draft row against its saved counterpart.
+ * Shared by `isDirty` (gates the Save button) and the refresh effect (decides
+ * whether a refetch may overwrite a card) so the two never drift apart into
+ * two different ideas of "changed".
+ */
+function rowsDiffer(a: HostGroupRow, b: HostGroupRow): boolean {
+  return (
+    a.name !== b.name ||
+    a.memberHostIds.length !== b.memberHostIds.length ||
+    a.memberHostIds.some((id) => !b.memberHostIds.includes(id))
+  );
+}
+
 export function HostGroups({
   hostGroups,
   memberships,
@@ -38,16 +52,25 @@ export function HostGroups({
     Refetching replaces the props, and without this the cards would keep
     rendering pre-save values and look unsaved.
 
-    Unsaved new-group drafts are carried across rather than dropped. `refresh()`
-    in app.tsx fires on any filter change and hands back fresh array identities,
-    so a plain reset would silently discard a group the user was part-way
-    through naming just because they touched a topbar chip.
+    `refresh()` in app.tsx fires on any filter change and hands back fresh
+    array identities, so a plain reset would silently overwrite a rename or a
+    membership tick the moment the user touched an unrelated topbar chip. The
+    rule: a card the user has actually modified (per `rowsDiffer`) keeps its
+    draft across the refetch; an untouched card takes the fresh server value,
+    so a real change from an import still shows up. Not-yet-persisted new-group
+    drafts are carried across the same way, via the append below.
   */
   useEffect(() => {
-    setDraft((current) => [
-      ...hostGroupRows(hostGroups, memberships),
-      ...current.filter((row) => !hostGroups.some((group) => group.id === row.id)),
-    ]);
+    setDraft((current) => {
+      const fresh = hostGroupRows(hostGroups, memberships);
+      return [
+        ...fresh.map((row) => {
+          const draftRow = current.find((item) => item.id === row.id);
+          return draftRow && rowsDiffer(draftRow, row) ? draftRow : row;
+        }),
+        ...current.filter((row) => !hostGroups.some((group) => group.id === row.id)),
+      ];
+    });
   }, [hostGroups, memberships]);
 
   const labelFor = (sourceHostId: string) => {
@@ -89,12 +112,7 @@ export function HostGroups({
 
   const isDirty = (row: HostGroupRow) => {
     const original = saved.find((item) => item.id === row.id);
-    return (
-      !original ||
-      original.name !== row.name ||
-      original.memberHostIds.length !== row.memberHostIds.length ||
-      original.memberHostIds.some((id) => !row.memberHostIds.includes(id))
-    );
+    return !original || rowsDiffer(original, row);
   };
 
   return (
