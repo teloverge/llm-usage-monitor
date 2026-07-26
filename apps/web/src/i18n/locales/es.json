@@ -2,7 +2,9 @@
   "common": {
     "unknownHarness": "Entorno desconocido",
     "notReported": "No informado",
-    "unpriced": "Sin tarifa"
+    "unpriced": "Sin tarifa",
+    "sourceHostFallback": "Host de origen {{index}}",
+    "untitledTask": "Tarea sin título"
   },
   "headline": {
     "coverage": {

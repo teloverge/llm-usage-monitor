@@ -2,7 +2,9 @@
   "common": {
     "unknownHarness": "Unknown harness",
     "notReported": "Not reported",
-    "unpriced": "Unpriced"
+    "unpriced": "Unpriced",
+    "sourceHostFallback": "Source Host {{index}}",
+    "untitledTask": "Untitled task"
   },
   "headline": {
     "coverage": {

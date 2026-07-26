@@ -28,7 +28,23 @@ export interface HistoryTaskGroup {
   estimatedCost: number | null;
 }
 
-export function groupHistoryByTask(records: UsageHistoryRecord[]): HistoryTaskGroup[] {
+/**
+ * Wording injected rather than held here because it is translated and
+ * `model/` never imports `t` — the same idiom `harnessLabel` uses for its
+ * `unknownLabel` parameter. `notReported` should be the caller's
+ * `common.notReported`, the SAME string the stat strip and quota meters use
+ * for a metric a source did not supply — not a second key for the same
+ * concept.
+ */
+export interface HistoryLabels {
+  untitledTask: string;
+  notReported: string;
+}
+
+export function groupHistoryByTask(
+  records: UsageHistoryRecord[],
+  labels: HistoryLabels,
+): HistoryTaskGroup[] {
   const grouped = new Map<string, UsageHistoryRecord[]>();
   for (const record of records) {
     const key = normalizeTaskName(record.taskName);
@@ -45,9 +61,9 @@ export function groupHistoryByTask(records: UsageHistoryRecord[]): HistoryTaskGr
       );
       return {
         key,
-        label: sorted[0]?.taskName.trim() || "Untitled task",
+        label: sorted[0]?.taskName.trim() || labels.untitledTask,
         records: sorted,
-        sessions: groupSessions(sorted),
+        sessions: groupSessions(sorted, labels),
         lastActiveAt: sorted[0]?.timestamp ?? "",
         totalTokens: sorted.reduce((sum, record) => sum + record.totalTokens, 0),
         estimatedCost: sumEstimate(sorted),
@@ -56,7 +72,7 @@ export function groupHistoryByTask(records: UsageHistoryRecord[]): HistoryTaskGr
     .sort((left, right) => Date.parse(right.lastActiveAt) - Date.parse(left.lastActiveAt));
 }
 
-function groupSessions(records: UsageHistoryRecord[]): HistorySession[] {
+function groupSessions(records: UsageHistoryRecord[], labels: HistoryLabels): HistorySession[] {
   const sessions = new Map<string, UsageHistoryRecord[]>();
   for (const record of records) {
     const key = record.sessionId?.trim() || record.id;
@@ -77,10 +93,12 @@ function groupSessions(records: UsageHistoryRecord[]): HistorySession[] {
         estimatedCost: sumEstimate(sorted),
         sourceHosts: unique(sorted.map((record) => record.sourceHostLabel)),
         models: unique(sorted.map((record) => `${record.model} · ${record.provider}`)),
-        // "not reported" rather than "unknown": the phrasing the rest of the
-        // dashboard uses for a metric a source did not supply, and it must not
-        // read as a reasoning level literally named "unknown".
-        reasoningLevels: unique(sorted.map((record) => record.reasoningLevel ?? "not reported")),
+        // The caller's `common.notReported` rather than "unknown": the phrasing
+        // the rest of the dashboard uses for a metric a source did not supply,
+        // and it must not read as a reasoning level literally named "unknown".
+        reasoningLevels: unique(
+          sorted.map((record) => record.reasoningLevel ?? labels.notReported),
+        ),
         harnesses: unique(sorted.map((record) => record.harnessId)),
         modeFlags: {
           ultra: sorted.some((record) => record.modeFlags.ultra),

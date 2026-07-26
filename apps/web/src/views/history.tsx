@@ -8,7 +8,14 @@ import { groupHistoryByTask, type HistorySession } from "../model/usage-groups.t
 
 export function History({ records }: { records: UsageHistoryRecord[] }) {
   const { t } = useTranslation();
-  const groups = useMemo(() => groupHistoryByTask(records), [records]);
+  const groups = useMemo(
+    () =>
+      groupHistoryByTask(records, {
+        untitledTask: t("common.untitledTask"),
+        notReported: t("common.notReported"),
+      }),
+    [records, t],
+  );
   // Same reason as the Breakdown rollup: `open` on a `<details>` makes React the
   // authority on the attribute, so without state behind it a collapsed group can
   // be reopened by the next render.
