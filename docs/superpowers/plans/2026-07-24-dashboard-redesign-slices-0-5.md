@@ -5161,7 +5161,13 @@ In `README.md`, replace the "Shows API-equivalent spend…" bullet with:
 
 - [ ] **Step 3: Record the change**
 
-Add to the `Unreleased` section of `CHANGELOG.md`:
+Add to the `Unreleased` section of `CHANGELOG.md`.
+
+**Use the file's existing format, not the Keep-a-Changelog subsections below.** `CHANGELOG.md` has
+no `###` headings anywhere — every version is a flat list of imperative bullets, newest first.
+Introducing Changed/Added/Fixed under `Unreleased` alone would leave the file inconsistent with
+itself and with `0.1.5` and `0.1.0`. Fold the entries below into flat bullets in that voice
+("Rebuild the dashboard…", "Stop counting records…"), keeping the grouping only as an ordering hint.
 
 ```markdown
 ### Changed
@@ -5193,14 +5199,23 @@ git commit -m "docs: document harness identities and the redesigned dashboard"
 
 ## Done criteria for this plan
 
-- [ ] `vp run check` passes.
-- [ ] The Overview fits above the fold at 1440×900 with no inner scrollbars.
-- [ ] No chart plots two Y axes.
-- [ ] `apps/web/test/palette.test.ts` fails if any series color is edited outside the gates.
-- [ ] A record with no `cachedInputTokens` does not change the cache-efficiency ratio.
-- [ ] A record with no `reasoningLevel` appears under "not reported", never `none` or `unknown`.
-- [ ] An existing Codex ledger opens with no data loss and no manual migration step.
-- [ ] `apps/web/src/legacy-views.tsx` no longer exists.
+- [x] `vp run check` passes. — 167 tests, typecheck, lint, format, all four builds.
+- [ ] The Overview fits above the fold at 1440×900 with no inner scrollbars. — **NOT VERIFIED.**
+      Needs a browser at that viewport; an agent cannot confirm it. The only criterion still open.
+- [x] No chart plots two Y axes. — one `<YAxis>` in the codebase (`headline.tsx`), no `yAxisId`
+      anywhere, so a second axis cannot have been introduced.
+- [x] `apps/web/test/palette.test.ts` fails if any series color is edited outside the gates. —
+      verified by editing `SERIES.teal` to `#7fffd4`: the lightness-band test and the golden pin
+      both fail.
+- [x] A record with no `cachedInputTokens` does not change the cache-efficiency ratio. —
+      `analysis.test.ts`, "excludes records that do not report caching from cache efficiency".
+- [x] A record with no `reasoningLevel` appears under "not reported", never `none` or `unknown`. —
+      covered at all three layers: `legacy.test.ts` (decode), `analysis.test.ts` (grouping),
+      `usage-groups.test.ts` (History sessions).
+- [x] An existing Codex ledger opens with no data loss and no manual migration step. —
+      `ledger.test.ts`, "reads a pre-identity record and upgrades it on the way out". Note this is
+      fixture-level; the real ~6,900-record ledger has not been opened by an agent since Slice 2.
+- [x] `apps/web/src/legacy-views.tsx` no longer exists.
 
 ## Known deviations from the spec
 

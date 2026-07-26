@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Rebuild the dashboard as a cost-first cockpit: one headline figure, a single-axis trend with a Cost/Tokens toggle, driver panels by harness, model, and task, and a context rail for token mix, plan limits, and hosts.
+- Replace the token composition donut with a stacked bar, dashed gridlines with solid hairlines, and plan-limit progress bars with status-aware meters.
+- Move rate configuration into Settings and rename Advanced to Breakdown, which now groups by harness, model, task, host, or Host Group with nested rollups and a table view.
+- Add canonical `usageSourceId` and `harnessId` to every Usage Record, with a compatibility decoder so existing ledgers open unchanged.
+- Add normalized usage quota snapshots with named windows, replacing the Codex-shaped rate limits previously embedded in records.
+- Add session-level children under task rankings and harness attribution to History sessions.
+- Stop counting records whose source does not report caching toward cache efficiency, which previously understated the ratio, and disclose the token coverage the ratio speaks for.
+- Report a reasoning level the source did not supply as "not reported" rather than fabricating `unknown`.
+- Fix `vp run dev`, which ran the server under Bun; Bun does not implement `node:sqlite`, so the documented development command failed on every machine.
 - Add Oxlint and Oxfmt to the pinned validation workflow, remove the redundant Activity Bar import link, and rename incremental Codex imports to refresh actions.
 - Restart stale shared runtimes after an extension update, load newly added default prices such as `codex-auto-review`, and condense the Pricing workspace.
 - Add `codex-auto-review` to the default OpenAI pricing catalog using the supplied July 22, 2026 rate source.
