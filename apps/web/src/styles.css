@@ -825,3 +825,48 @@ footer {
   padding: 10px;
   border-top: 1px solid var(--line);
 }
+.host-group-card-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.host-group-name {
+  flex: 1;
+  max-width: 280px;
+}
+.host-group-hosts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.host-group-hosts legend {
+  padding: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.host-group-host {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  font-size: var(--size-meta);
+}
+.host-group-host input {
+  display: inline;
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+.host-group-moving {
+  color: var(--muted);
+  font-size: 10px;
+}
+.host-group-error {
+  margin: 0;
+  padding: 8px 10px;
+}
