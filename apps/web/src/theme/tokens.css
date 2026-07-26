@@ -10,6 +10,11 @@
   --page: #0d1411;
   --panel: #151e1a;
   --raised: #1b2621;
+  /* Recessed header surface, a shade under --panel. Worn by rollup group rows so
+     a collapsible parent reads as sunk below the children it contains, where
+     --raised would make it stand proud of them instead. CSS-only: no chart mark
+     uses it, so it has no palette.ts twin and no agreement-table row. */
+  --sunken: #131c18;
   --field: #0f1713;
   --line: #2b3831;
   --grid: #22302a;
