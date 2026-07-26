@@ -17,6 +17,7 @@ import {
   formatMoney,
   formatNumberCompact,
   formatTokens,
+  formatTokensAxis,
 } from "../model/format.ts";
 import { coverageMessage } from "../model/coverage.ts";
 
@@ -54,7 +55,9 @@ export function Headline({ data }: { data: OverviewView }) {
   // The axis and the tooltip format the same number differently on purpose: the
   // axis gutter is 48px and clips anything longer than about seven characters,
   // while the tooltip has room for the exact figure including its currency.
-  const axisFormat = measure === "cost" ? formatNumberCompact : formatTokens;
+  // Both axis formatters drop to zero fraction digits for exactly that reason
+  // — see `formatNumberCompact` and `formatTokensAxis` in model/format.ts.
+  const axisFormat = measure === "cost" ? formatNumberCompact : formatTokensAxis;
   const exactFormat = measure === "cost" ? formatMoney : formatTokens;
   const coverage = coverageMessage({
     records: data.totals.records,
