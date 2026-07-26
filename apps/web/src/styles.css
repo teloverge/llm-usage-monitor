@@ -285,7 +285,16 @@ footer {
 }
 .rank-list li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 1.1fr 52px;
+  /*
+   * Last track holds `formatMoney`. Its width is a function of the longest
+   * output that formatter can produce, not a guess — `USD 999,999.99` /
+   * `999.999,99 USD` (the ISO code plus a NBSP has no break opportunity, so
+   * this can never wrap) is ~14 characters at `--size-meta` (11px), which
+   * needs roughly 90-96px; 100px leaves a little headroom. If the currency
+   * code or its display style ever changes, re-measure the longest realistic
+   * `formatMoney` string in both locales before touching this number again.
+   */
+  grid-template-columns: minmax(0, 1fr) 1.1fr 100px;
   gap: 9px;
   align-items: center;
   font-size: var(--size-meta);
@@ -605,7 +614,13 @@ footer {
 .rollup-row,
 .rollup > summary {
   display: grid;
-  grid-template-columns: 12px minmax(0, 1fr) 1fr 96px 74px;
+  /*
+   * Last track holds `formatMoney`. See the identical comment on `.rank-list
+   * li` above: the width is sized for the longest possible `formatMoney`
+   * output (`USD 999,999.99` / `999.999,99 USD`, ~14 characters, no break
+   * opportunity), not the current one — re-measure before shrinking it.
+   */
+  grid-template-columns: 12px minmax(0, 1fr) 1fr 96px 100px;
   gap: 12px;
   align-items: center;
   padding: 8px 12px;
@@ -655,7 +670,13 @@ footer {
  * what History actually puts in them.
  */
 .history .rollup > summary {
-  grid-template-columns: 12px minmax(0, 1fr) 150px 140px 80px;
+  /*
+   * Last track holds `formatMoney`. See the identical comment on `.rank-list
+   * li` above: the width is sized for the longest possible `formatMoney`
+   * output (`USD 999,999.99` / `999.999,99 USD`, ~14 characters, no break
+   * opportunity), not the current one — re-measure before shrinking it.
+   */
+  grid-template-columns: 12px minmax(0, 1fr) 150px 140px 100px;
 }
 
 /*
@@ -754,7 +775,12 @@ footer {
    */
   .rollup-row,
   .rollup > summary {
-    grid-template-columns: 12px minmax(0, 1fr) 70px 74px;
+    /*
+     * Last track holds `formatMoney`; same sizing rationale as the desktop
+     * rule above — this override was left at the old 74px and would clip the
+     * same way. See `.rank-list li` for the full derivation.
+     */
+    grid-template-columns: 12px minmax(0, 1fr) 70px 100px;
     gap: 8px;
   }
   .rank-track {
