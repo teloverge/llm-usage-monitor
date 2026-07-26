@@ -185,7 +185,15 @@ export class UsageLedger {
       .map((row) => modelPriceSchema.parse(JSON.parse(String(row.payload))));
   }
 
+  /**
+   * Sets a group's full membership as of `effectiveAt`. Both "close" statements
+   * matter: the first ends memberships this group no longer claims, the second
+   * ends the incoming hosts' memberships in OTHER groups. Without the second, a
+   * host moved between groups keeps two open rows and `effectiveGroup`'s
+   * `.find()` resolves it to whichever was created first — not the one chosen.
+   */
   setHostGroup(id: string, name: string, sourceHostIds: string[], effectiveAt: string): void {
+    const hosts = [...new Set(sourceHostIds)];
     this.transaction(() => {
       this.database
         .prepare(
@@ -197,10 +205,17 @@ export class UsageLedger {
           "UPDATE host_group_memberships SET effective_to=? WHERE host_group_id=? AND effective_to IS NULL",
         )
         .run(effectiveAt, id);
-      const insert = this.database.prepare(
-        "INSERT INTO host_group_memberships (host_group_id, source_host_id, effective_from, effective_to) VALUES (?, ?, ?, NULL)",
+      const release = this.database.prepare(
+        "UPDATE host_group_memberships SET effective_to=? WHERE source_host_id=? AND host_group_id<>? AND effective_to IS NULL",
       );
-      for (const sourceHostId of new Set(sourceHostIds)) insert.run(id, sourceHostId, effectiveAt);
+      for (const sourceHostId of hosts) release.run(effectiveAt, sourceHostId, id);
+      // DO UPDATE, not DO NOTHING: the close above may have just stamped this
+      // exact row, and DO NOTHING would leave the membership retired.
+      const insert = this.database.prepare(
+        `INSERT INTO host_group_memberships (host_group_id, source_host_id, effective_from, effective_to) VALUES (?, ?, ?, NULL)
+         ON CONFLICT(host_group_id, source_host_id, effective_from) DO UPDATE SET effective_to=NULL`,
+      );
+      for (const sourceHostId of hosts) insert.run(id, sourceHostId, effectiveAt);
     });
   }
 
