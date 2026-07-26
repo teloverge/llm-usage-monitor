@@ -19,6 +19,12 @@ const compact = new Intl.NumberFormat(LOCALE, {
   notation: "compact",
   maximumFractionDigits: 1,
 });
+const moneyCompact = new Intl.NumberFormat(LOCALE, {
+  style: "currency",
+  currency: "USD",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 
 export function formatMoney(value: number): string {
   return money.format(value);
@@ -26,6 +32,30 @@ export function formatMoney(value: number): string {
 
 export function formatTokens(value: number): string {
   return value < 1_000 ? plain.format(value) : compact.format(value);
+}
+
+/**
+ * Money for a chart axis, where `formatMoney` does not fit. A 48px-wide axis
+ * gutter at 11px type holds roughly seven characters; "$8,947.32" is nine and
+ * gets clipped, which turns a precise figure into a misread one. Ticks are for
+ * scale, so they lose the cents the hero figure keeps.
+ */
+export function formatMoneyCompact(value: number): string {
+  return moneyCompact.format(value);
+}
+
+/**
+ * Renders an analysis timeline bucket as an axis label. Buckets are ISO and come
+ * in exactly two shapes from `timelineBucket`: `2026-07-20` for every timeframe
+ * except `last24`, and a full `2026-07-20T09:00:00.000Z` for that one. The year
+ * is dropped because every bucket on an axis shares it.
+ *
+ * Positional slicing is fine only because both shapes are fixed-width ISO; this
+ * lives here, tested, rather than inline in the chart, because a silent
+ * off-by-one produces labels that still look like dates.
+ */
+export function formatBucketLabel(bucket: string): string {
+  return bucket.length > 10 ? bucket.slice(5, 13).replace("T", " ") : bucket.slice(5);
 }
 
 export function formatPercent(ratio: number): string {
