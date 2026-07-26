@@ -4095,7 +4095,26 @@ export function harnessLabel(harnessId: string): string {
 export function isUnknownHarness(harnessId: string): boolean {
   return !(harnessId in HARNESS_LABELS);
 }
+
+/**
+ * Display label for a USAGE SOURCE id — the quota meters, where each row is one
+ * account on one host. Added during execution; see the note below.
+ */
+export function usageSourceLabel(usageSourceId: string): string {
+  const harnessId = harnessForSource(usageSourceId);
+  return isUnknownHarness(harnessId) ? usageSourceId : harnessLabel(harnessId);
+}
 ```
+
+`usageSourceLabel` replaces the second `HARNESS_LABELS` map Step 1 declares inline in the view.
+Two tables holding the same "Codex" / "Claude Code" strings can drift into disagreeing about what a
+harness is called across two panels on the same screen; deriving one from the other removes that.
+
+Its fallback is deliberately the **raw source id**, not `harnessLabel`'s "Unknown harness".
+`harnessForSource` maps every unregistered source to the same `unknown` sentinel, so labelling the
+quota panel by harness would render two different accounts' meters identically while they showed
+different percentages — the reader could not tell which was which. The raw id is ugly on purpose:
+it stays distinguishable and still reads as something needing registration.
 
 Create `apps/web/test/harness.test.ts`:
 
@@ -4142,22 +4161,20 @@ Task 27's Breakdown must do the same for its `Harness → Model` grouping.
 
 - [ ] **Step 1: Write the view**
 
-Create `apps/web/src/views/overview.tsx`:
+Create `apps/web/src/views/overview.tsx`. Note the code block below was written before Step 0 and
+does **not** apply it — the By-harness `RankList` must take the relabelled rows from Step 0, and
+the inline `HARNESS_LABELS` map is replaced by `usageSourceLabel`:
 
 ```tsx
 import type { OverviewView } from "@llm-usage-monitor/contracts";
 import { formatTokens } from "../model/format.ts";
+import { harnessLabel, usageSourceLabel } from "../model/harness.ts";
 import { Headline } from "../components/headline.tsx";
 import { Panel, Zone } from "../components/panel.tsx";
 import { QuotaMeters } from "../components/quota-meters.tsx";
 import { RankList } from "../components/rank-list.tsx";
 import { StatStrip } from "../components/stat-strip.tsx";
 import { TokenMix } from "../components/token-mix.tsx";
-
-const HARNESS_LABELS: Record<string, string> = {
-  "codex-local": "Codex",
-  "claude-code-local": "Claude Code",
-};
 
 export function Overview({
   data,
@@ -4166,6 +4183,7 @@ export function Overview({
   data: OverviewView;
   onDrillDown: (dimension: "byHarness" | "byModel" | "byTask") => void;
 }) {
+  const harnessRows = data.byHarness.map((row) => ({ ...row, key: harnessLabel(row.key) }));
   return (
     <div className="cockpit">
       <div className="cockpit-main">
@@ -4174,7 +4192,7 @@ export function Overview({
         <Zone>What drove it</Zone>
         <div className="drivers">
           <Panel label="By harness">
-            <RankList rows={data.byHarness} onMore={() => onDrillDown("byHarness")} />
+            <RankList rows={harnessRows} onMore={() => onDrillDown("byHarness")} />
           </Panel>
           <Panel label="By model">
             <RankList rows={data.byModel} onMore={() => onDrillDown("byModel")} />
@@ -4190,10 +4208,7 @@ export function Overview({
           <TokenMix totals={data.totals} />
         </Panel>
         <Panel label="Plan limits">
-          <QuotaMeters
-            snapshots={data.quotaSnapshots}
-            harnessLabel={(id) => HARNESS_LABELS[id] ?? id}
-          />
+          <QuotaMeters snapshots={data.quotaSnapshots} harnessLabel={usageSourceLabel} />
         </Panel>
         <Panel label="Hosts">
           <RankList rows={data.bySourceHost} limit={5} />
@@ -4280,12 +4295,15 @@ Append to `apps/web/src/styles.css`:
     margin-left: 0;
     flex-wrap: wrap;
   }
-  .strip {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 9px;
-  }
 }
 ```
+
+**`.strip` is deliberately not re-declared here.** Task 23 already takes it to two columns in the
+900px block and owns it outright; adding a third rule would leave one element governed by
+overlapping breakpoints (1180/900/860/640/600) whose outcome depends on source order. Task 23's
+rule was given `gap: 9px` to absorb the intent of the version dropped from here, and its 600px
+one-column rule was removed — four short stats read fine two-up on a phone, unlike the `.metrics`
+cards they replace.
 
 - [ ] **Step 3: Wire it into the shell**
 
@@ -4296,23 +4314,47 @@ if (view === "overview")
   return overview ? <Overview data={overview} onDrillDown={onDrillDown} /> : null;
 ```
 
-Add an `onDrillDown` prop to `ViewSlot` and pass it from `App`:
+Add an `onDrillDown` prop to `ViewSlot` and pass it from `App`. Declare the two dimension unions
+next to `View` so Task 27 shares them:
 
 ```tsx
-const [breakdownDimension, setBreakdownDimension] = useState<
-  "byHarness" | "byModel" | "byTask" | "bySourceHost" | "byHostGroup"
->("byModel");
-const onDrillDown = (dimension: "byHarness" | "byModel" | "byTask") => {
-  setBreakdownDimension(dimension);
+export type BreakdownDimension =
+  "byHarness" | "byModel" | "byTask" | "bySourceHost" | "byHostGroup";
+export type DrillDownDimension = Extract<BreakdownDimension, "byHarness" | "byModel" | "byTask">;
+
+const drillDown = (_dimension: DrillDownDimension) => {
+  setSettingsOpen(false);
   setView("breakdown");
 };
 ```
+
+> **The `breakdownDimension` state moves to Task 27.** The original draft added it here, but
+> nothing reads it until Task 27's Breakdown exists — today's Breakdown is still the legacy
+> `Advanced`, which carries its own controls and cannot accept a dimension. Write-only state trips
+> `no-unused-vars` and is exactly the speculative scaffolding that rots.
+>
+> **Task 27 must therefore add both halves**: `const [breakdownDimension, setBreakdownDimension] =
+useState<BreakdownDimension>("byModel")`, set it inside `drillDown` (renaming `_dimension` back
+> to `dimension`), and pass it to the new Breakdown view. Without that, drilling in from an
+> Overview panel silently discards which panel it came from.
+
+`drillDown` also clears `settingsOpen`, which the draft omits: Settings renders over whichever view
+is selected, so a drill-down while it is open would switch the view underneath and leave Settings
+covering it.
 
 - [ ] **Step 4: Verify in the browser**
 
 Run: `vp run dev`
 
 Open the printed dashboard URL. Confirm: the headline reads as a single figure, the trend chart shows its x-axis labels without an inner scrollbar, toggling Cost/Tokens rescales the Y axis, and the rail shows token mix, quota meters, and hosts.
+
+An agent cannot do this step: it needs a browser, and starting the dev server writes to the live
+ledger (source-host upsert, possible price merge) which the working agreement forbids. What an
+agent _can_ do, and should, is an isolated HTTP smoke test — `startUsageMonitorServer` accepts a
+`dataDirectory`, and `LLM_USAGE_MONITOR_HOME` overrides the default — driving it in-process so no
+server can be orphaned, then `GET`ting `api/overview` to confirm the wiring end to end. That
+verified `quotaSnapshots` arrives as an array, `latestRateLimits` is gone, and the
+`cacheReporting*` fields the strip and mix consume are present.
 
 - [ ] **Step 5: Commit**
 

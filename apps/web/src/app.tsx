@@ -9,10 +9,22 @@ import type {
 import { SearchChip, SelectChip } from "./components/chip.tsx";
 import { sourceHostLabel } from "./model/source-host.ts";
 import { executeAction, getCatalog, getHistory, getOverview } from "./api.ts";
-import { Advanced, History, Overview, Pricing } from "./legacy-views.tsx";
+import { Advanced, History, Pricing } from "./legacy-views.tsx";
+import { Overview } from "./views/overview.tsx";
 import logoUrl from "../../../assets/Teloverge-lum-logo.svg?url";
 
 export type View = "overview" | "breakdown" | "history";
+
+/** Every dimension the Breakdown can group by. Task 27's view consumes this. */
+export type BreakdownDimension =
+  | "byHarness"
+  | "byModel"
+  | "byTask"
+  | "bySourceHost"
+  | "byHostGroup";
+
+/** The subset the Overview's rank panels can drill into. */
+export type DrillDownDimension = Extract<BreakdownDimension, "byHarness" | "byModel" | "byTask">;
 
 const VIEWS: Array<{ value: View; label: string }> = [
   { value: "overview", label: "Overview" },
@@ -95,6 +107,19 @@ export function App() {
     } finally {
       setBusy(false);
     }
+  };
+
+  /**
+   * Task 27 adds a `breakdownDimension` state here so the Breakdown opens on the
+   * dimension that was clicked. It is deliberately NOT added yet: today's
+   * Breakdown is still the legacy `Advanced`, which carries its own controls and
+   * cannot accept a dimension, so the state would be written and never read.
+   * The parameter is accepted now to fix the call signature Overview compiles
+   * against, and starts being used the moment there is something to use it for.
+   */
+  const drillDown = (_dimension: DrillDownDimension) => {
+    setSettingsOpen(false);
+    setView("breakdown");
   };
 
   const change = (key: keyof UsageFilters, value: string) =>
@@ -198,6 +223,7 @@ export function App() {
             history={history}
             prices={prices}
             onSaved={refresh}
+            onDrillDown={drillDown}
           />
         </main>
         <footer>
@@ -215,6 +241,7 @@ function ViewSlot({
   history,
   prices,
   onSaved,
+  onDrillDown,
 }: {
   view: View;
   settingsOpen: boolean;
@@ -222,9 +249,11 @@ function ViewSlot({
   history: UsageHistoryRecord[];
   prices: ModelPrice[];
   onSaved: () => Promise<void>;
+  onDrillDown: (dimension: DrillDownDimension) => void;
 }) {
   if (settingsOpen) return <Pricing prices={prices} onSaved={onSaved} />;
-  if (view === "overview") return overview ? <Overview data={overview} /> : null;
+  if (view === "overview")
+    return overview ? <Overview data={overview} onDrillDown={onDrillDown} /> : null;
   if (view === "breakdown") return overview ? <Advanced data={overview} /> : null;
   return <History records={history} />;
 }
