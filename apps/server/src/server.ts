@@ -97,6 +97,7 @@ export async function startUsageMonitorServer(options: {
           records: ledger.records(),
           prices: ledger.prices(),
           sourceHosts: ledger.sourceHosts(),
+          hostGroups: ledger.hostGroups(),
           memberships: ledger.memberships(),
           quotaSnapshots: ledger.quotaSnapshots(),
           filters,
@@ -117,6 +118,7 @@ export async function startUsageMonitorServer(options: {
       return sendJson(response, 200, {
         prices: ledger.prices(),
         sourceHosts: ledger.sourceHosts(),
+        hostGroups: ledger.hostGroups(),
         memberships: ledger.memberships(),
       });
     if (request.method === "POST" && resource === "api/actions") {
