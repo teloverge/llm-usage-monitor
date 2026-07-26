@@ -3517,6 +3517,19 @@ safe direction and matches `calculateCost`'s reasoning about over- rather than u
 Also clamp `width` to 0–100 while leaving `shown` unclamped: a source past 100% of its quota is
 reporting real overage that the number must keep, but the bar must not overflow its track.
 
+Export `QUOTA_GLYPH` from the same module. The draft gives warning and critical the **same** `⚠`,
+leaving colour as their only discriminator — which fails exactly the viewer who confuses red and
+orange, in a column where the two sit side by side. Warning keeps `⚠` (U+26A0); critical becomes
+`✖` (U+2716). Both carry a trailing U+FE0E to force TEXT presentation: without it they render as
+emoji wherever that is the platform default, painted in the font's own red and yellow instead of
+inheriting `var(--status-critical)` / `var(--status-warning)`, which would put a fourth,
+unvalidated red beside the palette's guarded one. Good and unreported stay blank — a glyph on
+every row stops the flagged ones standing out.
+
+The tests assert **code points**, not rendered strings: U+FE0E is invisible in an editor, so a
+string comparison would pass against a version that had lost it and quietly reverted to emoji
+colouring.
+
 **`formatDateTime` in `model/format.ts`** — the draft calls
 `new Date(window.resetsAt).toLocaleString()`, which takes both locale and zone from the OS. That is
 the exact bypass `format.ts` was written to prevent and that `Panel`'s `meta` prop was added for in
@@ -3539,14 +3552,8 @@ a track reading zero, and this dashboard treats "did not say" and "said none" as
 import type { UsageQuotaSnapshot } from "@llm-usage-monitor/contracts";
 import { STATUS } from "../theme/palette.ts";
 import { formatDateTime, type QuotaStatus } from "../model/format.ts";
-import { quotaMeterView } from "../model/quota-meter.ts";
+import { QUOTA_GLYPH, quotaMeterView } from "../model/quota-meter.ts";
 
-const GLYPH: Record<QuotaStatus, string> = {
-  good: "",
-  warning: "⚠",
-  critical: "⚠",
-  unreported: "",
-};
 const FILL: Record<QuotaStatus, string> = {
   good: STATUS.good,
   warning: STATUS.warning,
@@ -3578,7 +3585,7 @@ export function QuotaMeters({
                 <p className="quota-head">
                   <b>{window.label}</b>
                   <span className={`quota-value ${status}`}>
-                    {shown === null ? "Not reported" : `${GLYPH[status]} ${shown}%`.trim()}
+                    {shown === null ? "Not reported" : `${QUOTA_GLYPH[status]} ${shown}%`.trim()}
                   </span>
                 </p>
                 {shown !== null && (

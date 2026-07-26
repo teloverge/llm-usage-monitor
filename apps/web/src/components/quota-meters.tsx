@@ -1,14 +1,8 @@
 import type { UsageQuotaSnapshot } from "@llm-usage-monitor/contracts";
 import { STATUS } from "../theme/palette.ts";
 import { formatDateTime, type QuotaStatus } from "../model/format.ts";
-import { quotaMeterView } from "../model/quota-meter.ts";
+import { QUOTA_GLYPH, quotaMeterView } from "../model/quota-meter.ts";
 
-const GLYPH: Record<QuotaStatus, string> = {
-  good: "",
-  warning: "⚠",
-  critical: "⚠",
-  unreported: "",
-};
 const FILL: Record<QuotaStatus, string> = {
   good: STATUS.good,
   warning: STATUS.warning,
@@ -40,7 +34,7 @@ export function QuotaMeters({
                 <p className="quota-head">
                   <b>{window.label}</b>
                   <span className={`quota-value ${status}`}>
-                    {shown === null ? "Not reported" : `${GLYPH[status]} ${shown}%`.trim()}
+                    {shown === null ? "Not reported" : `${QUOTA_GLYPH[status]} ${shown}%`.trim()}
                   </span>
                 </p>
                 {/*
