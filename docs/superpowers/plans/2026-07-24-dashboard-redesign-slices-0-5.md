@@ -3699,7 +3699,26 @@ git commit -m "feat: replace progress bars with status-aware quota meters"
 **Files:**
 
 - Create: `apps/web/src/components/headline.tsx`
+- Modify: `apps/web/src/model/format.ts` (added during execution)
 - Modify: `apps/web/src/styles.css`
+- Test: `apps/web/test/format.test.ts` (append)
+
+- [ ] **Step 0: Move the two formatters into `model/format.ts` (added during execution)**
+
+**`formatMoneyCompact`.** The draft formats Y-axis ticks with `formatMoney` in a `width={48}`
+gutter at 11px type — roughly seven characters. `"$8,947.32"` is nine and clips, turning a precise
+figure into a misread one. Axis ticks convey scale, so they drop the cents the hero figure keeps;
+the tooltip keeps `formatMoney` because it has room. Two formatters, deliberately.
+
+**`formatBucketLabel`** (the draft's inline `shortDate`). `timelineBucket` emits exactly two
+shapes: `2026-07-20` for every timeframe, and `2026-07-20T09:00:00.000Z` for `last24`. The
+positional slicing is safe only because both are fixed-width ISO, which is precisely why it belongs
+in a tested module — an off-by-one produces labels that still look like dates.
+
+Note on testing it: `slice(5)->slice(4)` and `slice(5,13)->slice(5,14)` each fail one of the two
+shape tests, so index drift is caught. The `length > 10` branch itself **cannot** be pinned — on a
+10-character bucket `slice(5, 13)` and `slice(5)` return the same string, making `> 10` and
+`>= 10` equivalent. Do not add a boundary test claiming otherwise.
 
 - [ ] **Step 1: Write the component**
 
@@ -3815,6 +3834,22 @@ function shortDate(value: string): string {
 
 A single series carries no legend — the panel label names it. There is exactly one Y axis; the measure toggle swaps which measure it scales to.
 
+Four corrections applied while writing it:
+
+- **No raw hex.** The draft hardcodes `background: "#0b120f"` (a colour in neither `tokens.css` nor
+  `palette.ts`), `border: "1px solid #2b3831"`, and `stroke: "#151e1a"`. Use `PAGE_SURFACE`,
+  `CHART_INK.grid`, and `CHART_SURFACE`. `#2b3831` is `--line`, which has no `palette.ts` twin;
+  `CHART_INK.grid` is the chart-ink family and already guarded, so it is the right borrow rather
+  than adding a fourteenth row to the agreement table for one tooltip border.
+- **`labelFormatter` does not take a string.** Recharts types it as
+  `(label: ReactNode, payload) => ReactNode`, so passing a `(value: string) => string` fails
+  `tsc`. Wrap it: `(label) => formatBucketLabel(String(label))`. `tickFormatter` accepts the bare
+  function.
+- **Empty timeline.** An `AreaChart` with no points still draws its axes and grid, which reads as a
+  chart that failed to load rather than a period with nothing in it. Render the empty state
+  instead, matching `RankList` and `TokenMix`.
+- **`type="button"`** on the toggle, per the three buttons already in `app.tsx`.
+
 - [ ] **Step 2: Add the styles**
 
 Append to `apps/web/src/styles.css`:
@@ -3871,13 +3906,15 @@ Append to `apps/web/src/styles.css`:
 ```
 
 Note the absence of `tabular-nums` on `.hero` — proportional figures are correct at display size.
+Insert before the `@media` blocks, not at EOF — see Task 19 Step 2.
 
 - [ ] **Step 3: Typecheck and commit**
 
-Run: `vp run typecheck`
+Run: `vp run check`
 
 ```bash
-git add apps/web/src/components/headline.tsx apps/web/src/styles.css
+git add apps/web/src/components/headline.tsx apps/web/src/model/format.ts \
+  apps/web/test/format.test.ts apps/web/src/styles.css
 git commit -m "feat: add headline figure and single-axis trend chart with measure toggle"
 ```
 

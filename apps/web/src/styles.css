@@ -679,6 +679,55 @@ footer {
   font-size: var(--size-meta);
 }
 
+.headline-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+.hero {
+  margin: 5px 0 3px;
+  font-size: var(--size-hero);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  color: var(--accent);
+}
+/*
+ * Worn by two different elements: the <h3> a Panel renders for its label, and the
+ * <p> the headline uses for descriptive lines. The font-weight and margin resets
+ * exist so both render identically — without them the <h3> inherits browser-default
+ * bold and vertical margins and the two drift apart visually.
+ */
+.panel-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--size-meta);
+  font-weight: 400;
+}
+.panel-meta {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+.segmented button {
+  min-height: 0;
+  padding: 3px 10px;
+  border-radius: 0;
+  color: var(--muted);
+  font-size: var(--size-meta);
+}
+.segmented button.on {
+  background: var(--raised);
+  color: var(--ink-strong);
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .topbar {
     grid-template-columns: 1fr auto;

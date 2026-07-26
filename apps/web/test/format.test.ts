@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  formatBucketLabel,
   formatCoverage,
   formatDateTime,
   formatMoney,
+  formatMoneyCompact,
   formatPercent,
   formatTokens,
   quotaStatus,
@@ -36,6 +38,29 @@ describe("Formatters", () => {
 
   it("describes an empty period in prose when there are no records", () => {
     assert.equal(formatCoverage({ records: 0, priced: 0 }), "No records in this period");
+  });
+});
+
+describe("Axis formatting", () => {
+  it("keeps axis money short enough for the gutter", () => {
+    // formatMoney("$8,947.32") is nine characters and clips at 48px/11px.
+    assert.equal(formatMoneyCompact(8947), "$8.9K");
+    assert.equal(formatMoneyCompact(1_240_000), "$1.2M");
+    assert.equal(formatMoneyCompact(142.3), "$142.3");
+    assert.equal(formatMoneyCompact(0), "$0");
+  });
+
+  // These two are what catch index drift: verified that slice(5)->slice(4) and
+  // slice(5,13)->slice(5,14) each fail one of them. The length branch itself
+  // cannot be pinned — on a 10-character bucket slice(5,13) and slice(5) return
+  // the same string, so `> 10` and `>= 10` are genuinely equivalent here.
+  it("labels a daily bucket without its year", () => {
+    assert.equal(formatBucketLabel("2026-07-20"), "07-20");
+  });
+
+  it("labels an hourly bucket with the hour", () => {
+    // The `last24` timeframe is the only one producing this shape.
+    assert.equal(formatBucketLabel("2026-07-20T09:00:00.000Z"), "07-20 09");
   });
 });
 
