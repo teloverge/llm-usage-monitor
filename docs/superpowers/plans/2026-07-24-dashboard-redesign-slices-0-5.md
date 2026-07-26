@@ -4375,9 +4375,33 @@ git commit -m "feat: assemble the Overview cockpit"
 
 Delete `Overview`, `Metric`, `LimitsCard`, and the now-unused `colors` constant from `apps/web/src/legacy-views.tsx`. Keep `History`, `Advanced`, `Pricing`, `ModelRollups`, `ModeBadges`, `HistorySessionTable`, and the shared helpers — Slice 5 replaces those.
 
+`ChartCard` and `RankChart` also stay: `Advanced` renders `RankChart` for every dimension except
+`byModel`, and `RankChart` is `ChartCard`'s only remaining caller.
+
+Deleting `Overview` orphans more than the plan lists. The entire `recharts` import block becomes
+unused (it was the last charting consumer in this file), along with the `compact` formatter and the
+local `shortDate`. `money` and `number` stay — `RankChart` and the history tables use them. Run
+`vp run lint` after the deletion and remove exactly what it names.
+
 - [ ] **Step 2: Remove the replaced styles**
 
-Delete the `.metrics`, `.metric`, `.chart-grid`, `.card`, `.ranks`, `.rank`, `.rank-label`, `.rank i`, `.rank b`, `.limit-list`, and `progress` rule blocks from `apps/web/src/styles.css`, plus their `@media` entries.
+> **Do not delete `.card`, `.ranks`, `.rank`, `.rank-label`, `.rank i`, or `.rank b`.** The original
+> list included them, but they are still worn by the surviving legacy Breakdown: `ChartCard` uses
+> `.card`, `ModelRollups` uses `card model-analysis`, and `RankChart` uses `.ranks` / `.rank` /
+> `.rank-label`. Removing them here leaves that view unstyled until Task 27, and `.tsx` has no
+> tests, so nothing fails. Task 27 deletes them once `RankChart` is gone.
+
+Delete only `.metrics`, `.metric`, `.chart-grid`, `.limit-list`, and `progress`, plus the
+`.metrics, .chart-grid` entries in both `@media` blocks.
+
+`.metric` and `.card` share one border/background rule; keep the declarations and drop `.metric`
+from the selector rather than deleting the block. That leaves two adjacent `.card` blocks — merge
+them.
+
+Verify by listing every class token used across `apps/web/src/**/*.tsx` and confirming each deleted
+rule has zero exact-token matches (`\brank\b` also matches `rank-list` and `rank-label`, so compare
+whole tokens, not substrings). Then confirm every `var(--…)` in `styles.css` still resolves against
+`tokens.css`.
 
 - [ ] **Step 3: Verify**
 
