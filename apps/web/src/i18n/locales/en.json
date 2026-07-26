@@ -17,5 +17,35 @@
       "heading": "Language",
       "hint": "Applies to this browser only. Numbers, dates, and currency follow the language you choose."
     }
+  },
+  "app": {
+    "brand": "Usage Monitor",
+    "sections": "Dashboard sections",
+    "viewHeading": "Usage Monitor — {{view}}",
+    "footer": "Everything stays on this machine · API-equivalent estimates are not billing claims"
+  },
+  "nav": {
+    "overview": "Overview",
+    "breakdown": "Breakdown",
+    "history": "History"
+  },
+  "filters": {
+    "period": "Period",
+    "host": "Host",
+    "allHosts": "All",
+    "searchTasks": "Filter tasks",
+    "refresh": "Refresh sources",
+    "refreshing": "Refreshing…",
+    "settings": "Settings"
+  },
+  "period": {
+    "select": {
+      "today": "Today",
+      "last24": "Last 24 hours",
+      "7": "Last 7 days",
+      "30": "Last 30 days",
+      "90": "Last 90 days",
+      "all": "All retained"
+    }
   }
 }
