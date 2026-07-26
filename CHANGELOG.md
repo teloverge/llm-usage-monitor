@@ -1,14 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.3.1
+
+Maintenance release. No functional changes; version bump only.
+
+## 0.3.0
 
 - Host Groups are configurable from Settings: create, rename, populate and retire them. Grouping takes effect from the moment it is saved, so historical totals keep the grouping that applied when the usage happened.
+- Fixed retiring a Host Group silently reverting itself, which left Save enabled and made the group appear to un-retire. An unsaved draft was compared against a baseline that had already been overwritten, so untouched cards were treated as edited and stale drafts were kept.
 - Fixed `setHostGroup` leaving a host in two groups at once when it was moved, which made its group resolution depend on insertion order.
 - Host Group breakdown rows now show the group's name instead of its internal id.
 - Fixed a failed price save reporting success.
 - Import Claude Code usage from local session transcripts under the Claude home directory, populating the `claude-code` harness the dashboard already knew how to render. One record per billed request, deduplicated by message id because Claude Code writes one transcript line per content block and repeats the same usage figures on each.
 - Separate cache writes from cache reads in Usage Records and model prices. The two bill at opposite ends of the rate card, so the previous single cached figure could not price an Anthropic record correctly; Codex records, which report one undifferentiated figure, cost exactly as they always did.
 - Add Anthropic rates to the default price catalog, and let a newly supported provider's defaults reach installs whose price catalog already exists, which previously only `codex-auto-review` could do.
+
+## 0.2.1
+
 - Rebuild the dashboard as a cost-first cockpit: one headline figure, a single-axis trend with a Cost/Tokens toggle, driver panels by harness, model, and task, and a context rail for token mix, plan limits, and hosts.
 - Replace the token composition donut with a stacked bar, dashed gridlines with solid hairlines, and plan-limit progress bars with status-aware meters.
 - Move rate configuration into Settings and rename Advanced to Breakdown, which now groups by harness, model, task, host, or Host Group with nested rollups and a table view.
@@ -17,7 +25,7 @@
 - Add session-level children under task rankings and harness attribution to History sessions.
 - Stop counting records whose source does not report caching toward cache efficiency, which previously understated the ratio, and disclose the token coverage the ratio speaks for.
 - Report a reasoning level the source did not supply as "not reported" rather than fabricating `unknown`.
-- Fix `vp run dev`, which ran the server under Bun; Bun does not implement `node:sqlite`, so the documented development command failed on every machine.
+- Fix `bun run dev`, which ran the server under Bun; Bun does not implement `node:sqlite`, so the documented development command failed on every machine. The server now runs under Node.
 - Add Oxlint and Oxfmt to the pinned validation workflow, remove the redundant Activity Bar import link, and rename incremental Codex imports to refresh actions.
 - Restart stale shared runtimes after an extension update, load newly added default prices such as `codex-auto-review`, and condense the Pricing workspace.
 - Add `codex-auto-review` to the default OpenAI pricing catalog using the supplied July 22, 2026 rate source.
@@ -31,6 +39,11 @@
 - Add cost-first automatic charts, API-equivalent spend totals, rolling Last 24 hours, and fleet-aware Source Host and Host Group projections.
 - Run the browser and VS Code clients against one loopback-only server, with VS Code discovery/startup and one-time legacy-state migration.
 - Reserve a fail-closed, per-user Source Host Agent for future authenticated secondary-host collection on Windows, macOS, and Linux.
+
+## 0.1.6 – 0.1.9
+
+These patch versions were produced by the automatic pre-packaging bump and were never sectioned individually; the entries below shipped across them.
+
 - Transfer the product identity from PsiForge to Teloverge and replace the parent, dashboard, README, package, and Activity Bar branding with the Teloverge LLM Usage Monitor logo.
 - Sort expanded reasoning-level rows from highest effort to lowest.
 - Add the Usage Monitor view icon and remove redundant generated activation events from the extension manifest.
