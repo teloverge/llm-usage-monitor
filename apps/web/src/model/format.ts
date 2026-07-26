@@ -19,7 +19,10 @@ const DEFAULT_LOCALE: SupportedLocale = "en";
 let activeLocale: SupportedLocale = DEFAULT_LOCALE;
 
 export function setFormatLocale(locale: string): void {
-  const base = locale.split("-")[0];
+  // Lowercased for the same reason `i18n/language.ts`'s `resolveLanguage`
+  // lowercases the base subtag it extracts: two functions doing the same
+  // extraction must not silently disagree on case.
+  const base = locale.split("-")[0]?.toLowerCase();
   activeLocale = SUPPORTED.find((candidate) => candidate === base) ?? DEFAULT_LOCALE;
 }
 
@@ -45,6 +48,7 @@ function cached<T>(store: Map<SupportedLocale, T>, build: (locale: SupportedLoca
 const moneyCache = new Map<SupportedLocale, Intl.NumberFormat>();
 const plainCache = new Map<SupportedLocale, Intl.NumberFormat>();
 const compactCache = new Map<SupportedLocale, Intl.NumberFormat>();
+const axisCompactCache = new Map<SupportedLocale, Intl.NumberFormat>();
 const percentCache = new Map<SupportedLocale, Intl.NumberFormat>();
 const wholePercentCache = new Map<SupportedLocale, Intl.NumberFormat>();
 
@@ -76,6 +80,22 @@ const compact = () =>
     (locale) => new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }),
   );
 
+/**
+ * One fewer fraction digit than `compact()`. Exists ONLY for the chart axis:
+ * a value in the 100,000-999,999 range with a fractional digit renders 9
+ * characters in Spanish ("892,4 mil"), which overruns the ~7-character budget
+ * of the 48px `YAxis` gutter at 11px type (see `formatBucketLabel`'s sibling
+ * comment on `formatNumberCompact` below). Dropping to zero fraction digits
+ * gets "892 mil" (7) in Spanish and "892K" (4) in English. Not used by
+ * `formatTokens`, which panel headers and legends call where there is room
+ * and the extra precision is wanted.
+ */
+const axisCompact = () =>
+  cached(
+    axisCompactCache,
+    (locale) => new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 0 }),
+  );
+
 const percent = () =>
   cached(
     percentCache,
@@ -102,6 +122,17 @@ export function formatTokens(value: number): string {
 }
 
 /**
+ * `formatTokens`' compact branch, but for the chart axis specifically: zero
+ * fraction digits instead of one, via `axisCompact()`. A value under 1,000
+ * still renders every digit through `plain()`, exactly as `formatTokens`
+ * does, so the two never disagree below the compact threshold — only the
+ * rounding above it differs.
+ */
+export function formatTokensAxis(value: number): string {
+  return value < 1_000 ? plain().format(value) : axisCompact().format(value);
+}
+
+/**
  * Exact counts of things — tasks, models, records. Grouped rather than
  * `String(value)`, so a count reads the way every other number on the page does.
  * Never compacted: a count of tasks is something you might reconcile against a
@@ -122,9 +153,13 @@ export function formatCount(value: number): string {
  * and gets clipped. Ticks are for scale, so they lose both the cents and the
  * currency — the unit is stated once on the measure toggle above the chart, and
  * the hero figure beside it carries the full "USD 8,947.32".
+ *
+ * Goes through `axisCompact()`, not `compact()`: the fraction digit that
+ * `compact()` keeps is exactly what pushes a 100,000-999,999 Spanish value
+ * over the gutter budget (see `axisCompact`'s comment above).
  */
 export function formatNumberCompact(value: number): string {
-  return compact().format(value);
+  return axisCompact().format(value);
 }
 
 const dayLabelCache = new Map<SupportedLocale, Intl.DateTimeFormat>();
