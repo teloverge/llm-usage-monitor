@@ -19,6 +19,28 @@
     "empty": "No activity in this period"
   },
   "settings": {
+    "sections": "Settings sections",
+    "tabs": {
+      "rates": "Model rates",
+      "host-groups": "Host groups",
+      "language": "Language"
+    },
+    "rates": {
+      "heading": "Model rates",
+      "subtitle": "USD per one million tokens · {{models}} configured models",
+      "caption": "Configured model prices in USD per one million tokens",
+      "saving": "Saving…",
+      "save": "Save changes",
+      "saved": "Prices saved",
+      "provider": "Provider",
+      "model": "Model",
+      "input": "Input",
+      "cachedInput": "Cache read",
+      "cacheWrite": "Cache write",
+      "output": "Output",
+      "effective": "Effective",
+      "loading": "Loading the local price catalog…"
+    },
     "language": {
       "tab": "Language",
       "heading": "Language",
