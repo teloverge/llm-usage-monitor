@@ -4,6 +4,8 @@ import { executeAction } from "../../api.ts";
 import {
   currentGroupIdFor,
   hostGroupRows,
+  mergeDraft,
+  rowsDiffer,
   ungroupedHostIds,
   type HostGroupRow,
 } from "../../model/host-groups.ts";
@@ -25,20 +27,6 @@ const EFFECTIVE_HINT =
  * from 127.0.0.1, which browsers treat as a secure context.
  */
 const newGroupId = () => `group:${crypto.randomUUID()}`;
-
-/**
- * Order-insensitive comparison of a draft row against its saved counterpart.
- * Shared by `isDirty` (gates the Save button) and the refresh effect (decides
- * whether a refetch may overwrite a card) so the two never drift apart into
- * two different ideas of "changed".
- */
-function rowsDiffer(a: HostGroupRow, b: HostGroupRow): boolean {
-  return (
-    a.name !== b.name ||
-    a.memberHostIds.length !== b.memberHostIds.length ||
-    a.memberHostIds.some((id) => !b.memberHostIds.includes(id))
-  );
-}
 
 export function HostGroups({
   hostGroups,
@@ -71,22 +59,21 @@ export function HostGroups({
     value, so a real change from elsewhere (e.g. an import) still surfaces.
     Not-yet-persisted new-group drafts are carried across the same way, via
     the append below.
+
+    The ref read/write happens here, outside the updater, so the updater
+    itself (`mergeDraft`) is pure. `React.StrictMode` invokes a state updater
+    twice against the same base state to catch exactly this kind of impurity:
+    an updater that mutated `lastSeen.current` as a side effect would have its
+    second invocation compare against the fresh snapshot the FIRST invocation
+    just wrote, concluding every untouched card had been "edited" and
+    discarding real changes (see host-groups.test.ts for the mechanics).
   */
   const lastSeen = useRef<HostGroupRow[]>(saved);
   useEffect(() => {
-    setDraft((current) => {
-      const fresh = hostGroupRows(hostGroups, memberships);
-      const merged = [
-        ...fresh.map((row) => {
-          const draftRow = current.find((item) => item.id === row.id);
-          const lastSeenRow = lastSeen.current.find((item) => item.id === row.id);
-          return draftRow && lastSeenRow && rowsDiffer(draftRow, lastSeenRow) ? draftRow : row;
-        }),
-        ...current.filter((row) => !hostGroups.some((group) => group.id === row.id)),
-      ];
-      lastSeen.current = fresh;
-      return merged;
-    });
+    const fresh = hostGroupRows(hostGroups, memberships);
+    const previous = lastSeen.current;
+    lastSeen.current = fresh;
+    setDraft((current) => mergeDraft(current, fresh, previous));
   }, [hostGroups, memberships]);
 
   const labelFor = (sourceHostId: string) => {
@@ -162,7 +149,7 @@ export function HostGroups({
         </button>
       </div>
       {error && (
-        <p role="alert" className="error host-group-error">
+        <p role="alert" className="error settings-error">
           {error}
         </p>
       )}

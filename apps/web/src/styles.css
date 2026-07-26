@@ -811,11 +811,6 @@ footer {
 .host-group-card:last-child {
   border-bottom: 0;
 }
-.host-group-card h3 {
-  margin: 0 0 4px;
-  font-size: 12px;
-}
-.host-group-members,
 .host-group-ungrouped {
   margin: 0;
   color: var(--muted);
@@ -866,7 +861,7 @@ footer {
   color: var(--muted);
   font-size: 10px;
 }
-.host-group-error {
+.settings-error {
   margin: 0;
   padding: 8px 10px;
 }

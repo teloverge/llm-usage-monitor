@@ -50,7 +50,7 @@ export function Pricing({
         </button>
       </div>
       {error && (
-        <p role="alert" className="error host-group-error">
+        <p role="alert" className="error settings-error">
           {error}
         </p>
       )}
