@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { OverviewView } from "@llm-usage-monitor/contracts";
 import { formatTokens } from "../model/format.ts";
 import { harnessLabel, usageSourceLabel } from "../model/harness.ts";
@@ -15,36 +16,37 @@ export function Overview({
   data: OverviewView;
   onDrillDown: (dimension: "byHarness" | "byModel" | "byTask") => void;
 }) {
+  const { t } = useTranslation();
   // Relabelled here rather than inside RankList: the list ranks rows by cost and
   // knows nothing about harnesses, and a `byHarness` row's key IS its harness id.
   const harnessRows = data.byHarness.map((row) => ({
     ...row,
-    key: harnessLabel(row.key, "Unknown harness"),
+    key: harnessLabel(row.key, t("common.unknownHarness")),
   }));
   return (
     <div className="cockpit">
       <div className="cockpit-main">
         <Headline data={data} />
         <StatStrip totals={data.totals} />
-        <Zone>What drove it</Zone>
+        <Zone>{t("overview.drivers")}</Zone>
         <div className="drivers">
-          <Panel label="By harness">
+          <Panel label={t("overview.byHarness")}>
             <RankList rows={harnessRows} onMore={() => onDrillDown("byHarness")} />
           </Panel>
-          <Panel label="By model">
+          <Panel label={t("overview.byModel")}>
             <RankList rows={data.byModel} onMore={() => onDrillDown("byModel")} />
           </Panel>
-          <Panel label="By task">
+          <Panel label={t("overview.byTask")}>
             <RankList rows={data.byTask} onMore={() => onDrillDown("byTask")} />
           </Panel>
         </div>
       </div>
       <div className="cockpit-rail">
-        <Zone>Context</Zone>
-        <Panel label="Token mix" meta={formatTokens(data.totals.totalTokens)}>
+        <Zone>{t("overview.context")}</Zone>
+        <Panel label={t("overview.tokenMix")} meta={formatTokens(data.totals.totalTokens)}>
           <TokenMix totals={data.totals} />
         </Panel>
-        <Panel label="Plan limits">
+        <Panel label={t("overview.planLimits")}>
           {/*
             Keyed by usageSourceId, not harnessId — one row per account per host.
             `usageSourceLabel` derives its names from the same table `harnessLabel`
@@ -52,7 +54,7 @@ export function Overview({
           */}
           <QuotaMeters snapshots={data.quotaSnapshots} harnessLabel={usageSourceLabel} />
         </Panel>
-        <Panel label="Hosts">
+        <Panel label={t("overview.hosts")}>
           <RankList rows={data.bySourceHost} limit={5} />
         </Panel>
       </div>

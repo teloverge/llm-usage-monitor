@@ -1,6 +1,7 @@
+import { useTranslation } from "react-i18next";
 import type { UsageQuotaSnapshot } from "@llm-usage-monitor/contracts";
 import { STATUS } from "../theme/palette.ts";
-import { formatDateTime, type QuotaStatus } from "../model/format.ts";
+import { formatDateTime, formatWholePercent, type QuotaStatus } from "../model/format.ts";
 import { QUOTA_GLYPH, quotaMeterView } from "../model/quota-meter.ts";
 
 const FILL: Record<QuotaStatus, string> = {
@@ -17,7 +18,8 @@ export function QuotaMeters({
   snapshots: UsageQuotaSnapshot[];
   harnessLabel: (usageSourceId: string) => string;
 }) {
-  if (!snapshots.length) return <p className="empty-state">Not reported</p>;
+  const { t } = useTranslation();
+  if (!snapshots.length) return <p className="empty-state">{t("common.notReported")}</p>;
   return (
     <div className="quota-groups">
       {snapshots.map((snapshot) => (
@@ -34,7 +36,9 @@ export function QuotaMeters({
                 <p className="quota-head">
                   <b>{window.label}</b>
                   <span className={`quota-value ${status}`}>
-                    {shown === null ? "Not reported" : `${QUOTA_GLYPH[status]} ${shown}%`.trim()}
+                    {shown === null
+                      ? t("common.notReported")
+                      : `${QUOTA_GLYPH[status]} ${formatWholePercent(shown)}`.trim()}
                   </span>
                 </p>
                 {/*
@@ -49,13 +53,13 @@ export function QuotaMeters({
                     aria-valuenow={shown}
                     aria-valuemin={0}
                     aria-valuemax={100}
-                    aria-valuetext={`${shown}% used`}
+                    aria-valuetext={t("quota.used", { percent: formatWholePercent(shown) })}
                     aria-label={window.label}
                   >
                     <i style={{ width: `${width}%`, background: FILL[status] }} />
                   </div>
                 )}
-                {resets && <p className="quota-reset">resets {resets}</p>}
+                {resets && <p className="quota-reset">{t("quota.resets", { at: resets })}</p>}
               </div>
             );
           })}

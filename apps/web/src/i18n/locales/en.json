@@ -63,5 +63,37 @@
       "all": "all retained history",
       "custom": "the selected range"
     }
+  },
+  "overview": {
+    "drivers": "What drove it",
+    "context": "Context",
+    "byHarness": "By harness",
+    "byModel": "By model",
+    "byTask": "By task",
+    "tokenMix": "Token mix",
+    "planLimits": "Plan limits",
+    "hosts": "Hosts",
+    "tokens": "Tokens",
+    "cachedInput": "Cached input",
+    "cacheCoverage": "of {{tokens}} reporting tokens",
+    "tasks": "Tasks",
+    "models": "Models"
+  },
+  "tokenMix": {
+    "composition": "Token composition",
+    "empty": "No tokens in this period",
+    "fresh": "Fresh input",
+    "cached": "Cached",
+    "output": "Output",
+    "unreported": "Cache not reported"
+  },
+  "quota": {
+    "used": "{{percent}} used",
+    "resets": "resets {{at}}"
+  },
+  "rank": {
+    "empty": "No usage in this period",
+    "more": "{{remaining}} more",
+    "moreLink": "{{remaining}} more →"
   }
 }
