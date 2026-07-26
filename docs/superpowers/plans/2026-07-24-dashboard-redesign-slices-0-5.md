@@ -3496,17 +3496,50 @@ git commit -m "feat: replace token composition donut with a stacked bar"
 
 **Files:**
 
+- Create: `apps/web/src/model/quota-meter.ts` (added during execution)
 - Create: `apps/web/src/components/quota-meters.tsx`
+- Modify: `apps/web/src/model/format.ts` (added during execution — `formatDateTime`)
 - Modify: `apps/web/src/styles.css`
+- Test: `apps/web/test/quota-meter.test.ts`, `apps/web/test/format.test.ts` (append)
+
+- [ ] **Step 0: Extract the meter arithmetic and a pinned date formatter (added during execution)**
+
+Two things in the draft component below need to move out of `.tsx` before they can be tested.
+
+**`apps/web/src/model/quota-meter.ts`** — `quotaMeterView(window)` → `{ status, shown, width }`.
+Round **once, before** choosing the status. The draft rounds for display (`toFixed(0)`) but
+classifies on the raw value, so at the thresholds the two contradict each other on the same line:
+89.6 renders as "90%" — the number the spec calls critical — while still being coloured as a
+warning. The reader judges by the figure in front of them, so the figure is what gets classified.
+The cost is treating 89.6 as critical, over-warning by 0.4 points, which for a quota meter is the
+safe direction and matches `calculateCost`'s reasoning about over- rather than under-stating.
+
+Also clamp `width` to 0–100 while leaving `shown` unclamped: a source past 100% of its quota is
+reporting real overage that the number must keep, but the bar must not overflow its track.
+
+**`formatDateTime` in `model/format.ts`** — the draft calls
+`new Date(window.resetsAt).toLocaleString()`, which takes both locale and zone from the OS. That is
+the exact bypass `format.ts` was written to prevent and that `Panel`'s `meta` prop was added for in
+Task 24. Render the instant in the reader's own zone (a reset time is only useful there) but under
+the pinned locale, and return `null` for an unparseable input so a caller renders nothing rather
+than splicing the literal string "Invalid Date" into "resets …". Give it a test-only `timeZone`
+override — without one the suite passes or fails according to the machine running it.
 
 - [ ] **Step 1: Write the component**
 
-Create `apps/web/src/components/quota-meters.tsx`:
+Create `apps/web/src/components/quota-meters.tsx`. It consumes the two modules above, which also
+removes all three `window.usedPercent!` non-null assertions from the draft — they were only sound
+via an indirect link through `quotaStatus`, the same shape as the `.find(…)!` Task 20's reshape
+deleted. `shown === null` narrows explicitly instead.
+
+Keep the meter absent entirely when nothing was reported: an empty track is indistinguishable from
+a track reading zero, and this dashboard treats "did not say" and "said none" as different facts.
 
 ```tsx
 import type { UsageQuotaSnapshot } from "@llm-usage-monitor/contracts";
 import { STATUS } from "../theme/palette.ts";
-import { quotaStatus, type QuotaStatus } from "../model/format.ts";
+import { formatDateTime, type QuotaStatus } from "../model/format.ts";
+import { quotaMeterView } from "../model/quota-meter.ts";
 
 const GLYPH: Record<QuotaStatus, string> = {
   good: "",
@@ -3538,37 +3571,30 @@ export function QuotaMeters({
             {snapshot.plan ? ` · ${snapshot.plan}` : ""}
           </p>
           {snapshot.windows.map((window) => {
-            const status = quotaStatus(window.usedPercent);
+            const { status, shown, width } = quotaMeterView(window);
+            const resets = window.resetsAt ? formatDateTime(window.resetsAt) : null;
             return (
               <div className="quota-window" key={window.id}>
                 <p className="quota-head">
                   <b>{window.label}</b>
                   <span className={`quota-value ${status}`}>
-                    {status === "unreported"
-                      ? "Not reported"
-                      : `${GLYPH[status]} ${window.usedPercent!.toFixed(0)}%`.trim()}
+                    {shown === null ? "Not reported" : `${GLYPH[status]} ${shown}%`.trim()}
                   </span>
                 </p>
-                {status !== "unreported" && (
+                {shown !== null && (
                   <div
                     className="meter"
                     role="meter"
-                    aria-valuenow={Math.round(window.usedPercent!)}
+                    aria-valuenow={shown}
                     aria-valuemin={0}
                     aria-valuemax={100}
-                    aria-label={`${window.label} used`}
+                    aria-valuetext={`${shown}% used`}
+                    aria-label={window.label}
                   >
-                    <i
-                      style={{
-                        width: `${Math.min(100, window.usedPercent!)}%`,
-                        background: FILL[status],
-                      }}
-                    />
+                    <i style={{ width: `${width}%`, background: FILL[status] }} />
                   </div>
                 )}
-                {window.resetsAt && (
-                  <p className="quota-reset">resets {new Date(window.resetsAt).toLocaleString()}</p>
-                )}
+                {resets && <p className="quota-reset">resets {resets}</p>}
               </div>
             );
           })}
@@ -3642,12 +3668,20 @@ Append to `apps/web/src/styles.css`:
 }
 ```
 
+Insert before the `@media` blocks, not at EOF — see Task 19 Step 2.
+
+`.quota-value.warning` uses `var(--status-warning)` while the fill beside it uses `STATUS.warning`
+from `palette.ts`. That is the twinning the `token-agreement` test guards; drift would render as
+two different oranges inside one widget.
+
 - [ ] **Step 3: Typecheck and commit**
 
-Run: `vp run typecheck`
+Run: `vp run check`
 
 ```bash
-git add apps/web/src/components/quota-meters.tsx apps/web/src/styles.css
+git add apps/web/src/components/quota-meters.tsx apps/web/src/model/quota-meter.ts \
+  apps/web/src/model/format.ts apps/web/test/quota-meter.test.ts \
+  apps/web/test/format.test.ts apps/web/src/styles.css
 git commit -m "feat: replace progress bars with status-aware quota meters"
 ```
 
