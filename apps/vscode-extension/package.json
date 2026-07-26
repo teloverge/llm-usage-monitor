@@ -1,7 +1,7 @@
 {
   "name": "llm-usage-monitor",
   "displayName": "Teloverge LLM Usage Monitor",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Launch and control the portable local LLM Usage Monitor from VS Code.",
   "categories": [
@@ -30,7 +30,7 @@
   "main": "./dist/extension.cjs",
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.cjs && node scripts/stage-runtime.mjs",
-    "package": "vsce package --no-dependencies --out ../../llm-usage-monitor-0.3.0.vsix"
+    "package": "vsce package --no-dependencies --out ../../llm-usage-monitor-0.3.1.vsix"
   },
   "devDependencies": {
     "@types/vscode": "^1.95.0"
