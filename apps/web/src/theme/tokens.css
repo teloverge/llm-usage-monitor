@@ -27,6 +27,12 @@
 
   --accent: #16c79a;
   --accent-ink: #07110d;
+  /* Selected-state pair for controls that toggle (the Breakdown's group-by
+     chips). Kept as literals rather than a color-mix of --accent so the tuned
+     values from the design survive; they are UI-only, so neither has a
+     palette.ts twin or an agreement-table row. */
+  --accent-line: #2f6a52;
+  --accent-fill: #12241d;
 
   --series-1: #0fae83;
   --series-2: #3987e5;

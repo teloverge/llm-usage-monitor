@@ -129,10 +129,6 @@ main {
   margin: auto;
   padding: 20px 0 38px;
 }
-.card p {
-  margin: 0;
-  color: var(--muted);
-}
 .error {
   color: #ff8aa3;
 }
@@ -151,67 +147,6 @@ select {
   border-radius: 7px;
   background: #0f1713;
   color: #fff;
-}
-/*
- * `.card` keeps the border/background it used to share with `.metric`. It is
- * still worn by ChartCard and ModelRollups, which the legacy Breakdown renders
- * until Task 27 replaces it — deleting it here would leave that view unstyled
- * with nothing to catch it, since .tsx has no tests.
- */
-.card {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--panel);
-  padding: 13px;
-  min-height: 280px;
-}
-.card header {
-  margin-bottom: 8px;
-}
-.card h2 {
-  margin: 0 0 2px;
-  font-size: 15px;
-}
-.ranks {
-  display: grid;
-  gap: 7px;
-  margin-top: 14px;
-}
-.rank {
-  display: grid;
-  grid-template-columns: minmax(100px, 1.3fr) 2fr auto;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-.rank-label {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 6px;
-}
-.rank-label > small,
-.model-cell small {
-  color: var(--muted);
-  text-transform: uppercase;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-}
-.rank-label > span:not(.mode-badges) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.rank i {
-  height: 7px;
-  border-radius: 99px;
-  background: #24342c;
-  overflow: hidden;
-}
-.rank b {
-  display: block;
-  height: 100%;
-  background: var(--accent);
 }
 .mode-badges {
   display: inline-flex;
@@ -261,10 +196,6 @@ th {
 }
 .table-card input {
   min-width: 80px;
-}
-.model-cell {
-  display: grid;
-  gap: 2px;
 }
 .save {
   margin-top: 10px;
@@ -343,48 +274,34 @@ th {
   white-space: nowrap;
   border: 0;
 }
-.advanced-control {
-  max-width: 320px;
-  margin-bottom: 9px;
-}
-.model-analysis {
-  min-height: 0;
-}
-.provider-rollups,
-.model-rollups,
+/*
+ * These were shared with the legacy Breakdown's provider/model rollups, which
+ * Task 27 deleted. Only the `.history-group` and `.summary-*` selectors remain
+ * live; the rest were pruned from each list rather than the blocks being
+ * dropped. Task 28 rewrites History and can retire what is left.
+ */
 .history-groups {
   display: grid;
   gap: 6px;
 }
-.provider-rollup,
-.model-rollup,
 .history-group {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #111915;
 }
-.provider-rollup > summary,
-.model-rollup > summary,
 .history-group > summary {
   display: grid;
   align-items: center;
   cursor: pointer;
   list-style: none;
-}
-.provider-rollup > summary::-webkit-details-marker,
-.model-rollup > summary::-webkit-details-marker,
-.history-group > summary::-webkit-details-marker {
-  display: none;
-}
-.provider-rollup > summary,
-.history-group > summary {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 14px;
   padding: 9px 11px 9px 32px;
   position: relative;
 }
-.provider-rollup > summary::before,
-.model-rollup > summary::before,
+.history-group > summary::-webkit-details-marker {
+  display: none;
+}
 .history-group > summary::before {
   content: "";
   position: absolute;
@@ -396,68 +313,21 @@ th {
   transform: rotate(-45deg);
   transition: transform 120ms ease-out;
 }
-.provider-rollup[open] > summary::before,
-.model-rollup[open] > summary::before,
 .history-group[open] > summary::before {
   transform: rotate(45deg) translate(-2px, -2px);
 }
-.provider-name,
 .summary-copy,
-.summary-total,
-.rollup-metrics {
+.summary-total {
   display: grid;
   gap: 2px;
 }
-.provider-name small,
 .summary-copy small,
-.summary-total small,
-.rollup-metrics small {
+.summary-total small {
   color: var(--muted);
   font-weight: 400;
 }
-.summary-total,
-.rollup-metrics {
+.summary-total {
   text-align: right;
-}
-.provider-rollup > .model-rollups {
-  padding: 0 6px 6px 22px;
-}
-.model-rollup {
-  background: #151e1a;
-}
-.model-rollup > summary {
-  position: relative;
-  grid-template-columns: minmax(160px, 1fr) auto;
-  gap: 12px;
-  padding: 8px 10px 8px 31px;
-}
-.model-name {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-.reasoning-rows {
-  border-top: 1px solid var(--line);
-}
-.reasoning-row {
-  display: grid;
-  grid-template-columns: minmax(140px, 1fr) auto auto auto;
-  align-items: center;
-  gap: 18px;
-  padding: 7px 10px 7px 31px;
-  border-bottom: 1px solid #202d26;
-}
-.reasoning-row:last-child {
-  border-bottom: 0;
-}
-.reasoning-row > span {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.reasoning-row small {
-  color: var(--muted);
 }
 .section-summary {
   display: flex;
@@ -742,6 +612,59 @@ footer {
   font-size: var(--size-stat);
   font-weight: 650;
   letter-spacing: -0.02em;
+}
+
+.breakdown {
+  display: grid;
+  gap: 10px;
+}
+.group-by {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.group-by .chip {
+  cursor: pointer;
+  color: var(--ink);
+}
+.group-by .chip.on {
+  border-color: var(--accent-line);
+  background: var(--accent-fill);
+}
+.table-toggle {
+  margin-left: auto;
+}
+.breakdown-body {
+  padding: 0;
+  overflow: hidden;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--size-meta);
+}
+.data-table th {
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--size-zone);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--grid);
+  white-space: nowrap;
+}
+.data-table .n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .rollup-row,
