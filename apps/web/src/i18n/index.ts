@@ -29,15 +29,19 @@ function storedLanguage(): string | null {
 const initial = resolveLanguage(storedLanguage(), navigator.languages ?? [navigator.language]);
 
 /**
- * Registered BEFORE `initReactI18next` and before any component mounts, and the
- * ordering is load-bearing rather than incidental.
+ * Registered before any component mounts, and the ordering is load-bearing
+ * rather than incidental. react-i18next does not subscribe centrally in
+ * `initReactI18next` — each component subscribes its own `languageChanged`
+ * listener individually, inside `useTranslation`'s effect, whenever it mounts.
  *
- * i18next fires `languageChanged` listeners in registration order, and
- * react-i18next's listener is what triggers the re-render. Registering this
- * one first guarantees the module-level locale inside `model/format.ts` is
- * already current when components re-render. Reversed, every formatted number,
- * date, and currency on the page would lag one language change behind — visible
- * only as stale output, with nothing failing.
+ * i18next fires `languageChanged` listeners in registration order. Registering
+ * this one at module load, before any component exists to mount, guarantees it
+ * runs before every one of those per-component listeners — which is what
+ * triggers each component's re-render — so the module-level locale inside
+ * `model/format.ts` is already current by the time components re-render.
+ * Reversed, every formatted number, date, and currency on the page would lag
+ * one language change behind — visible only as stale output, with nothing
+ * failing.
  */
 i18n.on("languageChanged", (language) => {
   setFormatLocale(language);
@@ -57,7 +61,11 @@ void i18n.use(initReactI18next).init({
   },
 });
 
-// `init` does not fire `languageChanged`, so the initial locale is applied here.
+// Applied explicitly so the first paint never depends on `init`'s emit timing,
+// which varies with `initAsync` and whether resources are bundled: with
+// `resources` supplied (as here), `init` resolves synchronously and the
+// `languageChanged` listener above has typically already run by this line, but
+// that is an implementation detail this code does not rely on.
 setFormatLocale(initial);
 document.documentElement.lang = initial;
 
