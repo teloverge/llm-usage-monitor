@@ -1,48 +1,100 @@
-/**
- * Locale is pinned rather than taken from the runtime. This dashboard reports
- * US-dollar API rates under English copy, and `currency: "USD"` is already fixed —
- * letting the OS locale drive grouping and symbol placement while the currency
- * stays American produces inconsistent output like "142,30 $" beside English
- * labels. Pinning also keeps these assertions deterministic on contributor and CI
- * machines whose default locale is not en-US.
- */
-const LOCALE = "en-US";
+export type SupportedLocale = "en" | "es";
 
-const money = new Intl.NumberFormat(LOCALE, {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-const plain = new Intl.NumberFormat(LOCALE);
-const compact = new Intl.NumberFormat(LOCALE, {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-const moneyCompact = new Intl.NumberFormat(LOCALE, {
-  style: "currency",
-  currency: "USD",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
+const SUPPORTED: readonly SupportedLocale[] = ["en", "es"];
+const DEFAULT_LOCALE: SupportedLocale = "en";
+
+/**
+ * The locale every formatter below uses. Module-level rather than a parameter so
+ * `model/` stays free of a locale argument its pure functions do not
+ * conceptually need.
+ *
+ * It is NEVER initialised from the runtime default. An unsupported value falls
+ * back to `en` instead of to the OS locale, so contributor and CI machines with
+ * a non-English default produce identical output — the determinism the previous
+ * hardcoded `en-US` pin existed to protect.
+ *
+ * `i18n/index.ts` keeps this in step with the UI language, and the ordering of
+ * that listener registration is load-bearing — see the comment there.
+ */
+let activeLocale: SupportedLocale = DEFAULT_LOCALE;
+
+export function setFormatLocale(locale: string): void {
+  const base = locale.split("-")[0];
+  activeLocale = SUPPORTED.find((candidate) => candidate === base) ?? DEFAULT_LOCALE;
+}
+
+export function currentFormatLocale(): SupportedLocale {
+  return activeLocale;
+}
+
+/**
+ * Formatters are cached per locale and built on first use, never captured at
+ * module load. Constructing an `Intl` object is comparatively expensive and
+ * these run once per table cell, so the cache is not premature — but a formatter
+ * captured in a module-level const would keep formatting in whichever locale was
+ * active at import time, silently, forever.
+ */
+function cached<T>(store: Map<SupportedLocale, T>, build: (locale: SupportedLocale) => T): T {
+  const existing = store.get(activeLocale);
+  if (existing) return existing;
+  const created = build(activeLocale);
+  store.set(activeLocale, created);
+  return created;
+}
+
+const moneyCache = new Map<SupportedLocale, Intl.NumberFormat>();
+const plainCache = new Map<SupportedLocale, Intl.NumberFormat>();
+const compactCache = new Map<SupportedLocale, Intl.NumberFormat>();
+
+/**
+ * The ISO code rather than a symbol, in every locale. This dashboard reports
+ * US-dollar API rates to readers who may not be in the US, and a bare "$" is
+ * ambiguous across a dozen currencies. Note that CLDR places the code before the
+ * amount in English and after it in Spanish; both are correct and neither is
+ * overridden here.
+ */
+const money = () =>
+  cached(
+    moneyCache,
+    (locale) =>
+      new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: "USD",
+        currencyDisplay: "code",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+  );
+
+const plain = () => cached(plainCache, (locale) => new Intl.NumberFormat(locale));
+
+const compact = () =>
+  cached(
+    compactCache,
+    (locale) => new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }),
+  );
 
 export function formatMoney(value: number): string {
-  return money.format(value);
+  return money().format(value);
 }
 
 export function formatTokens(value: number): string {
-  return value < 1_000 ? plain.format(value) : compact.format(value);
+  return value < 1_000 ? plain().format(value) : compact().format(value);
 }
 
 /**
  * Exact counts of things — tasks, models, records. Grouped rather than
- * `String(value)`, so a four-figure count reads "1,234" like every other number
- * on the page instead of "1234" beside "6,900 records priced". Never compacted:
- * a count of tasks is something you might reconcile against a list, so it keeps
- * every digit.
+ * `String(value)`, so a count reads the way every other number on the page does.
+ * Never compacted: a count of tasks is something you might reconcile against a
+ * list, so it keeps every digit.
+ *
+ * Grouping is the locale's decision, not ours. English groups from four digits
+ * ("4,900"); Spanish groups only from five ("4900", but "10.000"). Forcing
+ * `useGrouping: "always"` to make the two agree would render Spanish
+ * incorrectly, so the outputs are allowed to differ.
  */
 export function formatCount(value: number): string {
-  return plain.format(value);
+  return plain().format(value);
 }
 
 /**
@@ -50,7 +102,18 @@ export function formatCount(value: number): string {
  * gutter at 11px type holds roughly seven characters; "$8,947.32" is nine and
  * gets clipped, which turns a precise figure into a misread one. Ticks are for
  * scale, so they lose the cents the hero figure keeps.
+ *
+ * Still pinned to "en-US" rather than the active locale — Task 2 makes this
+ * locale-aware (and renames it). Not touched here to keep this task's diff
+ * limited to money/tokens/count/dateTime.
  */
+const moneyCompact = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
 export function formatMoneyCompact(value: number): string {
   return moneyCompact.format(value);
 }
@@ -85,20 +148,20 @@ export function formatPercent(ratio: number): string {
 export function formatCoverage({ records, priced }: { records: number; priced: number }): string {
   if (records === 0) return "No records in this period";
   return priced === records
-    ? `${plain.format(records)} records priced`
-    : `${plain.format(priced)} of ${plain.format(records)} records priced`;
+    ? `${plain().format(records)} records priced`
+    : `${plain().format(priced)} of ${plain().format(records)} records priced`;
 }
 
 /**
  * Absolute instants rendered in the reader's own time zone — "resets at 3pm" is
- * only useful in the zone they are sitting in — but under the pinned locale, so
- * the wording and ordering stay consistent with every other string on the page.
- * Calling `Date#toLocaleString()` directly would take BOTH from the OS and is
- * the bypass this module exists to prevent.
+ * only useful in the zone they are sitting in — but under the active UI locale,
+ * so the wording and ordering stay consistent with every other string on the
+ * page. Calling `Date#toLocaleString()` directly would take BOTH from the OS and
+ * is the bypass this module exists to prevent.
  *
  * `timeZone` is an override for tests only: without it the output depends on the
- * machine running the suite, which is exactly the non-determinism the locale
- * comment above is guarding against.
+ * machine running the suite, which is exactly the non-determinism this module
+ * guards against.
  *
  * Returns null rather than the string "Invalid Date" when the input cannot be
  * parsed, so a caller renders nothing instead of pasting that into a sentence.
@@ -107,9 +170,10 @@ export function formatDateTime(value: string, timeZone?: string): string | null 
   const instant = new Date(value);
   if (Number.isNaN(instant.getTime())) return null;
   const options: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" };
-  return new Intl.DateTimeFormat(LOCALE, timeZone ? { ...options, timeZone } : options).format(
-    instant,
-  );
+  return new Intl.DateTimeFormat(
+    currentFormatLocale(),
+    timeZone ? { ...options, timeZone } : options,
+  ).format(instant);
 }
 
 export type QuotaStatus = "good" | "warning" | "critical" | "unreported";

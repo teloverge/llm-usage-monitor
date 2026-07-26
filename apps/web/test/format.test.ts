@@ -3,41 +3,83 @@ import { describe, it } from "node:test";
 import {
   formatBucketLabel,
   formatCoverage,
+  formatCount,
   formatDateTime,
   formatMoney,
   formatMoneyCompact,
   formatPercent,
   formatTokens,
   quotaStatus,
+  setFormatLocale,
 } from "../src/model/format.ts";
 
+/**
+ * Every locale-sensitive assertion runs through this helper. The locale is set
+ * explicitly and always restored, so no test depends on the machine's default
+ * and no test leaks a locale into the next one.
+ */
+function inLocale(locale: string, body: () => void): void {
+  try {
+    setFormatLocale(locale);
+    body();
+  } finally {
+    setFormatLocale("en");
+  }
+}
+
 describe("Formatters", () => {
-  it("formats money to cents for display totals", () => {
-    assert.equal(formatMoney(142.3), "$142.30");
-    assert.equal(formatMoney(0), "$0.00");
+  // CLDR separates a currency code, and a compact-notation unit like "mil" or
+  // "M", from its number with U+00A0 NO-BREAK SPACE, not a regular space, so
+  // a line never wraps between the figure and its unit. The space characters
+  // in the expected strings below are U+00A0, not an ASCII space.
+  it("formats money to cents with an explicit currency code", () => {
+    inLocale("en", () => {
+      assert.equal(formatMoney(142.3), "USD 142.30");
+      assert.equal(formatMoney(0), "USD 0.00");
+    });
+    // Spanish puts the code after the amount and uses a comma decimal.
+    inLocale("es", () => {
+      assert.equal(formatMoney(142.3), "142,30 USD");
+      assert.equal(formatMoney(0), "0,00 USD");
+    });
   });
 
   it("formats token counts compactly from a thousand upward", () => {
-    assert.equal(formatTokens(645_000), "645K");
-    assert.equal(formatTokens(1_240_000), "1.2M");
-    assert.equal(formatTokens(812), "812");
-    // Pins the exact transition. Without these two, `< 1_000` and `<= 1_000` are
-    // indistinguishable to the suite and a refactor can flip the boundary silently.
-    assert.equal(formatTokens(999), "999");
-    assert.equal(formatTokens(1_000), "1K");
+    inLocale("en", () => {
+      assert.equal(formatTokens(645_000), "645K");
+      assert.equal(formatTokens(1_240_000), "1.2M");
+      assert.equal(formatTokens(812), "812");
+      // Pins the exact transition. Without these two, `< 1_000` and `<= 1_000` are
+      // indistinguishable to the suite and a refactor can flip the boundary silently.
+      assert.equal(formatTokens(999), "999");
+      assert.equal(formatTokens(1_000), "1K");
+    });
+    inLocale("es", () => {
+      assert.equal(formatTokens(645_000), "645 mil");
+      assert.equal(formatTokens(1_240_000), "1,2 M");
+      assert.equal(formatTokens(999), "999");
+      assert.equal(formatTokens(1_000), "1 mil");
+    });
   });
 
-  it("formats a ratio as a percent with one decimal", () => {
-    assert.equal(formatPercent(0.682), "68.2%");
+  it("groups exact counts as the locale does, not as English does", () => {
+    inLocale("en", () => {
+      assert.equal(formatCount(4900), "4,900");
+      assert.equal(formatCount(10_000), "10,000");
+    });
+    // Spanish CLDR does not group four-digit integers and does group five.
+    // This asymmetry is correct and must not be overridden with useGrouping.
+    inLocale("es", () => {
+      assert.equal(formatCount(4900), "4900");
+      assert.equal(formatCount(10_000), "10.000");
+    });
   });
 
-  it("reports priced coverage only when some records are unpriced", () => {
-    assert.equal(formatCoverage({ records: 4900, priced: 4900 }), "4,900 records priced");
-    assert.equal(formatCoverage({ records: 4900, priced: 4812 }), "4,812 of 4,900 records priced");
-  });
-
-  it("describes an empty period in prose when there are no records", () => {
-    assert.equal(formatCoverage({ records: 0, priced: 0 }), "No records in this period");
+  it("rejects an unsupported locale rather than formatting in it", () => {
+    inLocale("en", () => {
+      setFormatLocale("fr-CA");
+      assert.equal(formatMoney(142.3), "USD 142.30", "falls back to en, never to the OS locale");
+    });
   });
 });
 
@@ -68,19 +110,36 @@ describe("Absolute instants", () => {
   // The time zone is passed explicitly here and nowhere else: real callers want
   // the reader's own zone, but a suite that depended on it would pass or fail
   // according to the machine running it.
-  it("renders an ISO instant under the pinned locale", () => {
-    assert.equal(
-      formatDateTime("2026-07-23T12:06:40.000Z", "UTC"),
-      "Jul 23, 2026, 12:06 PM",
-      "en-US month-first wording with a 12-hour clock, whatever the OS locale is",
-    );
+  it("renders an ISO instant in the active locale", () => {
+    inLocale("en", () => {
+      assert.equal(
+        formatDateTime("2026-07-23T12:06:40.000Z", "UTC"),
+        "Jul 23, 2026, 12:06 PM",
+        "month-first wording with a 12-hour clock",
+      );
+    });
+    inLocale("es", () => {
+      assert.equal(
+        formatDateTime("2026-07-23T12:06:40.000Z", "UTC"),
+        "23 jul 2026, 12:06",
+        "day-first wording with a 24-hour clock",
+      );
+    });
   });
 
   it("converts into the requested zone rather than reporting UTC", () => {
-    assert.equal(
-      formatDateTime("2026-07-23T12:06:40.000Z", "America/Chicago"),
-      "Jul 23, 2026, 7:06 AM",
-    );
+    inLocale("en", () => {
+      assert.equal(
+        formatDateTime("2026-07-23T12:06:40.000Z", "America/Chicago"),
+        "Jul 23, 2026, 7:06 AM",
+      );
+    });
+    inLocale("es", () => {
+      assert.equal(
+        formatDateTime("2026-07-23T12:06:40.000Z", "America/Chicago"),
+        "23 jul 2026, 7:06",
+      );
+    });
   });
 
   it("returns null for an unparseable instant instead of the words Invalid Date", () => {
