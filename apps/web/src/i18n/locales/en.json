@@ -6,6 +6,18 @@
     "sourceHostFallback": "Source Host {{index}}",
     "untitledTask": "Untitled task"
   },
+  "credential": {
+    "mode": {
+      "subscription": "Subscription",
+      "apiKey": "API key",
+      "bedrock": "Bedrock",
+      "vertex": "Vertex",
+      "unknown": "Unrecognised credential"
+    },
+    "inferred": "inferred",
+    "notCounted": "This usage is billed separately and does not count against the window above.",
+    "unattributed": "Not attributed"
+  },
   "headline": {
     "coverage": {
       "none": "No records in this period",

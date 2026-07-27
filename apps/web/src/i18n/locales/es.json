@@ -6,6 +6,18 @@
     "sourceHostFallback": "Host de origen {{index}}",
     "untitledTask": "Tarea sin título"
   },
+  "credential": {
+    "mode": {
+      "subscription": "Suscripción",
+      "apiKey": "Clave de API",
+      "bedrock": "Bedrock",
+      "vertex": "Vertex",
+      "unknown": "Credencial no reconocida"
+    },
+    "inferred": "inferido",
+    "notCounted": "Este uso se factura aparte y no cuenta para la ventana anterior.",
+    "unattributed": "Sin atribuir"
+  },
   "headline": {
     "coverage": {
       "none": "No hay registros en este periodo",
