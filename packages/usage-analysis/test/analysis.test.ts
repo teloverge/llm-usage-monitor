@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { UsageRecord } from "@llm-usage-monitor/contracts";
+import type { UsageQuotaSnapshot, UsageRecord } from "@llm-usage-monitor/contracts";
 import { analyzeHistory, analyzeUsage, currentQuota, timeframeRange } from "../src/index.ts";
 
 const record = (
@@ -629,6 +629,16 @@ describe("currentQuota", () => {
   it("keeps windows that have not reset yet", () => {
     const [current] = currentQuota([snapshot], new Date("2026-07-26T20:00:00.000Z"));
     assert.equal(current?.windows.length, 3);
+  });
+
+  it("drops a window resetting at exactly now", () => {
+    // Exclusive comparison, consistent with this file's other now-vs-instant
+    // boundaries (e.g. effectiveTo): the reset instant itself counts as expired.
+    const [current] = currentQuota([snapshot], new Date("2026-07-27T03:10:00.127Z"));
+    assert.deepEqual(
+      current?.windows.map((window) => window.id),
+      ["weekly_all", "weekly_scoped:fable"],
+    );
   });
 
   it("drops a window whose reset instant has passed", () => {
