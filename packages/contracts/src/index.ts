@@ -257,6 +257,7 @@ export interface UsageFilters {
   hostGroupId?: string;
   harnessId?: string;
   usageSourceId?: string;
+  credentialId?: string;
 }
 export interface UsageTotals {
   estimatedCost: number;
@@ -313,6 +314,20 @@ export interface OverviewView {
   bySourceHost: RankedUsage[];
   byHostGroup: RankedUsage[];
   byHarness: RankedUsage[];
+  /**
+   * Keyed by `credentialIdFor` output, plus the `UNATTRIBUTED_CREDENTIAL`
+   * bucket for records older than the earliest observation for their source and
+   * host. That bucket is never merged into a real credential — it is the guard
+   * that keeps a thin signal from reading as a confident one.
+   */
+  byCredential: RankedUsage[];
+  /**
+   * The observations themselves, so a view can render a badge and label a filter
+   * without a second request. Not filtered by `filters`, for the same reason
+   * `quotaSnapshots` is not: which credential a machine uses is a standing fact,
+   * not a property of the selected records.
+   */
+  credentials: CredentialObservation[];
   /**
    * Latest snapshot per (usage source, host) — a list, not a single value,
    * because a host can run several harnesses and each has its own plan quota.
