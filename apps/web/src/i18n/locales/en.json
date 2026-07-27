@@ -128,7 +128,8 @@
   },
   "quota": {
     "used": "{{percent}} used",
-    "resets": "resets {{at}}"
+    "resets": "resets {{at}}",
+    "asOf": "as of {{at}}"
   },
   "rank": {
     "empty": "No usage in this period",

@@ -395,9 +395,16 @@ footer {
   border-top: 1px solid var(--line);
 }
 .quota-source {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 10px;
   margin: 0 0 5px;
   color: var(--muted);
   font-size: var(--size-meta);
+}
+.quota-observed {
+  font-variant-numeric: tabular-nums;
 }
 .quota-window + .quota-window {
   margin-top: 11px;

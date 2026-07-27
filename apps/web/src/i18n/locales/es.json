@@ -128,7 +128,8 @@
   },
   "quota": {
     "used": "{{percent}} usado",
-    "resets": "se restablece {{at}}"
+    "resets": "se restablece {{at}}",
+    "asOf": "a fecha de {{at}}"
   },
   "rank": {
     "empty": "No hay uso en este periodo",
