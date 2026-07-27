@@ -122,6 +122,15 @@ export class UsageLedger {
    * `effectiveFrom` is assigned here and nowhere else. A collector cannot set
    * it, which is what makes "never backdated" structural rather than a rule
    * someone has to remember.
+   *
+   * A new row's `effectiveFrom` is clamped to never precede the latest
+   * existing row's `observedAt` for that (usage source, host). Without the
+   * clamp, a backwards clock jump — an NTP correction, a VM resuming from a
+   * suspended snapshot, a dual-boot machine with a skewed hardware clock —
+   * would open the new row dated earlier than a row already on record,
+   * backdating attribution for everything in between. README.md, CHANGELOG.md,
+   * and CONTEXT.md all state attribution is never backdated; this clamp is
+   * what keeps that true when the system clock itself misbehaves.
    */
   recordCredentialObservation(sighting: CredentialSighting): void {
     const seen = credentialSightingSchema.parse(sighting);
@@ -135,7 +144,11 @@ export class UsageLedger {
         | { mode: string; fingerprint: string; effective_from: string; observed_at: string }
         | undefined;
       const unchanged = latest?.mode === seen.mode && latest?.fingerprint === seen.fingerprint;
-      const effectiveFrom = unchanged ? latest!.effective_from : seen.observedAt;
+      const effectiveFrom = unchanged
+        ? latest!.effective_from
+        : latest && seen.observedAt < latest.observed_at
+          ? latest.observed_at
+          : seen.observedAt;
       // An observation seen out of order must not drag the latest confirmation
       // backwards; imports can re-read older evidence.
       if (unchanged && seen.observedAt <= latest!.observed_at) return;
