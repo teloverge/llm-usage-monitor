@@ -40,6 +40,7 @@ describe("Quota snapshot round trip", () => {
         memberships: [],
         quotaSnapshots: ledger.quotaSnapshots(),
         filters: { timeframe: "all" },
+        now: new Date("2026-07-20T00:00:00.000Z"),
       });
 
       assert.deepEqual(view.quotaSnapshots, imported.quotaSnapshots);
