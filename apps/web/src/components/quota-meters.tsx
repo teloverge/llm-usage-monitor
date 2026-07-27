@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
-import type { UsageQuotaSnapshot } from "@llm-usage-monitor/contracts";
+import type { CredentialObservation, UsageQuotaSnapshot } from "@llm-usage-monitor/contracts";
 import { STATUS } from "../theme/palette.ts";
+import { countsAgainstPlan, credentialModeKey, latestCredential } from "../model/credential.ts";
 import { formatDateTime, formatWholePercent, type QuotaStatus } from "../model/format.ts";
 import { QUOTA_GLYPH, quotaMeterView } from "../model/quota-meter.ts";
 
@@ -14,9 +15,11 @@ const FILL: Record<QuotaStatus, string> = {
 export function QuotaMeters({
   snapshots,
   harnessLabel,
+  credentials,
 }: {
   snapshots: UsageQuotaSnapshot[];
   harnessLabel: (usageSourceId: string) => string;
+  credentials: CredentialObservation[];
 }) {
   const { t } = useTranslation();
   if (!snapshots.length) return <p className="empty-state">{t("common.notReported")}</p>;
@@ -24,6 +27,7 @@ export function QuotaMeters({
     <div className="quota-groups">
       {snapshots.map((snapshot) => {
         const observedAt = formatDateTime(snapshot.observedAt);
+        const credential = latestCredential(credentials, snapshot.usageSourceId, snapshot.sourceHostId);
         return (
           <div className="quota-group" key={`${snapshot.usageSourceId}/${snapshot.sourceHostId}`}>
             <p className="quota-source">
@@ -40,6 +44,24 @@ export function QuotaMeters({
                 <span className="quota-observed">{t("quota.asOf", { at: observedAt })}</span>
               )}
             </p>
+            {credential && (
+              <p className="quota-credential">
+                <span className={countsAgainstPlan(credential.mode) ? "" : "off-plan"}>
+                  {t(`credential.mode.${credentialModeKey(credential.mode)}`)}
+                </span>
+                {/*
+                  Codex states its mode; Claude's is deduced from an environment
+                  this process may not fully see. Marking the difference is the
+                  same instinct as reporting unreported rather than zero.
+                */}
+                {credential.inferred && <em>{t("credential.inferred")}</em>}
+              </p>
+            )}
+            {credential && !countsAgainstPlan(credential.mode) && (
+              // The reason this feature exists: without it a percentage sits
+              // beside spend that never touched the window it describes.
+              <p className="quota-note">{t("credential.notCounted")}</p>
+            )}
             {snapshot.windows.map((window) => {
               const { status, shown, width } = quotaMeterView(window);
               const resets = window.resetsAt ? formatDateTime(window.resetsAt) : null;

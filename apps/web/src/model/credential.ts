@@ -4,15 +4,20 @@ import { UNATTRIBUTED_CREDENTIAL, type CredentialObservation } from "@llm-usage-
  * Translation key segment per mode. The mode ids are contract values and one of
  * them contains a hyphen, which cannot be addressed by dotted i18n path, so the
  * view never interpolates a raw mode into a key.
+ *
+ * Typed as a literal union, not `string`: the view interpolates this into a
+ * `t(`credential.mode.${...}`)` call, and i18next's `strictKeyChecks` can only
+ * catch a typo'd key when the interpolated segment is narrow enough to check
+ * against the resource file's actual keys.
  */
-const MODE_KEYS: Record<string, string> = {
+const MODE_KEYS: Record<string, "subscription" | "apiKey" | "bedrock" | "vertex"> = {
   subscription: "subscription",
   "api-key": "apiKey",
   bedrock: "bedrock",
   vertex: "vertex",
 };
 
-export function credentialModeKey(mode: string): string {
+export function credentialModeKey(mode: string): "subscription" | "apiKey" | "bedrock" | "vertex" | "unknown" {
   return MODE_KEYS[mode] ?? "unknown";
 }
 
