@@ -55,7 +55,8 @@ In scope:
   `credentialId` in `filtersSchema`.
 - Credential badge in the Plan limits panel, including the API-key warning.
 - A Credential row in Breakdown and a filter chip in the topbar.
-- `accountScope` on the quota snapshot, filled with the fingerprint.
+- A `credentials` collection on `OverviewView`, so a badge can be rendered
+  without a second request.
 
 Explicitly out of scope:
 
@@ -144,8 +145,14 @@ without a lookup.
 
 ### `UsageQuotaSnapshot`
 
-`accountScope` — already in the schema and unused — is filled with the same
-fingerprint. That is how a meter joins to the usage attributed to it.
+Unchanged. An earlier draft filled its unused `accountScope` with the
+fingerprint, to join a meter to the usage attributed to it. That join already
+exists: a quota snapshot and a credential observation are both keyed by
+(usage source, source host), so the meter and its credential meet on the key
+they already share. Filling `accountScope` would add a second, redundant join —
+and for Codex it would mean threading a fingerprint out of `auth.json` and into
+the importer that produces snapshots, which reads a different file entirely.
+`accountScope` stays unused.
 
 ### `UsageFilters`
 
@@ -197,10 +204,22 @@ predicates.
 
 ## Collectors
 
-| Harness | Source                            | Mode                                                                                                                                                            | Fingerprint                           | Confidence |
-| ------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ---------- |
-| Codex   | `~/.codex/auth.json`              | `auth_mode`: `chatgpt` → subscription, `apikey` → api-key                                                                                                       | SHA-256 of `tokens.account_id`        | observed   |
-| Claude  | config cache + server environment | env `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN` → api-key; `CLAUDE_CODE_USE_BEDROCK`/`_VERTEX` → those; else `oauthAccount` present → subscription; else unknown | SHA-256 of `oauthAccount.accountUuid` | inferred   |
+| Harness | Source                            | Mode                                                                                                                                                                 | Fingerprint                           | Confidence |
+| ------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ---------- |
+| Codex   | `~/.codex/auth.json`              | `auth_mode`: `chatgpt` → subscription, `apikey` → api-key                                                                                                            | SHA-256 of `tokens.account_id`        | observed   |
+| Claude  | config cache + server environment | env `CLAUDE_CODE_USE_BEDROCK`/`_VERTEX` → those; else `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN` → api-key; else `oauthAccount` present → subscription; else unknown | SHA-256 of `oauthAccount.accountUuid` | inferred   |
+
+The gateway switches are tested **before** the API key, correcting an earlier
+draft that had it the other way round. Bedrock and Vertex are explicit routing
+decisions, and a shell that sets `CLAUDE_CODE_USE_BEDROCK` alongside an
+Anthropic key is reaching the model through Bedrock — reporting that as a direct
+API key would name the wrong biller.
+
+The fingerprint is always taken from `oauthAccount.accountUuid`, never from key
+material, including in `api-key` mode. Hashing is one-way, but the promise is
+not to read credentials at all, and an account identifier is enough to tell two
+accounts apart. An api-key credential with no OAuth account on the machine
+carries an empty fingerprint and is still distinguished by its mode.
 
 Codex's collector reads `auth_mode` and `account_id` and nothing else from that
 file. The token bodies are not read, hashed, or logged.
