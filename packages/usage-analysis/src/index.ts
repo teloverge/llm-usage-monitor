@@ -60,8 +60,35 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
     bySourceHost: rank(priced, ({ record }) => record.sourceHostId),
     byHostGroup: rank(priced, ({ record }) => groupFor(record)),
     byHarness: rank(priced, ({ record }) => record.harnessId),
-    quotaSnapshots: input.quotaSnapshots ?? [],
+    quotaSnapshots: currentQuota(input.quotaSnapshots ?? [], now),
   };
+}
+
+/**
+ * Drops windows whose reset instant has already passed.
+ *
+ * Filtered here rather than in an importer because a snapshot is written once
+ * and served for days afterwards: a window that was live at import goes expired
+ * while sitting in SQLite, so an expiry decision taken at write time is stale
+ * before it is ever read. `analyzeUsage` already carries an injectable `now`,
+ * which makes this both correct and testable.
+ *
+ * An expired window's percentage is not merely old, it is known-wrong — the
+ * window has since cleared. A snapshot left with no windows keeps its group,
+ * plan, and observation time: "we know this account exists and have nothing
+ * current about it" is a different statement from "no such account".
+ */
+export function currentQuota(snapshots: UsageQuotaSnapshot[], now: Date): UsageQuotaSnapshot[] {
+  const at = now.getTime();
+  return snapshots.map((snapshot) => ({
+    ...snapshot,
+    windows: snapshot.windows.filter((window) => {
+      if (!window.resetsAt) return true;
+      const resets = Date.parse(window.resetsAt);
+      // An unparseable instant is not evidence of expiry.
+      return Number.isNaN(resets) || resets > at;
+    }),
+  }));
 }
 
 export function filterUsageRecords(

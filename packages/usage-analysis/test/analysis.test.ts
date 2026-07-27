@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { UsageRecord } from "@llm-usage-monitor/contracts";
-import { analyzeHistory, analyzeUsage, timeframeRange } from "../src/index.ts";
+import { analyzeHistory, analyzeUsage, currentQuota, timeframeRange } from "../src/index.ts";
 
 const record = (
   timestamp: string,
@@ -610,5 +610,62 @@ describe("Host Group labelling", () => {
       }).byHostGroup.map((row) => row.key),
       ["group:one"],
     );
+  });
+});
+
+describe("currentQuota", () => {
+  const snapshot: UsageQuotaSnapshot = {
+    usageSourceId: "claude-code-local",
+    sourceHostId: "host:a",
+    plan: "claude_max_20x",
+    observedAt: "2026-07-26T22:37:38.317Z",
+    windows: [
+      { id: "session", label: "5-hour window", usedPercent: 2, resetsAt: "2026-07-27T03:10:00.127Z" },
+      { id: "weekly_all", label: "Weekly window", usedPercent: 6, resetsAt: "2026-07-31T22:00:00.127Z" },
+      { id: "weekly_scoped:fable", label: "Weekly window · Fable", usedPercent: 0 },
+    ],
+  };
+
+  it("keeps windows that have not reset yet", () => {
+    const [current] = currentQuota([snapshot], new Date("2026-07-26T20:00:00.000Z"));
+    assert.equal(current?.windows.length, 3);
+  });
+
+  it("drops a window whose reset instant has passed", () => {
+    // The percentage is not merely old, it is known-wrong: the window cleared.
+    const [current] = currentQuota([snapshot], new Date("2026-07-28T00:00:00.000Z"));
+    assert.deepEqual(
+      current?.windows.map((window) => window.id),
+      ["weekly_all", "weekly_scoped:fable"],
+    );
+  });
+
+  it("keeps a window that states no reset instant", () => {
+    const [current] = currentQuota([snapshot], new Date("2030-01-01T00:00:00.000Z"));
+    assert.deepEqual(
+      current?.windows.map((window) => window.id),
+      ["weekly_scoped:fable"],
+    );
+  });
+
+  it("keeps the group when every window has expired", () => {
+    const expired = { ...snapshot, windows: snapshot.windows.slice(0, 2) };
+    const [current] = currentQuota([expired], new Date("2030-01-01T00:00:00.000Z"));
+    // "We know this account exists and have nothing current" is not "no account".
+    assert.equal(current?.windows.length, 0);
+    assert.equal(current?.plan, "claude_max_20x");
+    assert.equal(current?.observedAt, "2026-07-26T22:37:38.317Z");
+  });
+
+  it("is applied by analyzeUsage at its own now", () => {
+    const view = analyzeUsage({
+      records: [],
+      prices: [],
+      memberships: [],
+      quotaSnapshots: [snapshot],
+      filters: { timeframe: "all" },
+      now: new Date("2026-07-28T00:00:00.000Z"),
+    });
+    assert.equal(view.quotaSnapshots[0]?.windows.length, 2);
   });
 });
