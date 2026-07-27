@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Plan limits now include Claude Code, read from the utilization block Claude Code caches locally. Its session and weekly windows appear beside Codex's, with per-model weekly caps shown separately when a plan has them.
+- Each plan limit states when its reading was taken, because these figures are caches that refresh only while their harness is running. A window whose reset time has already passed is withheld rather than shown at a percentage that no longer applies.
+
 ## 0.3.2
 
 - The dashboard reads in the language of your browser, with English and Spanish available and a Language setting to override the choice. Numbers, dates and percentages follow the selected language; costs always name the currency explicitly as `USD` rather than a bare `$`, which is ambiguous outside the US.
