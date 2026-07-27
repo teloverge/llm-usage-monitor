@@ -1,5 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import type {
+  CredentialObservation,
+  CredentialSighting,
   HostGroup,
   HostGroupMembership,
   ModelPrice,
@@ -9,6 +11,8 @@ import type {
   UsageRecord,
 } from "@llm-usage-monitor/contracts";
 import {
+  credentialObservationSchema,
+  credentialSightingSchema,
   decodeUsageRecord,
   modelPriceSchema,
   usageQuotaSnapshotSchema,
@@ -99,6 +103,76 @@ export class UsageLedger {
       .prepare("SELECT payload FROM usage_quota_snapshots ORDER BY usage_source_id")
       .all()
       .map((row) => usageQuotaSnapshotSchema.parse(JSON.parse(String(row.payload))));
+  }
+
+  /**
+   * Records a credential sighting under the first-seen rule.
+   *
+   * A sighting matching the latest one for its (usage source, host) only
+   * advances `observed_at`. Only a CHANGE of mode or fingerprint opens a new
+   * effective-dated row, and `effective_from` is the instant that change was
+   * first seen.
+   *
+   * Writing a row per sighting instead would not merely be wasteful, it would
+   * defeat the feature: `auth.json` is rewritten on every token refresh, so
+   * `effective_from` would advance every day, no observation would ever precede
+   * an older record, and every record would resolve to unattributed forever
+   * while the table filled with thousands of identical rows.
+   *
+   * `effectiveFrom` is assigned here and nowhere else. A collector cannot set
+   * it, which is what makes "never backdated" structural rather than a rule
+   * someone has to remember.
+   */
+  recordCredentialObservation(sighting: CredentialSighting): void {
+    const seen = credentialSightingSchema.parse(sighting);
+    this.transaction(() => {
+      const latest = this.database
+        .prepare(
+          `SELECT mode, fingerprint, effective_from, observed_at FROM credential_observations
+           WHERE usage_source_id=? AND source_host_id=? ORDER BY effective_from DESC LIMIT 1`,
+        )
+        .get(seen.usageSourceId, seen.sourceHostId) as
+        | { mode: string; fingerprint: string; effective_from: string; observed_at: string }
+        | undefined;
+      const unchanged = latest?.mode === seen.mode && latest?.fingerprint === seen.fingerprint;
+      const effectiveFrom = unchanged ? latest!.effective_from : seen.observedAt;
+      // An observation seen out of order must not drag the latest confirmation
+      // backwards; imports can re-read older evidence.
+      if (unchanged && seen.observedAt <= latest!.observed_at) return;
+      const observation: CredentialObservation = { ...seen, effectiveFrom };
+      this.database
+        .prepare(
+          `INSERT INTO credential_observations
+           (usage_source_id, source_host_id, mode, fingerprint, payload, effective_from, observed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(usage_source_id, source_host_id, mode, fingerprint, effective_from)
+           DO UPDATE SET observed_at=excluded.observed_at, payload=excluded.payload`,
+        )
+        .run(
+          observation.usageSourceId,
+          observation.sourceHostId,
+          observation.mode,
+          observation.fingerprint,
+          JSON.stringify(observation),
+          observation.effectiveFrom,
+          observation.observedAt,
+        );
+    });
+  }
+
+  /**
+   * Oldest first, because that is the order attribution reads them in.
+   *
+   * Deliberately NOT cleared by `clearRecords`: a first-seen date cannot be
+   * recovered once lost. Re-observing tomorrow would date the credential to
+   * tomorrow and strand every earlier record in the unattributed bucket, so
+   * clearing usage must not destroy an observation about the machine.
+   */
+  credentialObservations(): CredentialObservation[] {
+    return this.database
+      .prepare("SELECT payload FROM credential_observations ORDER BY effective_from")
+      .all()
+      .map((row) => credentialObservationSchema.parse(JSON.parse(String(row.payload))));
   }
 
   upsertSourceHost(host: SourceHost, observations: SourceHostObservation[]): void {
@@ -306,6 +380,7 @@ export class UsageLedger {
       CREATE TABLE IF NOT EXISTS provider_import_state (provider_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS applied_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS usage_quota_snapshots (usage_source_id TEXT NOT NULL, source_host_id TEXT NOT NULL, observed_at TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(usage_source_id, source_host_id));
+      CREATE TABLE IF NOT EXISTS credential_observations (usage_source_id TEXT NOT NULL, source_host_id TEXT NOT NULL, mode TEXT NOT NULL, fingerprint TEXT NOT NULL, payload TEXT NOT NULL, effective_from TEXT NOT NULL, observed_at TEXT NOT NULL, PRIMARY KEY (usage_source_id, source_host_id, mode, fingerprint, effective_from));
     `);
   }
 
