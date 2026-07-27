@@ -10,6 +10,7 @@ import type {
 } from "@llm-usage-monitor/contracts";
 import { useTranslation } from "react-i18next";
 import { SearchChip, SelectChip } from "./components/chip.tsx";
+import { parseCredentialId } from "./model/credential.ts";
 import { sourceHostLabel, sourceHostLabels } from "./model/source-host.ts";
 import { executeAction, getCatalog, getHistory, getOverview } from "./api.ts";
 import { History } from "./views/history.tsx";
@@ -181,6 +182,27 @@ export function App() {
                 })),
               ]}
               onChange={(value) => change("sourceHostId", value)}
+            />
+            <SelectChip
+              label={t("filters.credential")}
+              value={filters.credentialId ?? ""}
+              options={[
+                { value: "", label: t("filters.allCredentials") },
+                // Built from byCredential rather than credentials: the unattributed
+                // bucket has no observation behind it, so it never appears in
+                // credentials — but on an existing ledger it is the largest group,
+                // and the reader needs to be able to select it.
+                ...(overview?.byCredential ?? []).map((row) => {
+                  const parsed = parseCredentialId(row.key);
+                  return {
+                    value: row.key,
+                    label: parsed.unattributed
+                      ? t("credential.unattributed")
+                      : `${t(`credential.mode.${parsed.modeKey}`)}${parsed.fingerprint ? ` · ${parsed.fingerprint}` : ""}`,
+                  };
+                }),
+              ]}
+              onChange={(value) => change("credentialId", value)}
             />
             <SearchChip
               value={filters.query ?? ""}

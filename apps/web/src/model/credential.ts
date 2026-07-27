@@ -47,10 +47,18 @@ export function latestCredential(
   return latest;
 }
 
-/** Splits a `byCredential` row key back into the parts a label needs. */
+/**
+ * Splits a `byCredential` row key back into the parts a label needs.
+ *
+ * `modeKey` is typed as the same literal union `credentialModeKey` returns,
+ * not widened to `string`: callers interpolate it into a
+ * `t(`credential.mode.${...}`)` call, and i18next's `strictKeyChecks` can
+ * only catch a typo'd key when the interpolated segment is narrow enough to
+ * check against the resource file's actual keys.
+ */
 export function parseCredentialId(id: string): {
   unattributed: boolean;
-  modeKey: string;
+  modeKey: "subscription" | "apiKey" | "bedrock" | "vertex" | "unknown";
   fingerprint: string;
 } {
   if (id === UNATTRIBUTED_CREDENTIAL) {

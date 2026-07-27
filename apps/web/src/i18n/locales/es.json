@@ -94,7 +94,9 @@
     "searchTasks": "Filtrar tareas",
     "refresh": "Actualizar fuentes",
     "refreshing": "Actualizando…",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "credential": "Credencial",
+    "allCredentials": "Todas las credenciales"
   },
   "period": {
     "select": {
@@ -155,6 +157,7 @@
     "byTask": "Tarea → Sesión",
     "bySourceHost": "Host",
     "byHostGroup": "Grupo de hosts",
+    "byCredential": "Credencial",
     "treeView": "⊟ Vista de árbol",
     "tableView": "⊞ Vista de tabla",
     "empty": "Ningún uso coincide con los filtros actuales."

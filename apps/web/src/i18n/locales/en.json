@@ -94,7 +94,9 @@
     "searchTasks": "Filter tasks",
     "refresh": "Refresh sources",
     "refreshing": "Refreshing…",
-    "settings": "Settings"
+    "settings": "Settings",
+    "credential": "Credential",
+    "allCredentials": "All credentials"
   },
   "period": {
     "select": {
@@ -155,6 +157,7 @@
     "byTask": "Task → Session",
     "bySourceHost": "Host",
     "byHostGroup": "Host Group",
+    "byCredential": "Credential",
     "treeView": "⊟ Tree view",
     "tableView": "⊞ Table view",
     "empty": "No usage matches the current filters."
