@@ -171,7 +171,13 @@ function slug(value: string): string {
 
 function unique(taken: Set<string>, base: string): string {
   let id = capped(base);
-  for (let suffix = 2; taken.has(id); suffix += 1) id = capped(`${base}-${suffix}`);
+  // The suffix must survive `capped`, or a base already at the length limit
+  // truncates back to the same string every iteration and this loop never
+  // ends. Reserve room by trimming the root, not the finished id.
+  for (let suffix = 2; taken.has(id); suffix += 1) {
+    const marker = `-${suffix}`;
+    id = `${base.slice(0, 200 - marker.length)}${marker}`;
+  }
   taken.add(id);
   return id;
 }
@@ -193,11 +199,22 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 function instant(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined;
   const at = new Date(typeof value === "number" ? value : String(value));
-  return Number.isNaN(at.getTime()) ? undefined : at.toISOString();
+  if (Number.isNaN(at.getTime())) return undefined;
+  const iso = at.toISOString();
+  // Years outside 0000-9999 widen to a signed six-digit form ("+058537-09-27T…")
+  // that Zod's .datetime() rejects. A date that far out is a reshaped unit, not
+  // a date, so report it as unreported rather than let it throw at the ledger —
+  // where it would take that run's transcript records down with it.
+  return iso.startsWith("+") || iso.startsWith("-") ? undefined : iso;
 }
 
 function nonNegative(value: unknown): number | undefined {
-  if (value === null || value === undefined || value === "") return undefined;
+  // `Number(false)`, `Number([])`, and `Number(" ")` are all `0`, which would
+  // otherwise coerce "did not say" into a genuine 0% meter. Only real numbers
+  // and non-blank strings are eligible to become one.
+  if (typeof value !== "number" && (typeof value !== "string" || value.trim() === "")) {
+    return undefined;
+  }
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }

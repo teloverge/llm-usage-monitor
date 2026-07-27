@@ -174,6 +174,50 @@ describe("claudeQuotaSnapshot", () => {
     assert.equal(new Set(snapshot?.windows.map((w) => w.id)).size, 2);
   });
 
+  it(
+    "still terminates and gives distinct ids when two long kinds share a 200-char prefix",
+    { timeout: 5000 },
+    () => {
+      // `kind` is capped to 200 chars by `text()`, so two entries can arrive
+      // with an identical 200-char `kind`. `unique()` must not spin forever
+      // trying to disambiguate them.
+      const longKind = `${"k".repeat(200)}`;
+      const snapshot = claudeQuotaSnapshot(
+        config({
+          limits: [
+            { kind: longKind, percent: 1 },
+            { kind: longKind, percent: 2 },
+          ],
+        }),
+        "host:a",
+      );
+      assert.equal(snapshot?.windows.length, 2);
+      const ids = snapshot?.windows.map((window) => window.id) ?? [];
+      assert.notEqual(ids[0], ids[1]);
+    },
+  );
+
+  it("omits resetsAt for a limit whose reset instant is out of Zod's representable range", () => {
+    // A plausible ms->us reshape of `resets_at` widens the year to a signed
+    // six-digit form that `.datetime()` rejects; the window must still appear.
+    const snapshot = claudeQuotaSnapshot(
+      config({
+        limits: [{ kind: "session", percent: 2, resets_at: "+058537-09-27T19:18:37.000Z" }],
+      }),
+      "host:a",
+    );
+    assert.equal(snapshot?.windows.length, 1);
+    assert.ok(!("resetsAt" in (snapshot?.windows[0] ?? {})));
+  });
+
+  it("omits usedPercent rather than coercing a non-number percent to 0", () => {
+    const snapshot = claudeQuotaSnapshot(
+      config({ limits: [{ kind: "session", percent: false }] }),
+      "host:a",
+    );
+    assert.ok(!("usedPercent" in (snapshot?.windows[0] ?? {})));
+  });
+
   it("keeps an unrecognised kind rather than dropping it", () => {
     const snapshot = claudeQuotaSnapshot(
       config({ limits: [{ kind: "monthly_all", percent: 12 }] }),
@@ -219,6 +263,22 @@ describe("claudeQuotaSnapshot", () => {
       claudeQuotaSnapshot({ cachedUsageUtilization: { utilization: {} } }, "host:a"),
       null,
     );
+  });
+
+  it("returns null when fetchedAtMs is a plausible ms-to-us reshape out of range", () => {
+    // 1785105458317000 is what `fetchedAtMs` looks like if a future cache
+    // switches to microseconds. It must read as "no usable observation time",
+    // not throw past this function into the ledger.
+    const snapshot = claudeQuotaSnapshot(
+      {
+        cachedUsageUtilization: {
+          fetchedAtMs: 1785105458317000,
+          utilization: { limits: [] },
+        },
+      },
+      "host:a",
+    );
+    assert.equal(snapshot, null);
   });
 
   it("emits a snapshot with no windows when the cache reports no limits", () => {
@@ -307,6 +367,14 @@ describe("claudeQuotaSnapshot extra usage", () => {
       "host:a",
     );
     // No currency and no exponent: omit rather than invent a unit.
+    assert.equal(snapshot?.balance, undefined);
+  });
+
+  it("reports no window and no balance when extra usage is enabled but unmeasured", () => {
+    // The correct fail-closed direction: `is_enabled` without a `utilization`
+    // number must not produce a meter out of nothing.
+    const snapshot = claudeQuotaSnapshot(config({ extra_usage: { is_enabled: true } }), "host:a");
+    assert.ok(!snapshot?.windows.some((window) => window.id === "extra-usage"));
     assert.equal(snapshot?.balance, undefined);
   });
 });
