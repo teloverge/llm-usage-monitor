@@ -182,7 +182,7 @@ function unique(taken: Set<string>, base: string): string {
   return id;
 }
 
-function planLabel(account: Record<string, unknown> | null): string | undefined {
+export function planLabel(account: Record<string, unknown> | null): string | undefined {
   const tier = text(account?.organizationRateLimitTier);
   // The tier names the plan precisely ("claude_max_20x"); the type is coarser
   // ("claude_max") and only used when the tier is missing.
