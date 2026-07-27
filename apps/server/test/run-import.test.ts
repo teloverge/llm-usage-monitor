@@ -41,7 +41,12 @@ const rejectedSnapshot = {
 
 const provider = (quotaSnapshots: UsageQuotaSnapshot[], records = [usage("record-1")]) => ({
   id: "fake-local",
-  collect: async () => ({ records, quotaSnapshots, state: { scanned: true } }),
+  collect: async () => ({
+    records,
+    quotaSnapshots,
+    state: { scanned: true },
+    stats: { home: "/fixture/home" },
+  }),
 });
 
 describe("runProviderImport", () => {
@@ -122,7 +127,7 @@ describe("runProviderImport", () => {
           id: "fake-local",
           collect: async (sourceHostId: string, home: string | undefined, previous: unknown) => {
             seen.push([sourceHostId, home, previous]);
-            return { records: [], quotaSnapshots: [], state: {} };
+            return { records: [], quotaSnapshots: [], state: {}, stats: { home: "/fixture/home" } };
           },
         },
         ledger,
@@ -132,6 +137,99 @@ describe("runProviderImport", () => {
       );
 
       assert.deepEqual(seen, [["host:b", "/configured/home", {}]]);
+    } finally {
+      ledger.close();
+    }
+  });
+});
+
+describe("runProviderImport credential observation", () => {
+  const sighting = {
+    usageSourceId: "fake-local",
+    sourceHostId: "host:a",
+    mode: "subscription" as const,
+    fingerprint: "9a1b2c3d4e5f",
+    inferred: false,
+    observedAt: "2026-07-26T22:00:00.000Z",
+  };
+
+  it("records the credential the collector observed", async () => {
+    const ledger = new UsageLedger();
+    try {
+      await runProviderImport(
+        provider([goodSnapshot]),
+        ledger,
+        "host:a",
+        undefined,
+        () => {},
+        async () => sighting,
+      );
+      assert.equal(ledger.credentialObservations().length, 1);
+      assert.equal(ledger.credentialObservations()[0]?.mode, "subscription");
+    } finally {
+      ledger.close();
+    }
+  });
+
+  it("hands the collector the home the provider actually used", async () => {
+    const ledger = new UsageLedger();
+    const homes: Array<string | undefined> = [];
+    try {
+      await runProviderImport(
+        provider([goodSnapshot]),
+        ledger,
+        "host:a",
+        undefined,
+        () => {},
+        async (home) => {
+          homes.push(home);
+          return null;
+        },
+      );
+      // Not re-derived from environment defaults: the same directory the
+      // importer read, so a configured home cannot make the two disagree.
+      assert.deepEqual(homes, ["/fixture/home"]);
+    } finally {
+      ledger.close();
+    }
+  });
+
+  it("commits records even when the credential collector throws", async () => {
+    const ledger = new UsageLedger();
+    const failures: string[] = [];
+    try {
+      const committed = await runProviderImport(
+        provider([goodSnapshot]),
+        ledger,
+        "host:a",
+        undefined,
+        (id) => failures.push(id),
+        async () => {
+          throw new Error("auth.json vanished mid-read");
+        },
+      );
+      // Same invariant the quota write already has: an auxiliary reading must
+      // never be able to discard a run's usage.
+      assert.equal(committed, 1);
+      assert.equal(ledger.records().length, 1);
+      assert.deepEqual(failures, ["fake-local"]);
+    } finally {
+      ledger.close();
+    }
+  });
+
+  it("records nothing when the collector observed nothing", async () => {
+    const ledger = new UsageLedger();
+    try {
+      await runProviderImport(
+        provider([goodSnapshot]),
+        ledger,
+        "host:a",
+        undefined,
+        () => {},
+        async () => null,
+      );
+      assert.equal(ledger.credentialObservations().length, 0);
     } finally {
       ledger.close();
     }
