@@ -1,4 +1,5 @@
 import type {
+  CredentialObservation,
   HostGroup,
   HostGroupMembership,
   ModelPrice,
@@ -11,6 +12,7 @@ import type {
   UsageRecord,
   UsageTotals,
 } from "@llm-usage-monitor/contracts";
+import { credentialIdFor, UNATTRIBUTED_CREDENTIAL } from "@llm-usage-monitor/contracts";
 
 export interface AnalysisInput {
   records: UsageRecord[];
@@ -30,12 +32,25 @@ export interface AnalysisInput {
    * filter matching nothing must not render as 0% used.
    */
   quotaSnapshots?: UsageQuotaSnapshot[];
+  /**
+   * Optional so the analysis tests that predate credentials keep compiling.
+   * Absent means nothing has been observed, and every record is unattributed —
+   * which is the truthful reading, not a degraded one.
+   */
+  credentials?: CredentialObservation[];
   now?: Date;
 }
 
 export function analyzeUsage(input: AnalysisInput): OverviewView {
   const now = input.now ?? new Date();
-  const selected = filterUsageRecords(input.records, input.filters, input.memberships, now);
+  const credentials = input.credentials ?? [];
+  const selected = filterUsageRecords(
+    input.records,
+    input.filters,
+    input.memberships,
+    now,
+    credentials,
+  );
   const priced = selected.map((record) => ({
     record,
     estimatedCost: calculateCost(record, input.prices),
@@ -60,6 +75,8 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
     bySourceHost: rank(priced, ({ record }) => record.sourceHostId),
     byHostGroup: rank(priced, ({ record }) => groupFor(record)),
     byHarness: rank(priced, ({ record }) => record.harnessId),
+    byCredential: rank(priced, ({ record }) => credentialKey(credentials, record)),
+    credentials,
     quotaSnapshots: currentQuota(input.quotaSnapshots ?? [], now),
   };
 }
@@ -96,6 +113,7 @@ export function filterUsageRecords(
   filters: UsageFilters,
   memberships: HostGroupMembership[],
   now = new Date(),
+  credentials: CredentialObservation[] = [],
 ): UsageRecord[] {
   const [from, to] = timeframeRange(filters, now);
   const query = filters.query?.trim().toLocaleLowerCase() ?? "";
@@ -112,6 +130,7 @@ export function filterUsageRecords(
       (!filters.hostGroupId || groupId === filters.hostGroupId) &&
       (!filters.harnessId || record.harnessId === filters.harnessId) &&
       (!filters.usageSourceId || record.usageSourceId === filters.usageSourceId) &&
+      (!filters.credentialId || credentialKey(credentials, record) === filters.credentialId) &&
       (!query || record.taskName.toLocaleLowerCase().includes(query))
     );
   });
@@ -344,6 +363,46 @@ function effectiveGroup(
         (!membership.effectiveTo || Date.parse(membership.effectiveTo) > at),
     )?.hostGroupId ?? null
   );
+}
+/**
+ * The credential in effect for one (usage source, host) at one instant: the
+ * observation with the greatest `effectiveFrom` at or before it.
+ *
+ * Unlike `effectiveGroup`, observations carry no `effectiveTo` — a credential
+ * stays in effect until a different one is observed — so this scans for the
+ * latest qualifying row rather than the first containing window.
+ *
+ * Nothing before the earliest observation qualifies. That is deliberate and is
+ * the guard the whole feature rests on: the first observation says nothing about
+ * the month before it, so those records stay unattributed rather than being
+ * credited to a credential that may not have been in use.
+ */
+export function effectiveCredential(
+  credentials: CredentialObservation[],
+  usageSourceId: string,
+  sourceHostId: string,
+  timestamp: string,
+): CredentialObservation | undefined {
+  const at = Date.parse(timestamp);
+  let latest: CredentialObservation | undefined;
+  for (const credential of credentials) {
+    if (credential.usageSourceId !== usageSourceId) continue;
+    if (credential.sourceHostId !== sourceHostId) continue;
+    const from = Date.parse(credential.effectiveFrom);
+    if (Number.isNaN(from) || from > at) continue;
+    if (!latest || from > Date.parse(latest.effectiveFrom)) latest = credential;
+  }
+  return latest;
+}
+
+function credentialKey(credentials: CredentialObservation[], record: UsageRecord): string {
+  const credential = effectiveCredential(
+    credentials,
+    record.usageSourceId,
+    record.sourceHostId,
+    record.timestamp,
+  );
+  return credential ? credentialIdFor(credential) : UNATTRIBUTED_CREDENTIAL;
 }
 function timelineBucket(timestamp: string, timeframe: UsageFilters["timeframe"]): string {
   return timeframe === "last24"
