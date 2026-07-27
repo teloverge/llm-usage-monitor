@@ -469,14 +469,37 @@ describe("Credential observations", () => {
 
   it("returns observations oldest first", () => {
     const store = create();
-    store.recordCredentialObservation(sighting({ observedAt: "2026-07-25T10:00:00.000Z" }));
+    // Independent (usage source, host) pairs, so the second insert is a
+    // first-ever row for host:a and does not touch the clamp on host:b's
+    // latest row — this is purely about SELECT ordering, not clock handling.
     store.recordCredentialObservation(
-      sighting({ mode: "api-key", observedAt: "2026-07-20T10:00:00.000Z" }),
+      sighting({ sourceHostId: "host:b", observedAt: "2026-07-25T10:00:00.000Z" }),
+    );
+    store.recordCredentialObservation(
+      sighting({ sourceHostId: "host:a", observedAt: "2026-07-20T10:00:00.000Z" }),
     );
     assert.deepEqual(
       store.credentialObservations().map((observation) => observation.effectiveFrom),
       ["2026-07-20T10:00:00.000Z", "2026-07-25T10:00:00.000Z"],
     );
+  });
+
+  it("clamps effectiveFrom against a backwards clock jump", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting({ observedAt: "2026-07-20T10:00:00.000Z" }));
+    store.recordCredentialObservation(
+      sighting({ mode: "api-key", observedAt: "2026-07-01T10:00:00.000Z" }),
+    );
+    const observations = store.credentialObservations();
+    const subscriptionRow = observations.find((observation) => observation.mode === "subscription");
+    const apiKeyRow = observations.find((observation) => observation.mode === "api-key");
+    assert.ok(subscriptionRow && apiKeyRow);
+
+    // A clock jump backwards (NTP correction, VM resume, dual boot) must not
+    // backdate the new credential ahead of a row already on record — README,
+    // CHANGELOG, and CONTEXT all promise attribution is never backdated.
+    assert.ok(apiKeyRow!.effectiveFrom >= subscriptionRow!.effectiveFrom);
+    assert.equal(apiKeyRow!.effectiveFrom, "2026-07-20T10:00:00.000Z");
   });
 
   it("survives clearing records", () => {

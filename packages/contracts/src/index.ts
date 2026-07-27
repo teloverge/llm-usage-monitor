@@ -245,20 +245,6 @@ export interface ModelPrice {
 
 export const timeframeSchema = z.enum(["today", "last24", "7", "30", "90", "all", "custom"]);
 export type Timeframe = z.infer<typeof timeframeSchema>;
-export interface UsageFilters {
-  timeframe: Timeframe;
-  from?: string;
-  to?: string;
-  provider?: string;
-  model?: string;
-  reasoningLevel?: string;
-  query?: string;
-  sourceHostId?: string;
-  hostGroupId?: string;
-  harnessId?: string;
-  usageSourceId?: string;
-  credentialId?: string;
-}
 export interface UsageTotals {
   estimatedCost: number;
   pricedRecords: number;
@@ -353,6 +339,14 @@ export const filtersSchema = z
     credentialId: z.string().max(200).optional(),
   })
   .strict();
+/**
+ * Derived from `filtersSchema` rather than hand-written, so the two cannot
+ * drift again: an earlier hand-written copy of this interface only stayed in
+ * sync because someone happened to notice and patch it by hand mid-branch.
+ * `timeframe` has a `.default()` in the schema, but `z.infer` (the output
+ * type) still makes it required here, matching what every consumer expects.
+ */
+export type UsageFilters = z.infer<typeof filtersSchema>;
 export const modelPriceSchema = z
   .object({
     provider: z.string().min(1).max(100),

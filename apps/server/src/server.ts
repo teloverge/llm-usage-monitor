@@ -214,20 +214,13 @@ async function writeDiscovery(dataDirectory: string, discovery: DiscoveryRecord)
   await fs.rename(temporary, target);
 }
 function parseFilters(params: URLSearchParams): UsageFilters {
+  // Derived from the schema, not hand-copied: a literal key list here once
+  // silently dropped `credentialId` — filtersSchema.parse only ever sees keys
+  // present in this constructed object, so the missing key never threw, it
+  // just vanished. `.shape` is the schema's own key list, so a filter added
+  // there cannot be forgotten here again.
   const value = Object.fromEntries(
-    [
-      "timeframe",
-      "from",
-      "to",
-      "provider",
-      "model",
-      "reasoningLevel",
-      "query",
-      "sourceHostId",
-      "hostGroupId",
-      "harnessId",
-      "usageSourceId",
-    ].flatMap((key) => {
+    Object.keys(filtersSchema.shape).flatMap((key) => {
       const item = params.get(key);
       return item === null || item === "" ? [] : [[key, item]];
     }),
