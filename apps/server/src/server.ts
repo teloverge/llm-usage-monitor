@@ -14,6 +14,7 @@ import { ClaudeSessionProvider } from "./claude-importer.ts";
 import { CodexSessionProvider } from "./codex-importer.ts";
 import { mergeDefaultPrices } from "./default-prices.ts";
 import { resolveLocalSourceHost } from "./local-source-host.ts";
+import { runProviderImport } from "./run-import.ts";
 
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 export interface DiscoveryRecord {
@@ -43,15 +44,16 @@ export async function startUsageMonitorServer(options: {
   const claudeImporter = new ClaudeSessionProvider();
   // Each provider keeps its own import state and its own records, so the two
   // imports are independent: one failing or finding nothing leaves the other's
-  // history untouched.
-  const runImport = async (
+  // history untouched. `runProviderImport` extends that independence to the two
+  // halves of a single import — see its comment for why the quota write must
+  // not be able to take the records down with it.
+  const runImport = (
     provider: CodexSessionProvider | ClaudeSessionProvider,
     home: string | undefined,
-  ) => {
-    const result = await provider.collect(local.host.id, home, ledger.importState(provider.id));
-    ledger.replaceQuotaSnapshots(result.quotaSnapshots);
-    return ledger.commitProviderImport(provider.id, result.records, result.state);
-  };
+  ) =>
+    runProviderImport(provider, ledger, local.host.id, home, (providerId, error) => {
+      console.warn(`quota snapshot refused for ${providerId}:`, error);
+    });
   const actions = createDashboardActions({
     localSourceHostId: local.host.id,
     importCodex: (codexHome) => runImport(importer, codexHome),
