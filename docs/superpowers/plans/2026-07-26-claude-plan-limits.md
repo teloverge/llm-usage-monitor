@@ -32,11 +32,13 @@
 `windowLabel` currently lives in `codex-importer.ts` and is the only place that turns a window length into English. Claude's mapper needs the same function, and two copies would drift into two different words for the same window.
 
 **Files:**
+
 - Create: `apps/server/src/quota-window-label.ts`
 - Modify: `apps/server/src/codex-importer.ts` (remove the local copy at lines 253–283, import instead)
 - Test: `apps/server/test/quota-window-label.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `windowLabel(id: string, windowMinutes: number): string`
 
@@ -151,13 +153,15 @@ seven days on the same panel."
 
 ### Task 2: Locate and read the Claude config cache
 
-The quota numbers live in `~/.claude.json`, which is a sibling of the `~/.claude` home the importer already resolves — not inside it. Under `CLAUDE_CONFIG_DIR` the same file sits *inside* the configured directory instead, so both layouts must be probed.
+The quota numbers live in `~/.claude.json`, which is a sibling of the `~/.claude` home the importer already resolves — not inside it. Under `CLAUDE_CONFIG_DIR` the same file sits _inside_ the configured directory instead, so both layouts must be probed.
 
 **Files:**
+
 - Create: `apps/server/src/claude-quota.ts`
 - Test: `apps/server/test/claude-quota.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `readClaudeConfig(home: string, maxBytes?: number): Promise<Record<string, unknown> | null>`
 
@@ -316,10 +320,12 @@ already found transcripts."
 The mapping proper. `limits[]` drives the meters; the sibling `five_hour` / `seven_day` fields are consulted only to establish window durations, which `limits[]` omits.
 
 **Files:**
+
 - Modify: `apps/server/src/claude-quota.ts`
 - Test: `apps/server/test/claude-quota.test.ts`
 
 **Interfaces:**
+
 - Consumes: `windowLabel(id, windowMinutes)` from Task 1.
 - Produces: `claudeQuotaSnapshot(config: unknown, sourceHostId: string): UsageQuotaSnapshot | null`
 
@@ -354,13 +360,33 @@ function config(overrides: Record<string, unknown> = {}): Record<string, unknown
         tangelo: null,
         iguana_necktie: null,
         limits: [
-          { kind: "session", group: "session", percent: 2, severity: "normal",
-            resets_at: FIVE_HOUR_RESET, scope: null, is_active: false },
-          { kind: "weekly_all", group: "weekly", percent: 6, severity: "normal",
-            resets_at: SEVEN_DAY_RESET, scope: null, is_active: true },
-          { kind: "weekly_scoped", group: "weekly", percent: 0, severity: "normal",
-            resets_at: null, scope: { model: { id: null, display_name: "Fable" } },
-            is_active: false },
+          {
+            kind: "session",
+            group: "session",
+            percent: 2,
+            severity: "normal",
+            resets_at: FIVE_HOUR_RESET,
+            scope: null,
+            is_active: false,
+          },
+          {
+            kind: "weekly_all",
+            group: "weekly",
+            percent: 6,
+            severity: "normal",
+            resets_at: SEVEN_DAY_RESET,
+            scope: null,
+            is_active: true,
+          },
+          {
+            kind: "weekly_scoped",
+            group: "weekly",
+            percent: 0,
+            severity: "normal",
+            resets_at: null,
+            scope: { model: { id: null, display_name: "Fable" } },
+            is_active: false,
+          },
         ],
         ...overrides,
       },
@@ -597,7 +623,9 @@ function statedDurations(utilization: Record<string, unknown>): Map<string, numb
 
 function label(kind: string, scope: string | undefined, windowMinutes: number | undefined): string {
   const base =
-    windowMinutes === undefined ? (KIND_LABELS[kind] ?? humanize(kind)) : windowLabel(kind, windowMinutes);
+    windowMinutes === undefined
+      ? (KIND_LABELS[kind] ?? humanize(kind))
+      : windowLabel(kind, windowMinutes);
   return scope ? `${base} · ${scope}` : base;
 }
 
@@ -612,7 +640,10 @@ function scopeName(limit: Record<string, unknown>): string | undefined {
 }
 
 function slug(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function unique(taken: Set<string>, base: string): string {
@@ -681,10 +712,12 @@ screen that the cache did not state."
 Both blocks are disabled on every account observed so far, so this ships dormant. It is written to fail closed — any field missing, the block is omitted rather than guessed at — and it is tested in both directions precisely because dormant code breaks silently on the day it wakes up.
 
 **Files:**
+
 - Modify: `apps/server/src/claude-quota.ts`
 - Test: `apps/server/test/claude-quota.test.ts`
 
 **Interfaces:**
+
 - Consumes: `claudeQuotaSnapshot` from Task 3.
 - Produces: no new export; `claudeQuotaSnapshot` gains `balance` and may emit an `extra-usage` window.
 
@@ -776,15 +809,15 @@ Expected: FAIL — `balance` is `undefined` where a value is expected, and no `e
 In `apps/server/src/claude-quota.ts`, change the `windows` line and add `balance` in `claudeQuotaSnapshot`:
 
 ```ts
-  const balance = balanceFrom(utilization);
-  return {
-    usageSourceId: "claude-code-local",
-    sourceHostId,
-    ...(plan ? { plan } : {}),
-    observedAt,
-    windows: [...quotaWindows(utilization), ...extraUsageWindow(utilization)].slice(0, MAX_WINDOWS),
-    ...(balance ? { balance } : {}),
-  };
+const balance = balanceFrom(utilization);
+return {
+  usageSourceId: "claude-code-local",
+  sourceHostId,
+  ...(plan ? { plan } : {}),
+  observedAt,
+  windows: [...quotaWindows(utilization), ...extraUsageWindow(utilization)].slice(0, MAX_WINDOWS),
+  ...(balance ? { balance } : {}),
+};
 ```
 
 And append:
@@ -864,10 +897,12 @@ code breaks silently the day an account enables it."
 ### Task 5: Wire the snapshot into the Claude importer
 
 **Files:**
+
 - Modify: `apps/server/src/claude-importer.ts` (header comment lines 18–30; `collect` return at line 67)
 - Test: `apps/server/test/quota-round-trip.test.ts`
 
 **Interfaces:**
+
 - Consumes: `readClaudeConfig(home, maxBytes?)` and `claudeQuotaSnapshot(config, sourceHostId)`.
 - Produces: `ClaudeSessionProvider.collect` returns a populated `quotaSnapshots` array.
 
@@ -960,7 +995,7 @@ import { claudeQuotaSnapshot, readClaudeConfig } from "./claude-quota.ts";
 Inside `collect`, after the file loop and before the `return`:
 
 ```ts
-    const snapshot = claudeQuotaSnapshot(await readClaudeConfig(home), sourceHostId);
+const snapshot = claudeQuotaSnapshot(await readClaudeConfig(home), sourceHostId);
 ```
 
 and change the returned `quotaSnapshots: []` to:
@@ -1007,11 +1042,13 @@ nothing, which is the state of a fresh install."
 A snapshot is written once and served for days afterwards. A window that was live when imported goes expired while sitting in SQLite, so expiry cannot be decided at import.
 
 **Files:**
+
 - Modify: `packages/usage-analysis/src/index.ts` (the `quotaSnapshots` line in `analyzeUsage`, currently line 63)
 - Modify: `apps/server/test/quota-round-trip.test.ts` (the Codex case needs a pinned `now`)
 - Test: `packages/usage-analysis/test/analysis.test.ts`
 
 **Interfaces:**
+
 - Consumes: `analyzeUsage`'s existing `now` input.
 - Produces: `currentQuota(snapshots: UsageQuotaSnapshot[], now: Date): UsageQuotaSnapshot[]`
 
@@ -1027,8 +1064,18 @@ describe("currentQuota", () => {
     plan: "claude_max_20x",
     observedAt: "2026-07-26T22:37:38.317Z",
     windows: [
-      { id: "session", label: "5-hour window", usedPercent: 2, resetsAt: "2026-07-27T03:10:00.127Z" },
-      { id: "weekly_all", label: "Weekly window", usedPercent: 6, resetsAt: "2026-07-31T22:00:00.127Z" },
+      {
+        id: "session",
+        label: "5-hour window",
+        usedPercent: 2,
+        resetsAt: "2026-07-27T03:10:00.127Z",
+      },
+      {
+        id: "weekly_all",
+        label: "Weekly window",
+        usedPercent: 6,
+        resetsAt: "2026-07-31T22:00:00.127Z",
+      },
       { id: "weekly_scoped:fable", label: "Weekly window · Fable", usedPercent: 0 },
     ],
   };
@@ -1161,11 +1208,13 @@ not old, it is wrong - the window cleared."
 The Claude number is a cache refreshed only while Claude Code runs, so an unqualified percentage is a claim the data cannot support. Codex gains the same line — it has the same exposure.
 
 **Files:**
+
 - Modify: `apps/web/src/components/quota-meters.tsx`
 - Modify: `apps/web/src/styles.css` (the `.quota-source` rule at line 397)
 - Modify: `apps/web/src/i18n/locales/en.json`, `apps/web/src/i18n/locales/es.json`
 
 **Interfaces:**
+
 - Consumes: `snapshot.observedAt`, `formatDateTime` from `../model/format.ts`.
 - Produces: no exports. This repo tests pure functions in `model/`, not components — `formatDateTime` is already covered by `apps/web/test/format.test.ts`, so this task's gate is typecheck, build, and a look at the panel.
 
@@ -1323,10 +1372,12 @@ bare percentage asserts more than the source supports."
 ### Task 8: User-facing documentation
 
 **Files:**
+
 - Modify: `README.md` (the "Current capabilities" list)
 - Modify: `CHANGELOG.md`
 
 **Interfaces:**
+
 - Consumes: the finished feature.
 - Produces: nothing consumed by later tasks.
 

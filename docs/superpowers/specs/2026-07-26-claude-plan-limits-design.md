@@ -46,19 +46,19 @@ Explicitly out of scope:
 
 ## Decisions
 
-| Decision           | Choice                                                | Why                                                                                                              |
-| ------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Source of truth    | `cachedUsageUtilization` in `~/.claude.json`           | Only local source of true percentages; keeps "calls no vendor account servers" intact                             |
-| Module             | Separate `claude-quota.ts`, not inside the importer    | Different file, format, and failure mode from transcript parsing                                                  |
-| Parsing posture    | Lenient, never throws                                  | Foreign unversioned data; five null codename slots on one account prove it reshapes                               |
-| Windows            | Driven by `limits[]`, all entries                      | Anthropic's own normalized list; survives a new per-model cap with no code change                                 |
-| Window duration    | Cross-referenced, never assumed                        | `limits[]` omits duration; matching `resets_at` against `five_hour`/`seven_day` is Anthropic stating it           |
-| Plan label         | `oauthAccount`, not `.credentials.json`                | Same fetch as the utilization, so it cannot drift out of step with the meter                                      |
-| `.credentials.json` | Never read                                            | A credential store; the README's "never imports credentials" is worth more than a plan string                     |
-| Staleness          | `observedAt` shown; expired windows dropped            | The number is a cache of unknown age; an unqualified percentage would be a claim the data cannot support          |
-| Expiry filtering   | In `analyzeUsage`, not the importer                    | A snapshot is written once and served for days; expiry decided at import is stale before it is read               |
-| `severity`         | Ignored                                                | Thresholds are the dashboard's own and apply identically to every source                                          |
-| Extra usage        | Mapped, fail-closed                                    | User's explicit choice; both blocks are disabled on the only observable account, so it ships dormant              |
+| Decision            | Choice                                              | Why                                                                                                      |
+| ------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Source of truth     | `cachedUsageUtilization` in `~/.claude.json`        | Only local source of true percentages; keeps "calls no vendor account servers" intact                    |
+| Module              | Separate `claude-quota.ts`, not inside the importer | Different file, format, and failure mode from transcript parsing                                         |
+| Parsing posture     | Lenient, never throws                               | Foreign unversioned data; five null codename slots on one account prove it reshapes                      |
+| Windows             | Driven by `limits[]`, all entries                   | Anthropic's own normalized list; survives a new per-model cap with no code change                        |
+| Window duration     | Cross-referenced, never assumed                     | `limits[]` omits duration; matching `resets_at` against `five_hour`/`seven_day` is Anthropic stating it  |
+| Plan label          | `oauthAccount`, not `.credentials.json`             | Same fetch as the utilization, so it cannot drift out of step with the meter                             |
+| `.credentials.json` | Never read                                          | A credential store; the README's "never imports credentials" is worth more than a plan string            |
+| Staleness           | `observedAt` shown; expired windows dropped         | The number is a cache of unknown age; an unqualified percentage would be a claim the data cannot support |
+| Expiry filtering    | In `analyzeUsage`, not the importer                 | A snapshot is written once and served for days; expiry decided at import is stale before it is read      |
+| `severity`          | Ignored                                             | Thresholds are the dashboard's own and apply identically to every source                                 |
+| Extra usage         | Mapped, fail-closed                                 | User's explicit choice; both blocks are disabled on the only observable account, so it ships dormant     |
 
 ### Why `.credentials.json` stays unread
 
@@ -124,14 +124,14 @@ project history and is not bounded by anything the monitor controls.
 
 ## Mapping to `UsageQuotaSnapshot`
 
-| Field           | Source                                                                          |
-| --------------- | ------------------------------------------------------------------------------- |
-| `usageSourceId` | `"claude-code-local"`                                                            |
-| `sourceHostId`  | The local host, as the transcript importer already resolves it                   |
-| `observedAt`    | `fetchedAtMs`, as an ISO instant                                                 |
+| Field           | Source                                                                                               |
+| --------------- | ---------------------------------------------------------------------------------------------------- |
+| `usageSourceId` | `"claude-code-local"`                                                                                |
+| `sourceHostId`  | The local host, as the transcript importer already resolves it                                       |
+| `observedAt`    | `fetchedAtMs`, as an ISO instant                                                                     |
 | `plan`          | `oauthAccount.organizationRateLimitTier` less a leading `default_`; falls back to `organizationType` |
-| `windows`       | One per `limits[]` entry                                                         |
-| `balance`       | `spend` then `extra_usage` — see below                                           |
+| `windows`       | One per `limits[]` entry                                                                             |
+| `balance`       | `spend` then `extra_usage` — see below                                                               |
 
 `accountScope` is left unset by this spec. The credential attribution spec fills
 it with a fingerprint.
@@ -140,13 +140,13 @@ it with a fingerprint.
 
 For each entry in `limits[]`:
 
-| Window field  | Rule                                                                                                     |
-| ------------- | -------------------------------------------------------------------------------------------------------- |
-| `id`          | `kind`, plus a scope discriminator when scoped: `weekly_scoped:fable`                                      |
-| `label`       | From `windowMinutes` via the shared `windowLabel` when known; otherwise from `kind`, plus the scoped model |
-| `usedPercent` | `percent`                                                                                                  |
-| `windowMinutes` | Cross-referenced (below); omitted when it cannot be established                                          |
-| `resetsAt`    | `resets_at`, renormalized                                                                                  |
+| Window field    | Rule                                                                                                       |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| `id`            | `kind`, plus a scope discriminator when scoped: `weekly_scoped:fable`                                      |
+| `label`         | From `windowMinutes` via the shared `windowLabel` when known; otherwise from `kind`, plus the scoped model |
+| `usedPercent`   | `percent`                                                                                                  |
+| `windowMinutes` | Cross-referenced (below); omitted when it cannot be established                                            |
+| `resetsAt`      | `resets_at`, renormalized                                                                                  |
 
 **`id` uniqueness is load-bearing.** It is the React key in `QuotaMeters`, and
 `weekly_scoped` legitimately repeats once per scoped model.
@@ -215,13 +215,13 @@ them, using its existing `now`.
 
 ## Module boundaries
 
-| Module                                     | Responsibility                                                |
-| ------------------------------------------ | ------------------------------------------------------------- |
-| `apps/server/src/claude-quota.ts` (new)     | Locate, parse, and map the config cache. No transcript knowledge |
-| `apps/server/src/quota-window-label.ts` (new) | `windowLabel`, shared by both harnesses                     |
-| `apps/server/src/claude-importer.ts`        | Transcripts; calls `claude-quota` and passes the result through |
-| `packages/usage-analysis`                   | Expiry filtering at projection time                            |
-| `apps/web/.../quota-meters.tsx`             | Renders the as-of line                                          |
+| Module                                        | Responsibility                                                   |
+| --------------------------------------------- | ---------------------------------------------------------------- |
+| `apps/server/src/claude-quota.ts` (new)       | Locate, parse, and map the config cache. No transcript knowledge |
+| `apps/server/src/quota-window-label.ts` (new) | `windowLabel`, shared by both harnesses                          |
+| `apps/server/src/claude-importer.ts`          | Transcripts; calls `claude-quota` and passes the result through  |
+| `packages/usage-analysis`                     | Expiry filtering at projection time                              |
+| `apps/web/.../quota-meters.tsx`               | Renders the as-of line                                           |
 
 ## Testing strategy
 
@@ -253,12 +253,12 @@ Against a fixture derived from the real file with account identifiers redacted:
 
 ## Risks
 
-| Risk                                            | Mitigation                                                        |
-| ----------------------------------------------- | ----------------------------------------------------------------- |
-| Anthropic reshapes the cache                    | Lenient parsing, every field optional, absence yields no snapshot  |
-| The cache is arbitrarily stale                  | As-of line; expired windows dropped                                |
-| Extra usage mapping is wrong when populated     | Fail-closed; flagged here as unverified                            |
-| `.claude.json` holds personal data              | Only `cachedUsageUtilization` and `oauthAccount` are read; nothing else is persisted |
+| Risk                                        | Mitigation                                                                           |
+| ------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Anthropic reshapes the cache                | Lenient parsing, every field optional, absence yields no snapshot                    |
+| The cache is arbitrarily stale              | As-of line; expired windows dropped                                                  |
+| Extra usage mapping is wrong when populated | Fail-closed; flagged here as unverified                                              |
+| `.claude.json` holds personal data          | Only `cachedUsageUtilization` and `oauthAccount` are read; nothing else is persisted |
 
 ## Completion gate
 

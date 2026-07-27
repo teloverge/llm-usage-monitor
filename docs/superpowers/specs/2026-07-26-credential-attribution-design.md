@@ -70,16 +70,16 @@ Explicitly out of scope:
 
 ## Decisions
 
-| Decision            | Choice                                                     | Why                                                                                                    |
-| ------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Attribution         | Derived in analysis, never stamped on records               | A better observation tomorrow retroactively improves every past answer                                  |
-| Effective-from      | First time a credential was seen, not last time we looked   | `auth.json` mtime moves on every token refresh; last-looked would leave all history unattributed        |
-| Pre-observation     | A distinguished unattributed bucket; never backfilled       | The guard that stops a thin signal becoming a confident lie                                             |
-| Stored identifier   | SHA-256 fingerprint, first 12 hex                           | Distinguishes accounts without the ledger ever holding an account identifier                            |
-| Confidence          | An `inferred` flag, rendered                                | Codex states its mode; Claude's is deduced. Same instinct as unreported-versus-zero                     |
-| API-key meters      | Explicit warning on the quota group                         | API-key usage does not consume the window shown above it; a bare percentage there misleads              |
-| Cardinality         | One credential per (usage source, host) at an instant       | Mirrors Host Group's one-group-at-a-time resolution                                                     |
-| Modes               | `subscription`, `api-key`, `bedrock`, `vertex`, `unknown`   | The distinctions that change whether plan windows apply                                                 |
+| Decision          | Choice                                                    | Why                                                                                              |
+| ----------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Attribution       | Derived in analysis, never stamped on records             | A better observation tomorrow retroactively improves every past answer                           |
+| Effective-from    | First time a credential was seen, not last time we looked | `auth.json` mtime moves on every token refresh; last-looked would leave all history unattributed |
+| Pre-observation   | A distinguished unattributed bucket; never backfilled     | The guard that stops a thin signal becoming a confident lie                                      |
+| Stored identifier | SHA-256 fingerprint, first 12 hex                         | Distinguishes accounts without the ledger ever holding an account identifier                     |
+| Confidence        | An `inferred` flag, rendered                              | Codex states its mode; Claude's is deduced. Same instinct as unreported-versus-zero              |
+| API-key meters    | Explicit warning on the quota group                       | API-key usage does not consume the window shown above it; a bare percentage there misleads       |
+| Cardinality       | One credential per (usage source, host) at an instant     | Mirrors Host Group's one-group-at-a-time resolution                                              |
+| Modes             | `subscription`, `api-key`, `bedrock`, `vertex`, `unknown` | The distinctions that change whether plan windows apply                                          |
 
 ### Why effective-from must mean "first seen"
 
@@ -197,10 +197,10 @@ predicates.
 
 ## Collectors
 
-| Harness | Source                                      | Mode                                                                 | Fingerprint                          | Confidence |
-| ------- | ------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------ | ---------- |
-| Codex   | `~/.codex/auth.json`                        | `auth_mode`: `chatgpt` → subscription, `apikey` → api-key             | SHA-256 of `tokens.account_id`       | observed   |
-| Claude  | config cache + server environment           | env `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN` → api-key; `CLAUDE_CODE_USE_BEDROCK`/`_VERTEX` → those; else `oauthAccount` present → subscription; else unknown | SHA-256 of `oauthAccount.accountUuid` | inferred   |
+| Harness | Source                            | Mode                                                                                                                                                            | Fingerprint                           | Confidence |
+| ------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ---------- |
+| Codex   | `~/.codex/auth.json`              | `auth_mode`: `chatgpt` → subscription, `apikey` → api-key                                                                                                       | SHA-256 of `tokens.account_id`        | observed   |
+| Claude  | config cache + server environment | env `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN` → api-key; `CLAUDE_CODE_USE_BEDROCK`/`_VERTEX` → those; else `oauthAccount` present → subscription; else unknown | SHA-256 of `oauthAccount.accountUuid` | inferred   |
 
 Codex's collector reads `auth_mode` and `account_id` and nothing else from that
 file. The token bodies are not read, hashed, or logged.
@@ -230,13 +230,13 @@ analysis keys by raw credential id, the view renders it.
 
 ## Module boundaries
 
-| Module                                          | Responsibility                                          |
-| ----------------------------------------------- | -------------------------------------------------------- |
-| `apps/server/src/codex-credential.ts` (new)      | Read `auth.json`, produce an observation                  |
-| `apps/server/src/claude-credential.ts` (new)     | Infer from config cache and environment                   |
-| `packages/usage-ledger`                          | Persist observations under the first-seen rule            |
-| `packages/usage-analysis`                        | `effectiveCredential`, `byCredential`, the filter         |
-| `apps/web/src/model/credential.ts` (new)         | Id-to-label resolution and badge view model, unit-tested  |
+| Module                                       | Responsibility                                           |
+| -------------------------------------------- | -------------------------------------------------------- |
+| `apps/server/src/codex-credential.ts` (new)  | Read `auth.json`, produce an observation                 |
+| `apps/server/src/claude-credential.ts` (new) | Infer from config cache and environment                  |
+| `packages/usage-ledger`                      | Persist observations under the first-seen rule           |
+| `packages/usage-analysis`                    | `effectiveCredential`, `byCredential`, the filter        |
+| `apps/web/src/model/credential.ts` (new)     | Id-to-label resolution and badge view model, unit-tested |
 
 ## Testing strategy
 
@@ -267,12 +267,12 @@ analysis keys by raw credential id, the view renders it.
 
 ## Risks
 
-| Risk                                                    | Mitigation                                                        |
-| ------------------------------------------------------- | ----------------------------------------------------------------- |
-| Claude's mode is inferred from the wrong process's env  | `inferred` flag, rendered; documented in README                    |
-| Existing history is mostly unattributed                 | Explicit unattributed labelling and a note in the panel            |
-| A user reads the filter as authoritative billing        | Badge wording ties attribution to observation, not to a bill       |
-| Harnesses change their local auth layout                | Collectors fail closed to `unknown`; absence yields no observation |
+| Risk                                                   | Mitigation                                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------ |
+| Claude's mode is inferred from the wrong process's env | `inferred` flag, rendered; documented in README                    |
+| Existing history is mostly unattributed                | Explicit unattributed labelling and a note in the panel            |
+| A user reads the filter as authoritative billing       | Badge wording ties attribution to observation, not to a bill       |
+| Harnesses change their local auth layout               | Collectors fail closed to `unknown`; absence yields no observation |
 
 ## Completion gate
 
