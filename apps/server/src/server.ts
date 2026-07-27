@@ -4,6 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { basename, extname, join, resolve } from "node:path";
 import {
   filtersSchema,
+  type CredentialSighting,
   type DashboardActionOutcome,
   type UsageFilters,
 } from "@llm-usage-monitor/contracts";
@@ -11,7 +12,10 @@ import { createDashboardActions } from "@llm-usage-monitor/dashboard-actions";
 import { analyzeHistory, analyzeUsage } from "@llm-usage-monitor/usage-analysis";
 import { UsageLedger } from "@llm-usage-monitor/usage-ledger";
 import { ClaudeSessionProvider } from "./claude-importer.ts";
+import { claudeCredentialSighting } from "./claude-credential.ts";
+import { readClaudeConfig } from "./claude-quota.ts";
 import { CodexSessionProvider } from "./codex-importer.ts";
+import { codexCredentialSighting } from "./codex-credential.ts";
 import { mergeDefaultPrices } from "./default-prices.ts";
 import { resolveLocalSourceHost } from "./local-source-host.ts";
 import { runProviderImport } from "./run-import.ts";
@@ -50,14 +54,33 @@ export async function startUsageMonitorServer(options: {
   const runImport = (
     provider: CodexSessionProvider | ClaudeSessionProvider,
     home: string | undefined,
+    observeCredential: (home: string, observedAt: string) => Promise<CredentialSighting | null>,
   ) =>
-    runProviderImport(provider, ledger, local.host.id, home, (providerId, error) => {
-      console.warn(`quota snapshot refused for ${providerId}:`, error);
-    });
+    runProviderImport(
+      provider,
+      ledger,
+      local.host.id,
+      home,
+      (providerId, error) => {
+        console.warn(`auxiliary write refused for ${providerId}:`, error);
+      },
+      observeCredential,
+    );
   const actions = createDashboardActions({
     localSourceHostId: local.host.id,
-    importCodex: (codexHome) => runImport(importer, codexHome),
-    importClaude: (claudeHome) => runImport(claudeImporter, claudeHome),
+    importCodex: (codexHome) =>
+      runImport(importer, codexHome, (home, observedAt) =>
+        codexCredentialSighting(home, local.host.id, observedAt),
+      ),
+    importClaude: (claudeHome) =>
+      runImport(claudeImporter, claudeHome, async (home, observedAt) =>
+        claudeCredentialSighting(
+          await readClaudeConfig(home),
+          process.env,
+          local.host.id,
+          observedAt,
+        ),
+      ),
     migrateLegacy: (id, records) => ledger.applyMigration(id, records),
     replacePrices: (prices) => ledger.replacePrices(prices),
     clearRecords: () => ledger.clearRecords(),
