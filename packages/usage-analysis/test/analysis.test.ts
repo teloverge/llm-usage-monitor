@@ -620,8 +620,18 @@ describe("currentQuota", () => {
     plan: "claude_max_20x",
     observedAt: "2026-07-26T22:37:38.317Z",
     windows: [
-      { id: "session", label: "5-hour window", usedPercent: 2, resetsAt: "2026-07-27T03:10:00.127Z" },
-      { id: "weekly_all", label: "Weekly window", usedPercent: 6, resetsAt: "2026-07-31T22:00:00.127Z" },
+      {
+        id: "session",
+        label: "5-hour window",
+        usedPercent: 2,
+        resetsAt: "2026-07-27T03:10:00.127Z",
+      },
+      {
+        id: "weekly_all",
+        label: "Weekly window",
+        usedPercent: 6,
+        resetsAt: "2026-07-31T22:00:00.127Z",
+      },
       { id: "weekly_scoped:fable", label: "Weekly window · Fable", usedPercent: 0 },
     ],
   };

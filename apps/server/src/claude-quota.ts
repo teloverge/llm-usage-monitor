@@ -146,7 +146,9 @@ function statedDurations(utilization: Record<string, unknown>): Map<string, numb
 
 function label(kind: string, scope: string | undefined, windowMinutes: number | undefined): string {
   const base =
-    windowMinutes === undefined ? (KIND_LABELS[kind] ?? humanize(kind)) : windowLabel(kind, windowMinutes);
+    windowMinutes === undefined
+      ? (KIND_LABELS[kind] ?? humanize(kind))
+      : windowLabel(kind, windowMinutes);
   return scope ? `${base} · ${scope}` : base;
 }
 
@@ -161,7 +163,10 @@ function scopeName(limit: Record<string, unknown>): string | undefined {
 }
 
 function slug(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function unique(taken: Set<string>, base: string): string {
