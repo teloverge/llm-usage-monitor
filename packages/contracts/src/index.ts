@@ -87,6 +87,66 @@ export const usageQuotaSnapshotSchema = z
 export type UsageQuotaSnapshot = z.infer<typeof usageQuotaSnapshotSchema>;
 export type UsageQuotaWindow = z.infer<typeof usageQuotaWindowSchema>;
 
+export const credentialModeSchema = z.enum([
+  "subscription",
+  "api-key",
+  "bedrock",
+  "vertex",
+  "unknown",
+]);
+
+/**
+ * The facts a collector can state about a credential.
+ *
+ * `fingerprint` is a one-way digest of an ACCOUNT identifier — 12 lowercase hex,
+ * or empty when the source names no account. It exists to tell two accounts
+ * apart, never to identify one, and it is never taken from key material.
+ */
+const credentialFacts = {
+  usageSourceId: z.string().min(1).max(200),
+  sourceHostId: z.string().min(1).max(200),
+  mode: credentialModeSchema,
+  fingerprint: z.string().regex(/^([0-9a-f]{12})?$/),
+  plan: z.string().max(200).optional(),
+  /** True when the mode was deduced rather than stated by the source. */
+  inferred: z.boolean(),
+  observedAt: z.string().datetime(),
+};
+
+/**
+ * What a collector hands the ledger. `effectiveFrom` is absent BY CONSTRUCTION:
+ * it means "first time this credential was seen", which only the ledger knows,
+ * and a collector able to set it could backdate attribution.
+ */
+export const credentialSightingSchema = z.object(credentialFacts).strict();
+
+/** A sighting the ledger has dated. */
+export const credentialObservationSchema = z
+  .object({ ...credentialFacts, effectiveFrom: z.string().datetime() })
+  .strict();
+
+export type CredentialMode = z.infer<typeof credentialModeSchema>;
+export type CredentialSighting = z.infer<typeof credentialSightingSchema>;
+export type CredentialObservation = z.infer<typeof credentialObservationSchema>;
+
+/**
+ * Bucket key and filter value. Derivable from the observation itself, so no
+ * lookup is needed to group or filter by credential, and it carries a
+ * fingerprint rather than an identifier.
+ */
+export function credentialIdFor(credential: { mode: string; fingerprint: string }): string {
+  return `${credential.mode}:${credential.fingerprint}`;
+}
+
+/**
+ * The bucket for records older than the earliest observation for their
+ * (usage source, host). Deliberately not a valid `credentialIdFor` output, so it
+ * can never collide with a real credential — including `unknown:`, which means
+ * "we saw a credential and could not classify it", a different statement from
+ * "we had not started looking yet".
+ */
+export const UNATTRIBUTED_CREDENTIAL = "unattributed";
+
 export const usageRecordSchema = z
   .object({
     id: z.string().min(1).max(500),
@@ -275,6 +335,7 @@ export const filtersSchema = z
     hostGroupId: z.string().max(200).optional(),
     harnessId: z.string().max(200).optional(),
     usageSourceId: z.string().max(200).optional(),
+    credentialId: z.string().max(200).optional(),
   })
   .strict();
 export const modelPriceSchema = z
