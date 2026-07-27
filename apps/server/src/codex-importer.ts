@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { createInterface } from "node:readline";
 import type { RateLimits, UsageQuotaSnapshot, UsageRecord } from "@llm-usage-monitor/contracts";
+import { windowLabel } from "./quota-window-label.ts";
 
 // Bumped 4 -> 5 for Task 17: entries cached under v4 have no `rateLimits`, so
 // every file must be re-parsed once to pick up its quota evidence.
@@ -250,38 +251,6 @@ export function subtractTokenShapes(current: Tokens, previous: Tokens): Tokens {
   result.cachedInputTokens = Math.min(result.inputTokens, result.cachedInputTokens);
   return result;
 }
-/**
- * Fallback labels, used only when the source does not report a window length.
- * Codex's own window sizes are what the label is supposed to describe, so
- * `windowLabel` prefers them and reaches for this map only when there is
- * nothing to derive from.
- */
-const WINDOW_LABELS: Record<string, string> = {
-  primary: "5-hour window",
-  secondary: "Weekly window",
-};
-
-/**
- * Derived from `windowMinutes` rather than hardcoded per slot, because the slot
- * name says nothing about duration: "primary" is 5 hours on the plans we have
- * seen, but a plan whose primary window is 3 hours would still be labelled
- * "5-hour window" and tell the reader the wrong reset horizon on the one widget
- * whose entire job is answering "how long until this frees up?".
- */
-function windowLabel(id: string, windowMinutes: number): string {
-  if (windowMinutes <= 0) return WINDOW_LABELS[id] ?? id;
-  if (windowMinutes % 10_080 === 0) {
-    const weeks = windowMinutes / 10_080;
-    return weeks === 1 ? "Weekly window" : `${weeks}-week window`;
-  }
-  if (windowMinutes % 1_440 === 0) {
-    const days = windowMinutes / 1_440;
-    return days === 1 ? "Daily window" : `${days}-day window`;
-  }
-  if (windowMinutes % 60 === 0) return `${windowMinutes / 60}-hour window`;
-  return `${windowMinutes}-minute window`;
-}
-
 /** Converts a Codex rate-limit payload into a normalized quota snapshot. */
 export function quotaSnapshotFromRateLimits(
   limits: RateLimits | null,
