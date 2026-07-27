@@ -27,7 +27,11 @@ export function QuotaMeters({
     <div className="quota-groups">
       {snapshots.map((snapshot) => {
         const observedAt = formatDateTime(snapshot.observedAt);
-        const credential = latestCredential(credentials, snapshot.usageSourceId, snapshot.sourceHostId);
+        const credential = latestCredential(
+          credentials,
+          snapshot.usageSourceId,
+          snapshot.sourceHostId,
+        );
         return (
           <div className="quota-group" key={`${snapshot.usageSourceId}/${snapshot.sourceHostId}`}>
             <p className="quota-source">
@@ -57,11 +61,12 @@ export function QuotaMeters({
                 {credential.inferred && <em>{t("credential.inferred")}</em>}
               </p>
             )}
-            {credential && !countsAgainstPlan(credential.mode) && (
-              // The reason this feature exists: without it a percentage sits
-              // beside spend that never touched the window it describes.
-              <p className="quota-note">{t("credential.notCounted")}</p>
-            )}
+            {credential &&
+              !countsAgainstPlan(credential.mode) && (
+                // The reason this feature exists: without it a percentage sits
+                // beside spend that never touched the window it describes.
+                <p className="quota-note">{t("credential.notCounted")}</p>
+              )}
             {snapshot.windows.map((window) => {
               const { status, shown, width } = quotaMeterView(window);
               const resets = window.resetsAt ? formatDateTime(window.resetsAt) : null;
