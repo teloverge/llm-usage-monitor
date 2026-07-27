@@ -124,6 +124,7 @@ export async function startUsageMonitorServer(options: {
           hostGroups: ledger.hostGroups(),
           memberships: ledger.memberships(),
           quotaSnapshots: ledger.quotaSnapshots(),
+          credentials: ledger.credentialObservations(),
           filters,
         }),
       );
@@ -140,6 +141,7 @@ export async function startUsageMonitorServer(options: {
         sourceHosts: ledger.sourceHosts(),
         hostGroups: ledger.hostGroups(),
         memberships: ledger.memberships(),
+        credentials: ledger.credentialObservations(),
       });
     if (request.method === "POST" && resource === "api/actions") {
       if (request.headers.origin !== origin)
