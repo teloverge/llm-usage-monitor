@@ -17,7 +17,9 @@ const MODE_KEYS: Record<string, "subscription" | "apiKey" | "bedrock" | "vertex"
   vertex: "vertex",
 };
 
-export function credentialModeKey(mode: string): "subscription" | "apiKey" | "bedrock" | "vertex" | "unknown" {
+export function credentialModeKey(
+  mode: string,
+): "subscription" | "apiKey" | "bedrock" | "vertex" | "unknown" {
   return MODE_KEYS[mode] ?? "unknown";
 }
 
