@@ -437,6 +437,28 @@ describe("Credential observations", () => {
     assert.equal(store.credentialObservations().length, 2);
   });
 
+  it("opens a third row when a credential returns after another intervened", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting({ observedAt: "2026-07-20T10:00:00.000Z" }));
+    store.recordCredentialObservation(
+      sighting({ mode: "api-key", observedAt: "2026-07-22T10:00:00.000Z" }),
+    );
+    store.recordCredentialObservation(
+      sighting({ mode: "subscription", observedAt: "2026-07-25T10:00:00.000Z" }),
+    );
+
+    // A third row, not a merge back into the first: the middle span belongs
+    // to the other credential, and records landing in it must not resolve
+    // back to this one. The comeback is dated from when it came back, not
+    // from when it was first ever seen.
+    assert.deepEqual(
+      store.credentialObservations().map((observation) => observation.mode),
+      ["subscription", "api-key", "subscription"],
+    );
+    assert.equal(new Set(store.credentialObservations().map((o) => o.effectiveFrom)).size, 3);
+    assert.equal(store.credentialObservations()[2]?.effectiveFrom, "2026-07-25T10:00:00.000Z");
+  });
+
   it("keeps each usage source and host independent", () => {
     const store = create();
     store.recordCredentialObservation(sighting());
