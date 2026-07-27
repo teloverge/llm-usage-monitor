@@ -121,6 +121,33 @@ describe("Usage Monitor Server", () => {
       ["Laptops"],
     );
   });
+  it("serves credential observations in the catalog", async () => {
+    const root = await mkdtemp(join(tmpdir(), "usage-monitor-server-"));
+    const web = join(root, "web");
+    await mkdir(web);
+    await writeFile(join(web, "index.html"), "<!doctype html><title>test</title>");
+    const running = await startUsageMonitorServer({
+      dataDirectory: join(root, "data"),
+      webDirectory: web,
+    });
+    cleanup.push(async () => {
+      await running.close();
+      await rm(root, { recursive: true, force: true });
+    });
+
+    const catalog = (await fetch(new URL("api/catalog", running.discovery.dashboardUrl)).then(
+      (response) => response.json(),
+    )) as { credentials?: unknown[] };
+    const overview = (await fetch(new URL("api/overview", running.discovery.dashboardUrl)).then(
+      (response) => response.json(),
+    )) as OverviewView;
+
+    // Present and empty, not absent: a fresh ledger has observed nothing, and
+    // the view must still be able to render the unattributed state.
+    assert.ok(Array.isArray(catalog.credentials));
+    assert.deepEqual(overview.credentials, []);
+    assert.ok(Array.isArray(overview.byCredential));
+  });
 });
 
 describe("Harness filter transport", () => {
