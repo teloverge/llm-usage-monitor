@@ -111,4 +111,43 @@ describe("Claude quota round trip", () => {
       await fs.rm(directory, { recursive: true, force: true });
     }
   });
+
+  it("survives a config whose fetchedAtMs is out of range instead of discarding the run", async () => {
+    // A plausible ms->us unit reshape of `fetchedAtMs`. Before the fix, `instant()`
+    // let the expanded-year ISO string escape, `usageQuotaSnapshotSchema`'s
+    // `.datetime()` rejected it, and `replaceQuotaSnapshots` threw here — which,
+    // in `server.ts`, happens BEFORE `commitProviderImport` and so would have
+    // discarded every transcript record this run collected. The fix must make
+    // this call return no snapshot and not throw.
+    const directory = await fs.mkdtemp(join(tmpdir(), "lum-claude-rt-oor-"));
+    const ledger = new UsageLedger();
+    try {
+      await fs.writeFile(
+        join(directory, ".claude.json"),
+        JSON.stringify({
+          oauthAccount: { organizationRateLimitTier: "default_claude_max_20x" },
+          cachedUsageUtilization: {
+            fetchedAtMs: 1785105458317000,
+            utilization: {
+              limits: [{ kind: "session", percent: 2 }],
+            },
+          },
+        }),
+        "utf8",
+      );
+
+      const imported = await new ClaudeSessionProvider().collect(
+        "host:a",
+        join(directory, ".claude"),
+        {},
+      );
+      assert.equal(imported.quotaSnapshots.length, 0);
+
+      // The assertion that matters: this must not throw.
+      assert.doesNotThrow(() => ledger.replaceQuotaSnapshots(imported.quotaSnapshots));
+    } finally {
+      ledger.close();
+      await fs.rm(directory, { recursive: true, force: true });
+    }
+  });
 });
