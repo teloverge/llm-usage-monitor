@@ -85,12 +85,14 @@ export function claudeQuotaSnapshot(
   const observedAt = instant(cached.fetchedAtMs);
   if (!observedAt) return null;
   const plan = planLabel(asRecord(root?.oauthAccount));
+  const balance = balanceFrom(utilization);
   return {
     usageSourceId: "claude-code-local",
     sourceHostId,
     ...(plan ? { plan } : {}),
     observedAt,
-    windows: quotaWindows(utilization).slice(0, MAX_WINDOWS),
+    windows: [...quotaWindows(utilization), ...extraUsageWindow(utilization)].slice(0, MAX_WINDOWS),
+    ...(balance ? { balance } : {}),
   };
 }
 
@@ -201,4 +203,54 @@ function text(value: unknown): string | undefined {
 
 function capped(value: string): string {
   return value.slice(0, 200);
+}
+
+/**
+ * `spend` and `extra_usage` read as two generations of one feature, so `spend`
+ * wins where both are present.
+ *
+ * Both are disabled on every account observed so far, which means this mapping
+ * is written against a structure whose populated semantics have never been
+ * seen. It therefore fails closed: a missing currency or scale omits the
+ * balance entirely rather than reporting a number in an assumed unit.
+ */
+function balanceFrom(
+  utilization: Record<string, unknown>,
+): { amount: number; unit: string } | undefined {
+  const spend = asRecord(utilization.spend);
+  if (spend?.enabled === true) {
+    const used = asRecord(spend.used);
+    const money = scaled(used?.amount_minor, used?.exponent, used?.currency);
+    if (money) return money;
+  }
+  const extra = asRecord(utilization.extra_usage);
+  if (extra?.is_enabled === true) {
+    const money = scaled(extra.used_credits, extra.decimal_places, extra.currency);
+    if (money) return money;
+  }
+  return undefined;
+}
+
+function scaled(
+  minor: unknown,
+  exponent: unknown,
+  currency: unknown,
+): { amount: number; unit: string } | undefined {
+  const amount = nonNegative(minor);
+  const scale = nonNegative(exponent);
+  const unit = text(currency);
+  if (amount === undefined || scale === undefined || !unit) return undefined;
+  return { amount: amount / 10 ** scale, unit: unit.slice(0, 50) };
+}
+
+/**
+ * A monthly spend cap rather than a rolling window, so it carries a percentage
+ * and no reset instant. It is a meter because that is what a percentage is.
+ */
+function extraUsageWindow(utilization: Record<string, unknown>): UsageQuotaWindow[] {
+  const extra = asRecord(utilization.extra_usage);
+  if (extra?.is_enabled !== true) return [];
+  const usedPercent = nonNegative(extra.utilization);
+  if (usedPercent === undefined) return [];
+  return [{ id: "extra-usage", label: "Extra usage", usedPercent }];
 }

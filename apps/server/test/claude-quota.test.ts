@@ -218,3 +218,75 @@ describe("claudeQuotaSnapshot", () => {
     assert.ok(!serialized.includes("937ec57b-57ff-4293-abce-493df76661c8"));
   });
 });
+
+describe("claudeQuotaSnapshot extra usage", () => {
+  it("reports no balance when both blocks are disabled", () => {
+    // The state of every account observed so far.
+    const snapshot = claudeQuotaSnapshot(
+      config({
+        extra_usage: { is_enabled: false, used_credits: null, utilization: null },
+        spend: { enabled: false, used: { amount_minor: 0, currency: "USD", exponent: 2 } },
+      }),
+      "host:a",
+    );
+    assert.equal(snapshot?.balance, undefined);
+    assert.ok(!snapshot?.windows.some((window) => window.id === "extra-usage"));
+  });
+
+  it("takes the balance from spend when spend is enabled", () => {
+    const snapshot = claudeQuotaSnapshot(
+      config({
+        spend: { enabled: true, used: { amount_minor: 1234, currency: "USD", exponent: 2 } },
+      }),
+      "host:a",
+    );
+    assert.deepEqual(snapshot?.balance, { amount: 12.34, unit: "USD" });
+  });
+
+  it("falls back to extra usage credits when only that block is enabled", () => {
+    const snapshot = claudeQuotaSnapshot(
+      config({
+        spend: { enabled: false },
+        extra_usage: {
+          is_enabled: true,
+          used_credits: 5000,
+          decimal_places: 2,
+          currency: "USD",
+          utilization: 25,
+        },
+      }),
+      "host:a",
+    );
+    assert.deepEqual(snapshot?.balance, { amount: 50, unit: "USD" });
+  });
+
+  it("adds an extra usage meter with no reset instant", () => {
+    const snapshot = claudeQuotaSnapshot(
+      config({
+        extra_usage: {
+          is_enabled: true,
+          utilization: 25,
+          currency: "USD",
+          decimal_places: 2,
+          used_credits: 5000,
+        },
+      }),
+      "host:a",
+    );
+    const meter = snapshot?.windows.find((window) => window.id === "extra-usage");
+    assert.equal(meter?.label, "Extra usage");
+    assert.equal(meter?.usedPercent, 25);
+    // A monthly spend cap; the cache states no reset instant for it.
+    assert.equal(meter?.resetsAt, undefined);
+    assert.equal(meter?.windowMinutes, undefined);
+  });
+
+  it("fails closed when an enabled block is missing fields", () => {
+    const snapshot = claudeQuotaSnapshot(
+      config({ spend: { enabled: true, used: { amount_minor: 1234 } } }),
+      "host:a",
+    );
+    // No currency and no exponent: omit rather than invent a unit.
+    assert.equal(snapshot?.balance, undefined);
+  });
+});
