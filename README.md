@@ -16,6 +16,7 @@ The dollar total is an **API-equivalent estimate**: what the selected token usag
 - Prices cache reads and cache writes separately, because a read costs a fraction of base input while a write costs a premium over it.
 - Never imports prompts, responses, reasoning text, tool calls, file contents, or credentials.
 - Shows API-equivalent spend as a single headline figure with its cost drivers by harness, model, and task, plus token composition and per-source plan limits.
+- Reads plan limits for each harness from what it already stores locally: Codex's session rate-limit events and Claude Code's own cached utilization block. Each meter is stamped with the time the reading was taken, and a window whose reset time has passed is withheld rather than shown at a percentage that no longer applies.
 - Separates usage source, harness, model provider, and model as distinct identities, so one harness may use several providers and one provider may be reached through several harnesses.
 - Reports metrics a source does not supply as unavailable rather than as zero.
 - Filters Today, rolling Last 24 hours, 7/30/90 days, all retained history, task name, and Source Host.
