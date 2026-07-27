@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
+import { promises as fs } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import { analyzeUsage } from "@llm-usage-monitor/usage-analysis";
 import { UsageLedger } from "@llm-usage-monitor/usage-ledger";
+import { ClaudeSessionProvider } from "../src/claude-importer.ts";
 import { CodexSessionProvider } from "../src/codex-importer.ts";
 
 /**
@@ -44,6 +48,66 @@ describe("Quota snapshot round trip", () => {
       assert.equal(view.quotaSnapshots[0]?.windows[0]?.usedPercent, 41.5);
     } finally {
       ledger.close();
+    }
+  });
+});
+
+describe("Claude quota round trip", () => {
+  it("carries the config cache through the ledger into the overview", async () => {
+    const directory = await fs.mkdtemp(join(tmpdir(), "lum-claude-rt-"));
+    const ledger = new UsageLedger();
+    try {
+      await fs.writeFile(
+        join(directory, ".claude.json"),
+        JSON.stringify({
+          oauthAccount: { organizationRateLimitTier: "default_claude_max_20x" },
+          cachedUsageUtilization: {
+            fetchedAtMs: 1785105458317,
+            utilization: {
+              five_hour: { utilization: 2, resets_at: "2026-07-27T03:10:00.127734+00:00" },
+              seven_day: { utilization: 6, resets_at: "2026-07-31T22:00:00.127758+00:00" },
+              limits: [
+                { kind: "session", percent: 2, resets_at: "2026-07-27T03:10:00.127734+00:00" },
+                { kind: "weekly_all", percent: 6, resets_at: "2026-07-31T22:00:00.127758+00:00" },
+              ],
+            },
+          },
+        }),
+        "utf8",
+      );
+
+      // No `projects` directory: this asserts quota is read even when the
+      // transcript walk finds nothing, which is the state of a fresh install.
+      const imported = await new ClaudeSessionProvider().collect(
+        "host:a",
+        join(directory, ".claude"),
+        {},
+      );
+      assert.equal(imported.records.length, 0);
+      assert.equal(imported.quotaSnapshots.length, 1);
+
+      // The strict-schema boundary. Throws here if the mapper emits a field
+      // the contract does not declare, or an offset timestamp.
+      ledger.replaceQuotaSnapshots(imported.quotaSnapshots);
+
+      const view = analyzeUsage({
+        records: [],
+        prices: [],
+        memberships: [],
+        quotaSnapshots: ledger.quotaSnapshots(),
+        filters: { timeframe: "all" },
+        // After the cache was fetched, before either window resets.
+        now: new Date("2026-07-27T00:00:00.000Z"),
+      });
+
+      assert.equal(view.quotaSnapshots[0]?.usageSourceId, "claude-code-local");
+      assert.equal(view.quotaSnapshots[0]?.plan, "claude_max_20x");
+      assert.equal(view.quotaSnapshots[0]?.observedAt, "2026-07-26T22:37:38.317Z");
+      assert.equal(view.quotaSnapshots[0]?.windows[0]?.label, "5-hour window");
+      assert.equal(view.quotaSnapshots[0]?.windows[1]?.usedPercent, 6);
+    } finally {
+      ledger.close();
+      await fs.rm(directory, { recursive: true, force: true });
     }
   });
 });

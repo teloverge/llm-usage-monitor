@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { basename, join, resolve, sep } from "node:path";
 import { createInterface } from "node:readline";
 import type { UsageRecord } from "@llm-usage-monitor/contracts";
+import { claudeQuotaSnapshot, readClaudeConfig } from "./claude-quota.ts";
 import { usageModeFlags } from "./codex-importer.ts";
 
 const CACHE_SCHEMA_VERSION = 1;
@@ -23,10 +24,14 @@ type ImportState = {
  * usage. Records here are therefore parsed directly with no subtraction — see
  * `parseClaudeSession`, whose only real subtlety is deduplication.
  *
- * No quota snapshots: the transcripts carry no rate-limit evidence. That absence
- * surfaces as "unreported" in the dashboard rather than as an empty meter, which
- * is the honest reading — we have not observed the plan's quota, and a Claude
- * Code plan certainly has one.
+ * The transcripts still carry no rate-limit evidence — that part has not
+ * changed, and it is why quota does not come from this file's parser. It comes
+ * from Claude Code's config cache instead, read by `claude-quota.ts`, which is
+ * a separate module because it reads a different file in a different format
+ * with different failure modes. A machine where Claude Code has never run has
+ * no cache, and the panel reads "unreported" rather than showing an empty
+ * meter — we have not observed the plan's quota, and a Claude Code plan
+ * certainly has one.
  */
 export class ClaudeSessionProvider {
   readonly id = "claude-code-local";
@@ -62,9 +67,10 @@ export class ClaudeSessionProvider {
       nextFiles[file] = { fingerprint, records: parsed };
       records.push(...parsed.map((record) => ({ ...record, sourceHostId })));
     }
+    const snapshot = claudeQuotaSnapshot(await readClaudeConfig(home), sourceHostId);
     return {
       records,
-      quotaSnapshots: [],
+      quotaSnapshots: snapshot ? [snapshot] : [],
       state: {
         schemaVersion: CACHE_SCHEMA_VERSION,
         files: nextFiles,
