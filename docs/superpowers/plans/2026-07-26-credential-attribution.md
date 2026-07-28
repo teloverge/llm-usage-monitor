@@ -48,7 +48,7 @@ The vocabulary every later task depends on. `CredentialSighting` and `Credential
   - `UNATTRIBUTED_CREDENTIAL: "unattributed"`
   - `UsageFilters.credentialId?: string`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `packages/contracts/test/contracts.test.ts`, adding the new names to the existing import from `../src/index.ts`:
 
@@ -118,12 +118,12 @@ describe("credential contracts", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test packages/contracts/test/contracts.test.ts`
 Expected: FAIL — `credentialSightingSchema` is not exported.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Add to `packages/contracts/src/index.ts`, above `usageRecordSchema`:
 
@@ -195,12 +195,12 @@ In `filtersSchema`, after the `usageSourceId` line:
     credentialId: z.string().max(200).optional(),
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --experimental-strip-types --test packages/contracts/test/contracts.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Typecheck and commit**
+- [x] **Step 5: Typecheck and commit**
 
 ```bash
 bun run typecheck
@@ -227,7 +227,7 @@ attribution."
 - Consumes: nothing.
 - Produces: `credentialFingerprint(value: unknown): string` — 12 lowercase hex, or `""`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/server/test/credential-fingerprint.test.ts`:
 
@@ -268,12 +268,12 @@ describe("credentialFingerprint", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test apps/server/test/credential-fingerprint.test.ts`
 Expected: FAIL — `Cannot find module '../src/credential-fingerprint.ts'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/server/src/credential-fingerprint.ts`:
 
@@ -298,12 +298,12 @@ export function credentialFingerprint(value: unknown): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --experimental-strip-types --test apps/server/test/credential-fingerprint.test.ts`
 Expected: PASS, 6 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/server/src/credential-fingerprint.ts apps/server/test/credential-fingerprint.test.ts
@@ -331,7 +331,7 @@ The rule this task implements is the one that makes the whole feature work rathe
   - `UsageLedger.recordCredentialObservation(sighting: CredentialSighting): void`
   - `UsageLedger.credentialObservations(): CredentialObservation[]`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `packages/usage-ledger/test/ledger.test.ts`. The file already has a `ledger()` helper that registers ledgers for cleanup — reuse it. Add `CredentialSighting` to the type imports from `@llm-usage-monitor/contracts`.
 
@@ -441,12 +441,12 @@ describe("Credential observations", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test packages/usage-ledger/test/ledger.test.ts`
 Expected: FAIL — `store.recordCredentialObservation is not a function`.
 
-- [ ] **Step 3: Add the table**
+- [x] **Step 3: Add the table**
 
 In `packages/usage-ledger/src/index.ts`, inside `migrate()`'s `this.database.exec(...)` template, after the `usage_quota_snapshots` line:
 
@@ -456,7 +456,7 @@ In `packages/usage-ledger/src/index.ts`, inside `migrate()`'s `this.database.exe
 
 Additive, so empty and populated ledgers behave identically and no migration id is needed.
 
-- [ ] **Step 4: Write the reader and writer**
+- [x] **Step 4: Write the reader and writer**
 
 Add to the `UsageLedger` class, after `quotaSnapshots()`, and add `credentialObservationSchema`, `credentialSightingSchema`, `type CredentialObservation`, `type CredentialSighting` to the imports from `@llm-usage-monitor/contracts`:
 
@@ -532,12 +532,12 @@ Add to the `UsageLedger` class, after `quotaSnapshots()`, and add `credentialObs
   }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `node --experimental-strip-types --test packages/usage-ledger/test/ledger.test.ts`
 Expected: PASS, including the pre-existing suites.
 
-- [ ] **Step 6: Typecheck and commit**
+- [x] **Step 6: Typecheck and commit**
 
 ```bash
 bun run typecheck
@@ -565,7 +565,7 @@ Codex **states** its mode, so this is an observation rather than an inference.
 - Consumes: `credentialFingerprint` (Task 2), `CredentialSighting`/`CredentialMode` (Task 1).
 - Produces: `codexCredentialSighting(home: string, sourceHostId: string, observedAt: string): Promise<CredentialSighting | null>`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/server/test/codex-credential.test.ts`:
 
@@ -661,12 +661,12 @@ describe("codexCredentialSighting", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test apps/server/test/codex-credential.test.ts`
 Expected: FAIL — `Cannot find module '../src/codex-credential.ts'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/server/src/codex-credential.ts`:
 
@@ -736,12 +736,12 @@ function codexMode(auth: Record<string, unknown>): CredentialMode | null {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --experimental-strip-types --test apps/server/test/codex-credential.test.ts`
 Expected: PASS, 6 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/server/src/codex-credential.ts apps/server/test/codex-credential.test.ts
@@ -769,7 +769,7 @@ Claude states nothing, so this one **infers** — and says so.
 - Consumes: `credentialFingerprint` (Task 2); `planLabel` from `claude-quota.ts`.
 - Produces: `claudeCredentialSighting(config: Record<string, unknown> | null, env: Record<string, string | undefined>, sourceHostId: string, observedAt: string): CredentialSighting | null`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/server/test/claude-credential.test.ts`:
 
@@ -867,16 +867,16 @@ describe("claudeCredentialSighting", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test apps/server/test/claude-credential.test.ts`
 Expected: FAIL — `Cannot find module '../src/claude-credential.ts'`
 
-- [ ] **Step 3: Export `planLabel` from the quota module**
+- [x] **Step 3: Export `planLabel` from the quota module**
 
 In `apps/server/src/claude-quota.ts`, change `function planLabel(` to `export function planLabel(`. It is reused rather than reimplemented so the badge and the meter cannot end up naming the same plan differently.
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 Create `apps/server/src/claude-credential.ts`:
 
@@ -957,12 +957,12 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `node --experimental-strip-types --test apps/server/test/claude-credential.test.ts apps/server/test/claude-quota.test.ts`
 Expected: PASS. The quota tests are included because this task changed that file's exports.
 
-- [ ] **Step 6: Typecheck and commit**
+- [x] **Step 6: Typecheck and commit**
 
 ```bash
 bun run typecheck
@@ -993,7 +993,7 @@ The collectors exist but nothing calls them. This wires them into the one place 
 - Consumes: `codexCredentialSighting` (Task 4), `claudeCredentialSighting` (Task 5), `UsageLedger.recordCredentialObservation` (Task 3).
 - Produces: `runProviderImport(provider, ledger, sourceHostId, home, onAuxiliaryWriteFailed, observeCredential?)` — the fifth parameter is **renamed** from `onQuotaRejected`; the sixth is new and optional.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 In `apps/server/test/run-import.test.ts`, the existing `provider()` helper returns `{ records, quotaSnapshots, state }`. Add `stats: { home: "/fixture/home" }` to that returned object — `runProviderImport` now passes the resolved home to the credential collector, and both real providers already return it.
 
@@ -1094,12 +1094,12 @@ describe("runProviderImport credential observation", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test apps/server/test/run-import.test.ts`
 Expected: FAIL — no observation is recorded (the sixth parameter is ignored).
 
-- [ ] **Step 3: Extend the import runner**
+- [x] **Step 3: Extend the import runner**
 
 In `apps/server/src/run-import.ts`:
 
@@ -1158,7 +1158,7 @@ export async function runProviderImport(
 
 Update the function's doc-comment's closing paragraph to say that **both** auxiliary writes — quota and credential — happen after the commit and cannot fail it.
 
-- [ ] **Step 4: Wire the collectors in**
+- [x] **Step 4: Wire the collectors in**
 
 In `apps/server/src/server.ts`, add the imports:
 
@@ -1205,12 +1205,12 @@ and replace the `runImport` definition and the two ports that use it:
 
 Add `CredentialSighting` to the type imports from `@llm-usage-monitor/contracts` at the top of the file. Leave the remaining ports (`migrateLegacy`, `replacePrices`, `clearRecords`, `setHostGroup`) exactly as they are.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `node --experimental-strip-types --test apps/server/test/run-import.test.ts apps/server/test/server.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Typecheck and commit**
+- [x] **Step 6: Typecheck and commit**
 
 ```bash
 bun run typecheck
@@ -1241,7 +1241,7 @@ a configured directory cannot make the two disagree."
   - `OverviewView.byCredential: RankedUsage[]`, `OverviewView.credentials: CredentialObservation[]`
   - `filterUsageRecords(records, filters, memberships, now?, credentials?)`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `packages/usage-analysis/test/analysis.test.ts`, adding `effectiveCredential` to the existing import from `../src/index.ts` and `CredentialObservation` to the contracts type import:
 
@@ -1389,12 +1389,12 @@ describe("credential attribution", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test packages/usage-analysis/test/analysis.test.ts`
 Expected: FAIL — `effectiveCredential is not a function`.
 
-- [ ] **Step 3: Extend the OverviewView contract**
+- [x] **Step 3: Extend the OverviewView contract**
 
 In `packages/contracts/src/index.ts`, add to `OverviewView` after `byHarness`:
 
@@ -1415,7 +1415,7 @@ In `packages/contracts/src/index.ts`, add to `OverviewView` after `byHarness`:
   credentials: CredentialObservation[];
 ```
 
-- [ ] **Step 4: Write the analysis implementation**
+- [x] **Step 4: Write the analysis implementation**
 
 In `packages/usage-analysis/src/index.ts`, add `CredentialObservation` to the type imports and `credentialIdFor`, `UNATTRIBUTED_CREDENTIAL` to the value imports from `@llm-usage-monitor/contracts`.
 
@@ -1514,12 +1514,12 @@ function credentialKey(credentials: CredentialObservation[], record: UsageRecord
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `node --experimental-strip-types --test packages/usage-analysis/test/analysis.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Typecheck and commit**
+- [x] **Step 6: Typecheck and commit**
 
 Typecheck will fail until `analyzeUsage` populates both new required `OverviewView` fields — that is expected, and step 4 does it. Confirm it is clean before committing.
 
@@ -1549,7 +1549,7 @@ credential that may not have been in use."
 - Consumes: `UsageLedger.credentialObservations()` (Task 3), `AnalysisInput.credentials` (Task 7).
 - Produces: `/api/catalog` gains `credentials`; `/api/overview` attributes records.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `apps/server/test/server.test.ts`, following the boot-a-real-server pattern the file already uses:
 
@@ -1583,12 +1583,12 @@ it("serves credential observations in the catalog", async () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test apps/server/test/server.test.ts`
 Expected: FAIL — `catalog.credentials` is `undefined`.
 
-- [ ] **Step 3: Serve them**
+- [x] **Step 3: Serve them**
 
 In `apps/server/src/server.ts`, add to the `api/catalog` response object:
 
@@ -1608,12 +1608,12 @@ In `apps/web/src/api.ts`, add `CredentialObservation` to the type imports and to
   credentials: CredentialObservation[];
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `node --experimental-strip-types --test apps/server/test/server.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Typecheck and commit**
+- [x] **Step 5: Typecheck and commit**
 
 ```bash
 bun run typecheck
@@ -1641,7 +1641,7 @@ Pure functions in `model/`, which is where this repo tests web logic — all 14 
   - `countsAgainstPlan(mode: string): boolean`
   - `parseCredentialId(id: string): { unattributed: boolean; modeKey: string; fingerprint: string }`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/web/test/credential.test.ts`:
 
@@ -1737,12 +1737,12 @@ describe("parseCredentialId", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test apps/web/test/credential.test.ts`
 Expected: FAIL — `Cannot find module '../src/model/credential.ts'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/web/src/model/credential.ts`:
 
@@ -1810,12 +1810,12 @@ export function parseCredentialId(id: string): {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --experimental-strip-types --test apps/web/test/credential.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/model/credential.ts apps/web/test/credential.test.ts
@@ -1842,7 +1842,7 @@ segment is derived rather than interpolated."
 - Consumes: `latestCredential`, `credentialModeKey`, `countsAgainstPlan` (Task 9); `OverviewView.credentials` (Task 7).
 - Produces: `QuotaMeters` takes an additional `credentials: CredentialObservation[]` prop.
 
-- [ ] **Step 1: Add the translation keys**
+- [x] **Step 1: Add the translation keys**
 
 In `apps/web/src/i18n/locales/en.json`, add a new top-level `credential` object (alphabetically it sits after `common`):
 
@@ -1878,7 +1878,7 @@ In `apps/web/src/i18n/locales/es.json`:
   },
 ```
 
-- [ ] **Step 2: Render the badge**
+- [x] **Step 2: Render the badge**
 
 In `apps/web/src/components/quota-meters.tsx`, add to the imports:
 
@@ -1934,7 +1934,7 @@ And immediately after the closing `</p>` of `quota-source`, before `snapshot.win
 }
 ```
 
-- [ ] **Step 3: Pass the observations in**
+- [x] **Step 3: Pass the observations in**
 
 In `apps/web/src/views/overview.tsx`, the `QuotaMeters` element currently reads:
 
@@ -1952,7 +1952,7 @@ Change it to:
 />
 ```
 
-- [ ] **Step 4: Style it**
+- [x] **Step 4: Style it**
 
 Append to `apps/web/src/styles.css`, after the `.quota-reset` rule:
 
@@ -1979,12 +1979,12 @@ Append to `apps/web/src/styles.css`, after the `.quota-reset` rule:
 }
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run: `bun run typecheck && bun run lint && bun run build:web && bun run test`
 Expected: all pass. Report the real output of `bun run typecheck`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/web/src/components/quota-meters.tsx apps/web/src/views/overview.tsx apps/web/src/styles.css apps/web/src/i18n/locales/en.json apps/web/src/i18n/locales/es.json
@@ -2009,7 +2009,7 @@ because its usage never touched the window shown above it."
 - Consumes: `parseCredentialId` (Task 9); `OverviewView.byCredential` / `.credentials` (Task 7); `UsageFilters.credentialId` (Task 1).
 - Produces: `BreakdownDimension` gains `"byCredential"`.
 
-- [ ] **Step 1: Add the translation keys**
+- [x] **Step 1: Add the translation keys**
 
 In `apps/web/src/i18n/locales/en.json`, add `"byCredential": "Credential"` to the existing `breakdown` object, and to `filters` add:
 
@@ -2025,7 +2025,7 @@ In `es.json`, add `"byCredential": "Credencial"` to `breakdown`, and to `filters
     "allCredentials": "Todas las credenciales"
 ```
 
-- [ ] **Step 2: Add the breakdown dimension**
+- [x] **Step 2: Add the breakdown dimension**
 
 In `apps/web/src/views/breakdown.tsx`, add `"byCredential"` to the `BreakdownDimension` union and to the `DIMENSIONS` array (after `"byHarness"`). Add the import:
 
@@ -2052,7 +2052,7 @@ Extend the `rows` expression — it currently relabels `byHarness` and `bySource
         : data[dimension];
 ```
 
-- [ ] **Step 3: Add the filter chip**
+- [x] **Step 3: Add the filter chip**
 
 In `apps/web/src/app.tsx`, add the import:
 
@@ -2086,12 +2086,12 @@ The options come from `byCredential` rather than from `credentials` so the unatt
 
 `overview` is the `OverviewView | null` state declared at `apps/web/src/app.tsx:38`, in scope where the chips are rendered. It is nullable during the first load, hence the `?.` and the `?? []`.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `bun run typecheck && bun run lint && bun run build:web && bun run test`
 Expected: all pass. Report the real output of `bun run typecheck`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/views/breakdown.tsx apps/web/src/app.tsx apps/web/src/i18n/locales/en.json apps/web/src/i18n/locales/es.json
@@ -2112,7 +2112,7 @@ group and the reader needs to be able to select it."
 - Modify: `README.md`
 - Modify: `CHANGELOG.md`
 
-- [ ] **Step 1: Add the domain vocabulary**
+- [x] **Step 1: Add the domain vocabulary**
 
 In `CONTEXT.md`, after the **Host Group** entry, add:
 
@@ -2130,7 +2130,7 @@ observed rather than declared, and it is never backdated.
 _Avoid_: session auth, credential history, login event
 ```
 
-- [ ] **Step 2: Add the README capability**
+- [x] **Step 2: Add the README capability**
 
 After the plan-limits bullet added by the previous plan, add:
 
@@ -2140,7 +2140,7 @@ After the plan-limits bullet added by the previous plan, add:
 
 The existing "never imports ... credentials" bullet stays exactly as it is and remains true: only account identifiers are read, and only as one-way fingerprints.
 
-- [ ] **Step 3: Add the changelog entry**
+- [x] **Step 3: Add the changelog entry**
 
 In `CHANGELOG.md`, add to the existing `## Unreleased` section:
 
@@ -2149,12 +2149,12 @@ In `CHANGELOG.md`, add to the existing `## Unreleased` section:
 - Attribution starts from the first time a credential was observed and is never backdated. Usage from before then reads as unattributed, which on an existing ledger is most of it at first; the proportion falls as new usage accumulates.
 ```
 
-- [ ] **Step 4: Run the full verification**
+- [x] **Step 4: Run the full verification**
 
 Run: `bun run check`
 Expected: format:check, lint, typecheck, test, and build all pass. If `format:check` objects, run `bun run format` and commit everything it changed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add CONTEXT.md README.md CHANGELOG.md

@@ -1,11 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - Plan limits now include Claude Code, read from the utilization block Claude Code caches locally. Its session and weekly windows appear beside Codex's, with per-model weekly caps shown separately when a plan has them.
 - Each plan limit states when its reading was taken, because these figures are caches that refresh only while their harness is running. A window whose reset time has already passed is withheld rather than shown at a percentage that no longer applies.
 - Usage is attributed to the Credential that paid for it — a subscription, an API key, or a cloud gateway — with a badge on each plan-limit meter, a Credential breakdown, and a Credential filter. API-key, Bedrock and Vertex usage is called out where it appears beside a plan window, because it never consumed that window.
 - Attribution starts from the first time a credential was observed and is never backdated. Usage from before then reads as unattributed, which on an existing ledger is most of it at first; the proportion falls as new usage accumulates.
+- Plan limit window names now follow the interface language, including the Codex windows that have always been shown in English. A per-model cap keeps the model's own name untranslated. A window recorded by an older version keeps its English name until its harness refreshes the reading.
 
 ## 0.3.2
 
