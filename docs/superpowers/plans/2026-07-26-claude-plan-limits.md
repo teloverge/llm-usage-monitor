@@ -42,7 +42,7 @@
 - Consumes: nothing.
 - Produces: `windowLabel(id: string, windowMinutes: number): string`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/server/test/quota-window-label.test.ts`:
 
@@ -77,12 +77,12 @@ describe("windowLabel", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test apps/server/test/quota-window-label.test.ts`
 Expected: FAIL — `Cannot find module '../src/quota-window-label.ts'`
 
-- [ ] **Step 3: Create the module**
+- [x] **Step 3: Create the module**
 
 Create `apps/server/src/quota-window-label.ts`. This is a move, not a rewrite — the body is lifted verbatim from `codex-importer.ts` so behaviour is unchanged:
 
@@ -123,7 +123,7 @@ export function windowLabel(id: string, windowMinutes: number): string {
 }
 ```
 
-- [ ] **Step 4: Remove the copy in the Codex importer**
+- [x] **Step 4: Remove the copy in the Codex importer**
 
 In `apps/server/src/codex-importer.ts`, delete the `WINDOW_LABELS` constant and the `windowLabel` function (the block that begins with the comment `Fallback labels, used only when...` and ends with the closing brace of `windowLabel`, around lines 253–283). Add to the imports at the top of the file:
 
@@ -133,12 +133,12 @@ import { windowLabel } from "./quota-window-label.ts";
 
 Leave the call site inside `quotaSnapshotFromRateLimits` untouched — it already reads `windowLabel(id, window.windowMinutes)`.
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `node --experimental-strip-types --test apps/server/test/quota-window-label.test.ts apps/server/test/quota-round-trip.test.ts apps/server/test/codex-characterization.test.ts`
 Expected: PASS. The Codex tests are included deliberately — they are the proof the move changed no behaviour.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/server/src/quota-window-label.ts apps/server/src/codex-importer.ts apps/server/test/quota-window-label.test.ts
@@ -165,7 +165,7 @@ The quota numbers live in `~/.claude.json`, which is a sibling of the `~/.claude
 - Consumes: nothing.
 - Produces: `readClaudeConfig(home: string, maxBytes?: number): Promise<Record<string, unknown> | null>`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/server/test/claude-quota.test.ts`. The fixtures are written to temp directories at run time rather than committed: one of them is deliberately malformed JSON, and a broken `.json` file in the repo would fight the formatter.
 
@@ -237,12 +237,12 @@ describe("readClaudeConfig", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test apps/server/test/claude-quota.test.ts`
 Expected: FAIL — `Cannot find module '../src/claude-quota.ts'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/server/src/claude-quota.ts`:
 
@@ -296,12 +296,12 @@ export async function readClaudeConfig(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --experimental-strip-types --test apps/server/test/claude-quota.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/server/src/claude-quota.ts apps/server/test/claude-quota.test.ts
@@ -329,7 +329,7 @@ The mapping proper. `limits[]` drives the meters; the sibling `five_hour` / `sev
 - Consumes: `windowLabel(id, windowMinutes)` from Task 1.
 - Produces: `claudeQuotaSnapshot(config: unknown, sourceHostId: string): UsageQuotaSnapshot | null`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `apps/server/test/claude-quota.test.ts`. Add `claudeQuotaSnapshot` to the existing import from `../src/claude-quota.ts`.
 
@@ -512,12 +512,12 @@ describe("claudeQuotaSnapshot", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test apps/server/test/claude-quota.test.ts`
 Expected: FAIL — `claudeQuotaSnapshot is not a function` / not exported.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Append to `apps/server/src/claude-quota.ts`, and add the imports at the top of that file:
 
@@ -688,12 +688,12 @@ function capped(value: string): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --experimental-strip-types --test apps/server/test/claude-quota.test.ts`
 Expected: PASS, 19 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/server/src/claude-quota.ts apps/server/test/claude-quota.test.ts
@@ -721,7 +721,7 @@ Both blocks are disabled on every account observed so far, so this ships dormant
 - Consumes: `claudeQuotaSnapshot` from Task 3.
 - Produces: no new export; `claudeQuotaSnapshot` gains `balance` and may emit an `extra-usage` window.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `apps/server/test/claude-quota.test.ts`:
 
@@ -799,12 +799,12 @@ describe("claudeQuotaSnapshot extra usage", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test apps/server/test/claude-quota.test.ts`
 Expected: FAIL — `balance` is `undefined` where a value is expected, and no `extra-usage` window exists.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `apps/server/src/claude-quota.ts`, change the `windows` line and add `balance` in `claudeQuotaSnapshot`:
 
@@ -874,12 +874,12 @@ function extraUsageWindow(utilization: Record<string, unknown>): UsageQuotaWindo
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --experimental-strip-types --test apps/server/test/claude-quota.test.ts`
 Expected: PASS, 24 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/server/src/claude-quota.ts apps/server/test/claude-quota.test.ts
@@ -906,7 +906,7 @@ code breaks silently the day an account enables it."
 - Consumes: `readClaudeConfig(home, maxBytes?)` and `claudeQuotaSnapshot(config, sourceHostId)`.
 - Produces: `ClaudeSessionProvider.collect` returns a populated `quotaSnapshots` array.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `apps/server/test/quota-round-trip.test.ts`. Add these imports at the top of the file:
 
@@ -979,12 +979,12 @@ describe("Claude quota round trip", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test apps/server/test/quota-round-trip.test.ts`
 Expected: FAIL — `quotaSnapshots.length` is 0, expected 1.
 
-- [ ] **Step 3: Wire it in**
+- [x] **Step 3: Wire it in**
 
 In `apps/server/src/claude-importer.ts`, add to the imports:
 
@@ -1004,7 +1004,7 @@ and change the returned `quotaSnapshots: []` to:
       quotaSnapshots: snapshot ? [snapshot] : [],
 ```
 
-- [ ] **Step 4: Correct the header comment**
+- [x] **Step 4: Correct the header comment**
 
 The comment on lines 26–29 currently ends the class docstring with "No quota snapshots: the transcripts carry no rate-limit evidence." Half of that is still true and half is now wrong. Replace that paragraph with:
 
@@ -1019,12 +1019,12 @@ The comment on lines 26–29 currently ends the class docstring with "No quota s
  * certainly has one.
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `node --experimental-strip-types --test apps/server/test/quota-round-trip.test.ts apps/server/test/claude-quota.test.ts`
 Expected: PASS. The Codex round trip in the same file must still pass untouched.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/server/src/claude-importer.ts apps/server/test/quota-round-trip.test.ts
@@ -1052,7 +1052,7 @@ A snapshot is written once and served for days afterwards. A window that was liv
 - Consumes: `analyzeUsage`'s existing `now` input.
 - Produces: `currentQuota(snapshots: UsageQuotaSnapshot[], now: Date): UsageQuotaSnapshot[]`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `packages/usage-analysis/test/analysis.test.ts`. Add `currentQuota` to the existing import from `../src/index.ts`, and `UsageQuotaSnapshot` to the type imports from `@llm-usage-monitor/contracts` if not already present.
 
@@ -1125,12 +1125,12 @@ describe("currentQuota", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --experimental-strip-types --test packages/usage-analysis/test/analysis.test.ts`
 Expected: FAIL — `currentQuota is not a function`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `packages/usage-analysis/src/index.ts`, change the `quotaSnapshots` line inside `analyzeUsage` from:
 
@@ -1175,7 +1175,7 @@ export function currentQuota(snapshots: UsageQuotaSnapshot[], now: Date): UsageQ
 }
 ```
 
-- [ ] **Step 4: Pin `now` in the Codex round trip**
+- [x] **Step 4: Pin `now` in the Codex round trip**
 
 The existing Codex assertion at `apps/server/test/quota-round-trip.test.ts:41` is `assert.deepEqual(view.quotaSnapshots, imported.quotaSnapshots)`, and the fixture's `resets_at` values (`1784950000`, `1785300000`) are epoch seconds in **July 2026 — already in the past**. Without a pinned `now` this test now fails, correctly. Add to that test's `analyzeUsage` call:
 
@@ -1185,12 +1185,12 @@ The existing Codex assertion at `apps/server/test/quota-round-trip.test.ts:41` i
 
 This sits before both fixture reset instants, so the round trip keeps asserting on both windows.
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `node --experimental-strip-types --test packages/usage-analysis/test/analysis.test.ts apps/server/test/quota-round-trip.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/usage-analysis/src/index.ts packages/usage-analysis/test/analysis.test.ts apps/server/test/quota-round-trip.test.ts
@@ -1218,7 +1218,7 @@ The Claude number is a cache refreshed only while Claude Code runs, so an unqual
 - Consumes: `snapshot.observedAt`, `formatDateTime` from `../model/format.ts`.
 - Produces: no exports. This repo tests pure functions in `model/`, not components — `formatDateTime` is already covered by `apps/web/test/format.test.ts`, so this task's gate is typecheck, build, and a look at the panel.
 
-- [ ] **Step 1: Add the translation keys**
+- [x] **Step 1: Add the translation keys**
 
 In `apps/web/src/i18n/locales/en.json`, inside the existing `quota` object:
 
@@ -1232,7 +1232,7 @@ In `apps/web/src/i18n/locales/es.json`, inside the existing `quota` object:
     "asOf": "a fecha de {{at}}"
 ```
 
-- [ ] **Step 2: Render the line**
+- [x] **Step 2: Render the line**
 
 Replace the whole of `apps/web/src/components/quota-meters.tsx`. The `map`
 callback gains a block body so the formatted instant is computed once per
@@ -1325,7 +1325,7 @@ export function QuotaMeters({
 }
 ```
 
-- [ ] **Step 3: Style it**
+- [x] **Step 3: Style it**
 
 In `apps/web/src/styles.css`, replace the `.quota-source` rule and add one after it:
 
@@ -1344,7 +1344,7 @@ In `apps/web/src/styles.css`, replace the `.quota-source` rule and add one after
 }
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `bun run typecheck && bun run lint && bun run build:web`
 Expected: all pass.
@@ -1357,7 +1357,7 @@ node apps/server/dist/cli.mjs start --open
 
 Expected: the Plan limits panel shows a Claude Code group with its plan, its windows, and an "as of" time; the Codex group shows an "as of" time too; the group header wraps rather than overflowing at narrow widths.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/components/quota-meters.tsx apps/web/src/styles.css apps/web/src/i18n/locales/en.json apps/web/src/i18n/locales/es.json
@@ -1381,7 +1381,7 @@ bare percentage asserts more than the source supports."
 - Consumes: the finished feature.
 - Produces: nothing consumed by later tasks.
 
-- [ ] **Step 1: Update the README capability list**
+- [x] **Step 1: Update the README capability list**
 
 In `README.md`, the bullet reading "Shows API-equivalent spend as a single headline figure ... plus token composition and per-source plan limits." stays. Add after it:
 
@@ -1391,7 +1391,7 @@ In `README.md`, the bullet reading "Shows API-equivalent spend as a single headl
 
 The existing claim "it calls no vendor account servers" stays exactly as it is and is still true — this reads a file Claude Code already wrote.
 
-- [ ] **Step 2: Add the changelog entry**
+- [x] **Step 2: Add the changelog entry**
 
 In `CHANGELOG.md`, add a new section directly under `# Changelog`:
 
@@ -1402,12 +1402,12 @@ In `CHANGELOG.md`, add a new section directly under `# Changelog`:
 - Each plan limit states when its reading was taken, because these figures are caches that refresh only while their harness is running. A window whose reset time has already passed is withheld rather than shown at a percentage that no longer applies.
 ```
 
-- [ ] **Step 3: Run the full verification**
+- [x] **Step 3: Run the full verification**
 
 Run: `vp run check`
 Expected: format:check, lint, typecheck, test, and build all pass.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add README.md CHANGELOG.md
