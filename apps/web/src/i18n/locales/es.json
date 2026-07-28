@@ -143,7 +143,17 @@
   "quota": {
     "used": "{{percent}} usado",
     "resets": "se restablece {{at}}",
-    "asOf": "a fecha de {{at}}"
+    "asOf": "a fecha de {{at}}",
+    "window": {
+      "session": "Ventana de sesión",
+      "weekly": "Ventana semanal",
+      "weeks": "Ventana de {{n}} semanas",
+      "daily": "Ventana diaria",
+      "days": "Ventana de {{n}} días",
+      "hours": "Ventana de {{n}} horas",
+      "minutes": "Ventana de {{n}} minutos",
+      "extraUsage": "Uso adicional"
+    }
   },
   "rank": {
     "empty": "No hay uso en este periodo",

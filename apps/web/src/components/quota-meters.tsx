@@ -4,6 +4,7 @@ import { STATUS } from "../theme/palette.ts";
 import { countsAgainstPlan, credentialModeKey, latestCredential } from "../model/credential.ts";
 import { formatDateTime, formatWholePercent, type QuotaStatus } from "../model/format.ts";
 import { QUOTA_GLYPH, quotaMeterView } from "../model/quota-meter.ts";
+import { quotaWindowLabel } from "../model/quota-window.ts";
 
 const FILL: Record<QuotaStatus, string> = {
   good: STATUS.good,
@@ -70,10 +71,11 @@ export function QuotaMeters({
             {snapshot.windows.map((window) => {
               const { status, shown, width } = quotaMeterView(window);
               const resets = window.resetsAt ? formatDateTime(window.resetsAt) : null;
+              const label = quotaWindowLabel(window, t);
               return (
                 <div className="quota-window" key={window.id}>
                   <p className="quota-head">
-                    <b>{window.label}</b>
+                    <b>{label}</b>
                     <span className={`quota-value ${status}`}>
                       {shown === null
                         ? t("common.notReported")
@@ -93,7 +95,7 @@ export function QuotaMeters({
                       aria-valuemin={0}
                       aria-valuemax={100}
                       aria-valuetext={t("quota.used", { percent: formatWholePercent(shown) })}
-                      aria-label={window.label}
+                      aria-label={label}
                     >
                       <i style={{ width: `${width}%`, background: FILL[status] }} />
                     </div>

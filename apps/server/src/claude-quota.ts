@@ -1,7 +1,11 @@
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import type { UsageQuotaSnapshot, UsageQuotaWindow } from "@llm-usage-monitor/contracts";
-import { windowLabel } from "./quota-window-label.ts";
+import type {
+  QuotaWindowKind,
+  UsageQuotaSnapshot,
+  UsageQuotaWindow,
+} from "@llm-usage-monitor/contracts";
+import { windowKind, windowLabel } from "./quota-window-label.ts";
 
 /**
  * The config file accumulates a project history the monitor does not control,
@@ -61,6 +65,13 @@ const KIND_LABELS: Record<string, string> = {
   weekly_scoped: "Weekly window",
 };
 
+/** `KIND_LABELS`' translatable twin — the same three kinds, as label shapes. */
+const KIND_KINDS: Record<string, QuotaWindowKind> = {
+  session: "session",
+  weekly_all: "weekly",
+  weekly_scoped: "weekly",
+};
+
 /**
  * Maps Claude Code's cached utilization block into a normalized snapshot.
  *
@@ -110,11 +121,16 @@ function quotaWindows(utilization: Record<string, unknown>): UsageQuotaWindow[] 
     const resetsAt = instant(limit.resets_at);
     const windowMinutes = resetsAt === undefined ? undefined : durations.get(resetsAt);
     const usedPercent = nonNegative(limit.percent);
+    const translatable = labelKind(kind, windowMinutes);
     windows.push({
       // Unique because it is the React key, and `weekly_scoped` legitimately
       // repeats once per scoped model.
       id: unique(taken, scope ? `${kind}:${slug(scope)}` : kind),
       label: capped(label(kind, scope, windowMinutes)),
+      ...(translatable === undefined ? {} : { kind: translatable }),
+      // Carried separately from `label` so the view can translate the window
+      // and leave Anthropic's model name alone.
+      ...(scope === undefined ? {} : { scope }),
       ...(usedPercent === undefined ? {} : { usedPercent }),
       ...(windowMinutes === undefined ? {} : { windowMinutes }),
       ...(resetsAt === undefined ? {} : { resetsAt }),
@@ -150,6 +166,18 @@ function label(kind: string, scope: string | undefined, windowMinutes: number | 
       ? (KIND_LABELS[kind] ?? humanize(kind))
       : windowLabel(kind, windowMinutes);
   return scope ? `${base} · ${scope}` : base;
+}
+
+/**
+ * The translatable counterpart of `label`, branching in the same order: a stated
+ * duration decides the phrasing, and only in its absence does Anthropic's own
+ * `kind` string. Undefined for a kind this codebase has never seen — `humanize`
+ * still puts it on screen in English, which is the point of that branch, and
+ * inventing a translation key for it would just render a missing key instead.
+ */
+function labelKind(kind: string, windowMinutes: number | undefined): QuotaWindowKind | undefined {
+  if (windowMinutes !== undefined) return windowKind(windowMinutes);
+  return KIND_KINDS[kind];
 }
 
 /** `monthly_all` -> `Monthly all`. Ugly beats absent: a new cap must appear. */
@@ -274,5 +302,5 @@ function extraUsageWindow(utilization: Record<string, unknown>): UsageQuotaWindo
   if (extra?.is_enabled !== true) return [];
   const usedPercent = nonNegative(extra.utilization);
   if (usedPercent === undefined) return [];
-  return [{ id: "extra-usage", label: "Extra usage", usedPercent }];
+  return [{ id: "extra-usage", label: "Extra usage", kind: "extra-usage", usedPercent }];
 }

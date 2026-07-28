@@ -55,15 +55,48 @@ export const rateLimitsSchema = z
  * than a full or empty meter. `resetsAt` is an ISO instant, not the Unix epoch
  * seconds Codex emits; conversion belongs in the importer.
  */
+/**
+ * What SHAPE of label a window wants, so the view can render it in the reader's
+ * language. `label` below is the same thing already rendered into English.
+ */
+export const quotaWindowKindSchema = z.enum([
+  "session",
+  "weekly",
+  "daily",
+  "hourly",
+  "minute",
+  "extra-usage",
+]);
+
 export const usageQuotaWindowSchema = z
   .object({
     id: z.string().min(1).max(200),
+    /**
+     * The window's name in English, as the server derived it.
+     *
+     * Required, and NOT superseded by `kind`: snapshots written before `kind`
+     * existed are still sitting in ledgers, and the schema is strict, so this
+     * must keep parsing them. It is also the escape hatch for a window whose
+     * kind this codebase does not recognise — a new cap must still appear,
+     * even if only in English.
+     */
     label: z.string().min(1).max(200),
+    /**
+     * Optional because it is the newer half of the pair. Present, the view
+     * translates; absent, the view falls back to `label`.
+     */
+    kind: quotaWindowKindSchema.optional(),
+    /**
+     * A per-model cap's model name, appended to the label. Source-owned copy —
+     * Anthropic's own display name for the model — so it is never translated.
+     */
+    scope: z.string().min(1).max(200).optional(),
     usedPercent: z.number().nonnegative().optional(),
     windowMinutes: z.number().int().nonnegative().optional(),
     resetsAt: z.string().datetime().optional(),
   })
   .strict();
+export type QuotaWindowKind = z.infer<typeof quotaWindowKindSchema>;
 /**
  * A point-in-time observation of one usage source's plan quota on one host.
  * Keyed by (usageSourceId, sourceHostId): quota is a property of the account as

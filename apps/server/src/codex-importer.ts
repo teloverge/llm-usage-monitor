@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { createInterface } from "node:readline";
 import type { RateLimits, UsageQuotaSnapshot, UsageRecord } from "@llm-usage-monitor/contracts";
-import { windowLabel } from "./quota-window-label.ts";
+import { windowKind, windowLabel } from "./quota-window-label.ts";
 
 // Bumped 4 -> 5 for Task 17: entries cached under v4 have no `rateLimits`, so
 // every file must be re-parsed once to pick up its quota evidence.
@@ -261,10 +261,12 @@ export function quotaSnapshotFromRateLimits(
   const windows = (["primary", "secondary"] as const).flatMap((id) => {
     const window = limits[id];
     if (!window) return [];
+    const kind = windowKind(window.windowMinutes);
     return [
       {
         id,
         label: windowLabel(id, window.windowMinutes),
+        ...(kind === undefined ? {} : { kind }),
         usedPercent: window.usedPercent,
         windowMinutes: window.windowMinutes,
         ...(window.resetsAt ? { resetsAt: new Date(window.resetsAt * 1000).toISOString() } : {}),

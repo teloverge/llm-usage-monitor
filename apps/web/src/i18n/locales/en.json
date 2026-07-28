@@ -143,7 +143,17 @@
   "quota": {
     "used": "{{percent}} used",
     "resets": "resets {{at}}",
-    "asOf": "as of {{at}}"
+    "asOf": "as of {{at}}",
+    "window": {
+      "session": "Session window",
+      "weekly": "Weekly window",
+      "weeks": "{{n}}-week window",
+      "daily": "Daily window",
+      "days": "{{n}}-day window",
+      "hours": "{{n}}-hour window",
+      "minutes": "{{n}}-minute window",
+      "extraUsage": "Extra usage"
+    }
   },
   "rank": {
     "empty": "No usage in this period",
