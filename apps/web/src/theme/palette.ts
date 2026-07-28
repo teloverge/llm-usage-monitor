@@ -39,11 +39,15 @@ export const CHART_INK = {
   track: "#282c31",
 } as const;
 
-/** Token-mix segment identity, keyed for lookup without assertions. */
+/**
+ * Token-mix segment colours, keyed for lookup without assertions. Colours only —
+ * the segment names are copy and live in the translation files, because a theme
+ * module that also holds English prose cannot be reused in another language.
+ */
 export const TOKEN_MIX = {
-  fresh: { label: "Fresh input", color: SERIES.blue },
-  cached: { label: "Cached", color: SERIES.teal },
-  output: { label: "Output", color: SERIES.orange },
+  fresh: SERIES.blue,
+  cached: SERIES.teal,
+  output: SERIES.orange,
 } as const;
 
 /** Stacking order for the token-mix bar. Explicit so it never depends on key order. */

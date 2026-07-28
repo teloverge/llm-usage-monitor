@@ -33,7 +33,6 @@ describe("Quota snapshot round trip", () => {
       const view = analyzeUsage({
         records: [],
         prices: [],
-        sourceHosts: [],
         memberships: [],
         quotaSnapshots: ledger.quotaSnapshots(),
         filters: { timeframe: "all" },

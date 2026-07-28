@@ -1,22 +1,25 @@
+import { useTranslation } from "react-i18next";
 import type { RankedUsage } from "@llm-usage-monitor/contracts";
-import { formatMoney } from "../model/format.ts";
+import { formatCount, formatMoney } from "../model/format.ts";
 import { rankBarWidth, rankView } from "../model/rank-scale.ts";
 
 export function RankList({
   rows,
   limit = 4,
   onMore,
-  emptyLabel = "No usage in this period",
+  emptyLabel,
 }: {
   rows: RankedUsage[];
   limit?: number;
   onMore?: () => void;
+  /** Defaults to the generic empty wording; callers override for a narrower one. */
   emptyLabel?: string;
 }) {
+  const { t } = useTranslation();
   // Keyed off the data, not off what survived the cap: a list that has rows but
   // shows none of them is truncated, not empty, and saying "No usage in this
   // period" over real usage is the worst thing this component could do.
-  if (!rows.length) return <p className="empty-state">{emptyLabel}</p>;
+  if (!rows.length) return <p className="empty-state">{emptyLabel ?? t("rank.empty")}</p>;
 
   const { shown, remaining, maximum } = rankView(rows, limit);
   return (
@@ -44,10 +47,12 @@ export function RankList({
       {remaining > 0 &&
         (onMore ? (
           <button type="button" className="link" onClick={onMore}>
-            {remaining} more →
+            {t("rank.moreLink", { remaining: formatCount(remaining) })}
           </button>
         ) : (
-          <p className="link link-static">{remaining} more</p>
+          <p className="link link-static">
+            {t("rank.more", { remaining: formatCount(remaining) })}
+          </p>
         ))}
     </>
   );

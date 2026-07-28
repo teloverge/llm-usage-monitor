@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   HostGroup,
   HostGroupMembership,
@@ -8,8 +8,9 @@ import type {
   UsageFilters,
   UsageHistoryRecord,
 } from "@llm-usage-monitor/contracts";
+import { useTranslation } from "react-i18next";
 import { SearchChip, SelectChip } from "./components/chip.tsx";
-import { sourceHostLabel } from "./model/source-host.ts";
+import { sourceHostLabel, sourceHostLabels } from "./model/source-host.ts";
 import { executeAction, getCatalog, getHistory, getOverview } from "./api.ts";
 import { History } from "./views/history.tsx";
 import { Settings } from "./views/settings/index.tsx";
@@ -22,22 +23,13 @@ export type View = "overview" | "breakdown" | "history";
 /** The subset the Overview's rank panels can drill into. */
 export type DrillDownDimension = Extract<BreakdownDimension, "byHarness" | "byModel" | "byTask">;
 
-const VIEWS: Array<{ value: View; label: string }> = [
-  { value: "overview", label: "Overview" },
-  { value: "breakdown", label: "Breakdown" },
-  { value: "history", label: "History" },
-];
+/** Ids only. The labels are looked up per render so they follow the language. */
+const VIEWS: readonly View[] = ["overview", "breakdown", "history"];
 
-const TIMEFRAMES = [
-  { value: "today", label: "Today" },
-  { value: "last24", label: "Last 24 hours" },
-  { value: "7", label: "Last 7 days" },
-  { value: "30", label: "Last 30 days" },
-  { value: "90", label: "Last 90 days" },
-  { value: "all", label: "All retained" },
-] as const;
+const TIMEFRAMES = ["today", "last24", "7", "30", "90", "all"] as const;
 
 export function App() {
+  const { t } = useTranslation();
   const [view, setView] = useState<View>("overview");
   /** Which dimension the Breakdown opens on, so a drill-down lands where it was aimed. */
   const [breakdownDimension, setBreakdownDimension] = useState<BreakdownDimension>("byModel");
@@ -116,6 +108,17 @@ export function App() {
     }
   };
 
+  /**
+   * Built once here rather than per view, so a host reads as the same
+   * "Source Host 3" in the Hosts panel, the Breakdown, and the History table.
+   * Rebuilding it per panel would renumber against whatever subset that panel
+   * ranked.
+   */
+  const hostLabel = useMemo(
+    () => sourceHostLabels(sourceHosts, (index) => t("common.sourceHostFallback", { index })),
+    [sourceHosts, t],
+  );
+
   const drillDown = (dimension: DrillDownDimension) => {
     setBreakdownDimension(dimension);
     setSettingsOpen(false);
@@ -131,63 +134,66 @@ export function App() {
       <div className="app-shell">
         <header className="topbar">
           <img className="brand-mark" src={logoUrl} alt="" />
-          <strong className="brand-name">Usage Monitor</strong>
-          <nav aria-label="Dashboard sections">
+          <strong className="brand-name">{t("app.brand")}</strong>
+          <nav aria-label={t("app.sections")}>
             {VIEWS.map((item) => {
               // Settings renders over the top of whichever view is selected, so while
               // it is open no nav item is current. Without this the nav would keep
               // highlighting Overview — visually and to assistive tech — while
               // Settings is on screen.
-              const current = !settingsOpen && view === item.value;
+              const current = !settingsOpen && view === item;
               return (
                 <button
-                  key={item.value}
+                  key={item}
                   type="button"
                   className={current ? "active" : ""}
                   aria-current={current ? "true" : undefined}
                   onClick={() => {
                     setSettingsOpen(false);
-                    setView(item.value);
+                    setView(item);
                   }}
                 >
-                  {item.label}
+                  {t(`nav.${item}`)}
                 </button>
               );
             })}
           </nav>
           <div className="chips">
             <SelectChip
-              label="Period"
+              label={t("filters.period")}
               value={filters.timeframe}
-              options={TIMEFRAMES.map((item) => ({ ...item }))}
+              options={TIMEFRAMES.map((value) => ({ value, label: t(`period.select.${value}`) }))}
               onChange={(value) => change("timeframe", value)}
             />
             <SelectChip
-              label="Host"
+              label={t("filters.host")}
               value={filters.sourceHostId ?? ""}
               options={[
-                { value: "", label: "All" },
+                { value: "", label: t("filters.allHosts") },
                 ...sourceHosts.map((host, index) => ({
                   value: host.id,
                   // Must go through sourceHostLabel, not host.hostname directly —
                   // some machines report a MAC address as their hostname.
-                  label: sourceHostLabel(host, index),
+                  label: sourceHostLabel(
+                    host,
+                    t("common.sourceHostFallback", { index: index + 1 }),
+                  ),
                 })),
               ]}
               onChange={(value) => change("sourceHostId", value)}
             />
             <SearchChip
               value={filters.query ?? ""}
-              placeholder="Filter tasks"
+              placeholder={t("filters.searchTasks")}
               onChange={(value) => change("query", value)}
             />
             <button type="button" className="primary" disabled={busy} onClick={refreshSources}>
-              {busy ? "Refreshing…" : "Refresh sources"}
+              {busy ? t("filters.refreshing") : t("filters.refresh")}
             </button>
             <button
               type="button"
               className="gear"
-              aria-label="Settings"
+              aria-label={t("filters.settings")}
               aria-expanded={settingsOpen ? "true" : "false"}
               onClick={() => setSettingsOpen(!settingsOpen)}
             >
@@ -208,9 +214,7 @@ export function App() {
             re-renders without a navigation, so there is no page-load announcement.
             This heading changing is what tells an assistive-tech user the view changed.
           */}
-          <h1 className="sr-only">
-            Usage Monitor — {VIEWS.find((item) => item.value === view)?.label ?? "Overview"}
-          </h1>
+          <h1 className="sr-only">{t("app.viewHeading", { view: t(`nav.${view}`) })}</h1>
           {error && (
             <p role="alert" className="error">
               {error}
@@ -225,15 +229,14 @@ export function App() {
             hostGroups={hostGroups}
             memberships={memberships}
             sourceHosts={sourceHosts}
+            hostLabel={hostLabel}
             onSaved={refresh}
             onDrillDown={drillDown}
             breakdownDimension={breakdownDimension}
             onBreakdownDimensionChange={setBreakdownDimension}
           />
         </main>
-        <footer>
-          Everything stays on this machine · API-equivalent estimates are not billing claims
-        </footer>
+        <footer>{t("app.footer")}</footer>
       </div>
     </>
   );
@@ -248,6 +251,7 @@ function ViewSlot({
   hostGroups,
   memberships,
   sourceHosts,
+  hostLabel,
   onSaved,
   onDrillDown,
   breakdownDimension,
@@ -261,6 +265,7 @@ function ViewSlot({
   hostGroups: HostGroup[];
   memberships: HostGroupMembership[];
   sourceHosts: SourceHost[];
+  hostLabel: (sourceHostId: string) => string;
   onSaved: () => Promise<void>;
   onDrillDown: (dimension: DrillDownDimension) => void;
   breakdownDimension: BreakdownDimension;
@@ -277,14 +282,17 @@ function ViewSlot({
       />
     );
   if (view === "overview")
-    return overview ? <Overview data={overview} onDrillDown={onDrillDown} /> : null;
+    return overview ? (
+      <Overview data={overview} hostLabel={hostLabel} onDrillDown={onDrillDown} />
+    ) : null;
   if (view === "breakdown")
     return overview ? (
       <Breakdown
         data={overview}
+        hostLabel={hostLabel}
         dimension={breakdownDimension}
         onDimensionChange={onBreakdownDimensionChange}
       />
     ) : null;
-  return <History records={history} />;
+  return <History records={history} hostLabel={hostLabel} />;
 }

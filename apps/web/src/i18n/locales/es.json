@@ -1,0 +1,165 @@
+{
+  "common": {
+    "unknownHarness": "Entorno desconocido",
+    "notReported": "No informado",
+    "unpriced": "Sin tarifa",
+    "sourceHostFallback": "Host de origen {{index}}",
+    "untitledTask": "Tarea sin título"
+  },
+  "headline": {
+    "coverage": {
+      "none": "No hay registros en este periodo",
+      "all": "{{records}} registros con tarifa",
+      "partial": "{{priced}} de {{records}} registros con tarifa"
+    },
+    "title": "Coste equivalente de API del trabajo · {{period}}",
+    "disclaimer": "{{coverage}} · estimado según tus tarifas de API configuradas, no es una factura",
+    "measureGroup": "Medida de la tendencia",
+    "cost": "Coste (USD)",
+    "tokens": "Tokens",
+    "seriesCost": "Coste estimado",
+    "empty": "No hay actividad en este periodo"
+  },
+  "settings": {
+    "sections": "Secciones de ajustes",
+    "tabs": {
+      "rates": "Tarifas de modelo",
+      "host-groups": "Grupos de hosts",
+      "language": "Idioma"
+    },
+    "rates": {
+      "heading": "Tarifas de modelo",
+      "subtitle": "USD por millón de tokens · {{models}} modelos configurados",
+      "caption": "Precios de modelo configurados en USD por millón de tokens",
+      "saving": "Guardando…",
+      "save": "Guardar cambios",
+      "saved": "Precios guardados",
+      "provider": "Proveedor",
+      "model": "Modelo",
+      "input": "Entrada",
+      "cachedInput": "Lectura de caché",
+      "cacheWrite": "Escritura de caché",
+      "output": "Salida",
+      "effective": "Vigente desde",
+      "loading": "Cargando el catálogo de precios local…"
+    },
+    "language": {
+      "heading": "Idioma",
+      "hint": "Se aplica solo a este navegador. Los números, las fechas y la moneda siguen el idioma que elijas."
+    },
+    "hostGroups": {
+      "heading": "Grupos de hosts",
+      "effectiveHint": "La agrupación se aplica al uso registrado a partir de ahora. El uso anterior conserva la agrupación vigente en su momento.",
+      "newGroup": "Nuevo grupo",
+      "empty": "Todavía no hay grupos de hosts. Usa Nuevo grupo para añadir uno.",
+      "groupName": "Nombre del grupo",
+      "saving": "Guardando…",
+      "save": "Guardar",
+      "retire": "Retirar",
+      "thisGroup": "este grupo",
+      "hostsIn": "Hosts en {{group}}",
+      "currentlyIn": "actualmente en {{group}}",
+      "ungrouped": "Sin agrupar: {{hosts}}",
+      "none": "ninguno",
+      "confirmRetire": "¿Retirar \"{{group}}\"? El uso registrado a partir de ahora quedará sin agrupar. El uso pasado conserva este grupo, así que ningún total existente cambia."
+    }
+  },
+  "app": {
+    "brand": "Usage Monitor",
+    "sections": "Secciones del panel",
+    "viewHeading": "Usage Monitor — {{view}}",
+    "footer": "Todo permanece en este equipo · Las estimaciones equivalentes de API no son cargos reales"
+  },
+  "nav": {
+    "overview": "Resumen",
+    "breakdown": "Desglose",
+    "history": "Historial"
+  },
+  "filters": {
+    "period": "Periodo",
+    "host": "Host",
+    "allHosts": "Todos",
+    "searchTasks": "Filtrar tareas",
+    "refresh": "Actualizar fuentes",
+    "refreshing": "Actualizando…",
+    "settings": "Ajustes"
+  },
+  "period": {
+    "select": {
+      "today": "Hoy",
+      "last24": "Últimas 24 horas",
+      "7": "Últimos 7 días",
+      "30": "Últimos 30 días",
+      "90": "Últimos 90 días",
+      "all": "Todo el historial"
+    },
+    "inline": {
+      "today": "hoy",
+      "last24": "últimas 24 horas",
+      "7": "últimos 7 días",
+      "30": "últimos 30 días",
+      "90": "últimos 90 días",
+      "all": "todo el historial conservado",
+      "custom": "el rango seleccionado"
+    }
+  },
+  "overview": {
+    "drivers": "Qué lo generó",
+    "context": "Contexto",
+    "byHarness": "Por entorno",
+    "byModel": "Por modelo",
+    "byTask": "Por tarea",
+    "tokenMix": "Mezcla de tokens",
+    "planLimits": "Límites del plan",
+    "hosts": "Hosts",
+    "tokens": "Tokens",
+    "cachedInput": "Entrada en caché",
+    "cacheCoverage": "de {{tokens}} tokens que informan",
+    "tasks": "Tareas",
+    "models": "Modelos"
+  },
+  "tokenMix": {
+    "composition": "Composición de tokens",
+    "empty": "No hay tokens en este periodo",
+    "fresh": "Entrada nueva",
+    "cached": "En caché",
+    "output": "Salida",
+    "unreported": "Caché no informada"
+  },
+  "quota": {
+    "used": "{{percent}} usado",
+    "resets": "se restablece {{at}}"
+  },
+  "rank": {
+    "empty": "No hay uso en este periodo",
+    "more": "{{remaining}} más",
+    "moreLink": "{{remaining}} más →"
+  },
+  "breakdown": {
+    "groupBy": "Agrupar por",
+    "byHarness": "Entorno",
+    "byModel": "Modelo → Razonamiento",
+    "byTask": "Tarea → Sesión",
+    "bySourceHost": "Host",
+    "byHostGroup": "Grupo de hosts",
+    "treeView": "⊟ Vista de árbol",
+    "tableView": "⊞ Vista de tabla",
+    "empty": "Ningún uso coincide con los filtros actuales."
+  },
+  "table": {
+    "group": "Grupo",
+    "records": "Registros",
+    "tokens": "Tokens",
+    "cost": "Coste"
+  },
+  "history": {
+    "empty": "Ningún historial de uso coincide con los filtros.",
+    "summary": "{{tasks}} tareas · {{sessions}} sesiones · {{records}} registros",
+    "groupSessions": "{{sessions}} sesiones · {{tokens}}",
+    "lastActive": "Última actividad",
+    "harness": "Entorno",
+    "model": "Modelo",
+    "reasoning": "Razonamiento",
+    "host": "Host"
+  }
+}
