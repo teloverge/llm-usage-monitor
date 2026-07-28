@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { HostGroup, HostGroupMembership, SourceHost } from "@llm-usage-monitor/contracts";
 import { executeAction } from "../../api.ts";
 import {
@@ -10,15 +11,6 @@ import {
   type HostGroupRow,
 } from "../../model/host-groups.ts";
 import { sourceHostLabel } from "../../model/source-host.ts";
-
-/**
- * Membership is written "as of now" and never backdated, so a newly created
- * group explains nothing about existing history — every past record keeps
- * resolving to Ungrouped. That is correct, and it looks exactly like a save
- * that did nothing, so the hint is not decoration.
- */
-const EFFECTIVE_HINT =
-  "Grouping applies to usage recorded from now on. Earlier usage keeps the grouping that applied when it happened.";
 
 /**
  * Ids are generated, never derived from the name: the name is editable and a
@@ -39,6 +31,7 @@ export function HostGroups({
   sourceHosts: SourceHost[];
   onSaved: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const saved = hostGroupRows(hostGroups, memberships);
   const [draft, setDraft] = useState<HostGroupRow[]>(saved);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -79,7 +72,9 @@ export function HostGroups({
   const labelFor = (sourceHostId: string) => {
     const index = sourceHosts.findIndex((host) => host.id === sourceHostId);
     const host = sourceHosts[index];
-    return host ? sourceHostLabel(host, index) : sourceHostId;
+    return host
+      ? sourceHostLabel(host, t("common.sourceHostFallback", { index: index + 1 }))
+      : sourceHostId;
   };
   const savedName = (groupId: string) => hostGroups.find((group) => group.id === groupId)?.name;
   const update = (id: string, change: Partial<HostGroupRow>) =>
@@ -123,12 +118,7 @@ export function HostGroups({
    */
   const retire = async (row: HostGroupRow) => {
     const label = savedName(row.id) ?? row.name;
-    if (
-      !window.confirm(
-        `Retire "${label}"? Usage recorded from now on will be ungrouped. Past usage keeps this group, so no existing totals change.`,
-      )
-    )
-      return;
+    if (!window.confirm(t("settings.hostGroups.confirmRetire", { group: label }))) return;
     await save({ ...row, name: label, memberHostIds: [] });
   };
 
@@ -141,11 +131,17 @@ export function HostGroups({
     <section className="settings-section" aria-labelledby="host-groups-title">
       <div className="settings-section-head host-group-head">
         <div>
-          <h2 id="host-groups-title">Host groups</h2>
-          <p>{EFFECTIVE_HINT}</p>
+          <h2 id="host-groups-title">{t("settings.hostGroups.heading")}</h2>
+          {/*
+            Membership is written "as of now" and never backdated, so a newly
+            created group explains nothing about existing history — every past
+            record keeps resolving to Ungrouped. That is correct, and it looks
+            exactly like a save that did nothing, so the hint is not decoration.
+          */}
+          <p>{t("settings.hostGroups.effectiveHint")}</p>
         </div>
         <button type="button" className="primary" onClick={addGroup}>
-          New group
+          {t("settings.hostGroups.newGroup")}
         </button>
       </div>
       {error && (
@@ -154,14 +150,14 @@ export function HostGroups({
         </p>
       )}
       {draft.length === 0 ? (
-        <p className="empty-state">No host groups yet. Use New group to add one.</p>
+        <p className="empty-state">{t("settings.hostGroups.empty")}</p>
       ) : (
         <ul className="host-group-list">
           {draft.map((row) => (
             <li key={row.id} className="host-group-card">
               <div className="host-group-card-head">
                 <label className="host-group-name">
-                  Group name
+                  {t("settings.hostGroups.groupName")}
                   <input
                     type="text"
                     value={row.name}
@@ -175,7 +171,9 @@ export function HostGroups({
                     disabled={savingId !== null || row.name.trim() === "" || !isDirty(row)}
                     onClick={() => void save(row)}
                   >
-                    {savingId === row.id ? "Saving…" : "Save"}
+                    {savingId === row.id
+                      ? t("settings.hostGroups.saving")
+                      : t("settings.hostGroups.save")}
                   </button>
                   {/* A draft that was never saved has nothing to retire; it is
                       discarded by reload, so the button would be a no-op. */}
@@ -185,13 +183,17 @@ export function HostGroups({
                       disabled={savingId !== null}
                       onClick={() => void retire(row)}
                     >
-                      Retire
+                      {t("settings.hostGroups.retire")}
                     </button>
                   )}
                 </div>
               </div>
               <fieldset className="host-group-hosts">
-                <legend>Hosts in {savedName(row.id) ?? "this group"}</legend>
+                <legend>
+                  {t("settings.hostGroups.hostsIn", {
+                    group: savedName(row.id) ?? t("settings.hostGroups.thisGroup"),
+                  })}
+                </legend>
                 {sourceHosts.map((host, index) => {
                   const elsewhere = currentGroupIdFor(host.id, memberships);
                   const moving = elsewhere !== null && elsewhere !== row.id;
@@ -202,12 +204,19 @@ export function HostGroups({
                         checked={row.memberHostIds.includes(host.id)}
                         onChange={() => toggleHost(row, host.id)}
                       />
-                      <span>{sourceHostLabel(host, index)}</span>
+                      <span>
+                        {sourceHostLabel(
+                          host,
+                          t("common.sourceHostFallback", { index: index + 1 }),
+                        )}
+                      </span>
                       {/* Shown before the move, not after, so the consequence
                           is visible while the choice is still reversible. */}
                       {moving && (
                         <span className="host-group-moving">
-                          currently in {savedName(elsewhere) ?? elsewhere}
+                          {t("settings.hostGroups.currentlyIn", {
+                            group: savedName(elsewhere) ?? elsewhere,
+                          })}
                         </span>
                       )}
                     </label>
@@ -219,7 +228,12 @@ export function HostGroups({
         </ul>
       )}
       <p className="host-group-ungrouped">
-        Ungrouped: {ungrouped.length === 0 ? "none" : ungrouped.map(labelFor).join(", ")}
+        {t("settings.hostGroups.ungrouped", {
+          hosts:
+            ungrouped.length === 0
+              ? t("settings.hostGroups.none")
+              : ungrouped.map(labelFor).join(", "),
+        })}
       </p>
     </section>
   );

@@ -3,6 +3,15 @@ import { describe, it } from "node:test";
 import type { UsageHistoryRecord } from "@llm-usage-monitor/contracts";
 import { groupHistoryByTask } from "../src/model/usage-groups.ts";
 
+// The translated wording is injected, exactly as the component will inject it.
+// `sourceHost` resolves a raw id the way the view does, so the grouping is
+// exercised against injected wording rather than anything it invents itself.
+const LABELS = {
+  untitledTask: "Untitled task",
+  notReported: "Not reported",
+  sourceHost: (sourceHostId: string) => (sourceHostId === "host:a" ? "Workstation" : sourceHostId),
+};
+
 const historyRecord = (overrides: Partial<UsageHistoryRecord>): UsageHistoryRecord => ({
   id: "record:1",
   usageSourceId: "codex-local",
@@ -22,30 +31,33 @@ const historyRecord = (overrides: Partial<UsageHistoryRecord>): UsageHistoryReco
   lastTokenUsage: null,
   modelContextWindowTokens: 1_000,
   source: "test",
-  sourceHostLabel: "Workstation",
+  sourceHostId: "host:a",
   estimatedCost: 0.1,
   ...overrides,
 });
 
 describe("usage display grouping", () => {
   it("normalizes equivalent task names and sums records into sessions", () => {
-    const groups = groupHistoryByTask([
-      historyRecord({ id: "record:1", taskName: " Review   changes ", sessionId: "session:1" }),
-      historyRecord({
-        id: "record:2",
-        taskName: "review changes",
-        sessionId: "session:1",
-        totalTokens: 90,
-        estimatedCost: 0.2,
-      }),
-      historyRecord({
-        id: "record:3",
-        taskName: "REVIEW CHANGES",
-        sessionId: "session:2",
-        totalTokens: 50,
-        estimatedCost: null,
-      }),
-    ]);
+    const groups = groupHistoryByTask(
+      [
+        historyRecord({ id: "record:1", taskName: " Review   changes ", sessionId: "session:1" }),
+        historyRecord({
+          id: "record:2",
+          taskName: "review changes",
+          sessionId: "session:1",
+          totalTokens: 90,
+          estimatedCost: 0.2,
+        }),
+        historyRecord({
+          id: "record:3",
+          taskName: "REVIEW CHANGES",
+          sessionId: "session:2",
+          totalTokens: 50,
+          estimatedCost: null,
+        }),
+      ],
+      LABELS,
+    );
     assert.equal(groups.length, 1);
     assert.equal(groups[0]?.sessions.length, 2);
     assert.equal(groups[0]?.records.length, 3);
@@ -75,20 +87,25 @@ describe("Session harness attribution", () => {
     modelContextWindowTokens: 400_000,
     source: "codex-local",
     sessionId: "session-1",
-    sourceHostLabel: "workstation",
+    sourceHostId: "host:a",
     estimatedCost: 1,
   };
 
   it("collects the harnesses that contributed to a session", () => {
-    const [group] = groupHistoryByTask([
-      base,
-      { ...base, id: "b", harnessId: "claude-code", usageSourceId: "claude-code-local" },
-    ]);
+    const [group] = groupHistoryByTask(
+      [base, { ...base, id: "b", harnessId: "claude-code", usageSourceId: "claude-code-local" }],
+      LABELS,
+    );
     assert.deepEqual(group?.sessions[0]?.harnesses, ["codex", "claude-code"]);
   });
 
-  it("labels a missing reasoning level as not reported", () => {
-    const [group] = groupHistoryByTask([{ ...base, reasoningLevel: undefined }]);
-    assert.deepEqual(group?.sessions[0]?.reasoningLevels, ["not reported"]);
+  it("labels a missing reasoning level with the caller's not-reported wording", () => {
+    const [group] = groupHistoryByTask([{ ...base, reasoningLevel: undefined }], LABELS);
+    assert.deepEqual(group?.sessions[0]?.reasoningLevels, ["Not reported"]);
+  });
+
+  it("labels a group with no task name using the caller's untitled-task wording", () => {
+    const [group] = groupHistoryByTask([{ ...base, taskName: "   " }], LABELS);
+    assert.equal(group?.label, "Untitled task");
   });
 });

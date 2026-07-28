@@ -1,0 +1,165 @@
+{
+  "common": {
+    "unknownHarness": "Unknown harness",
+    "notReported": "Not reported",
+    "unpriced": "Unpriced",
+    "sourceHostFallback": "Source Host {{index}}",
+    "untitledTask": "Untitled task"
+  },
+  "headline": {
+    "coverage": {
+      "none": "No records in this period",
+      "all": "{{records}} records priced",
+      "partial": "{{priced}} of {{records}} records priced"
+    },
+    "title": "API-equivalent cost of work · {{period}}",
+    "disclaimer": "{{coverage}} · estimated at your configured API rates, not a bill",
+    "measureGroup": "Trend measure",
+    "cost": "Cost (USD)",
+    "tokens": "Tokens",
+    "seriesCost": "Estimated cost",
+    "empty": "No activity in this period"
+  },
+  "settings": {
+    "sections": "Settings sections",
+    "tabs": {
+      "rates": "Model rates",
+      "host-groups": "Host groups",
+      "language": "Language"
+    },
+    "rates": {
+      "heading": "Model rates",
+      "subtitle": "USD per one million tokens · {{models}} configured models",
+      "caption": "Configured model prices in USD per one million tokens",
+      "saving": "Saving…",
+      "save": "Save changes",
+      "saved": "Prices saved",
+      "provider": "Provider",
+      "model": "Model",
+      "input": "Input",
+      "cachedInput": "Cache read",
+      "cacheWrite": "Cache write",
+      "output": "Output",
+      "effective": "Effective",
+      "loading": "Loading the local price catalog…"
+    },
+    "language": {
+      "heading": "Language",
+      "hint": "Applies to this browser only. Numbers, dates, and currency follow the language you choose."
+    },
+    "hostGroups": {
+      "heading": "Host groups",
+      "effectiveHint": "Grouping applies to usage recorded from now on. Earlier usage keeps the grouping that applied when it happened.",
+      "newGroup": "New group",
+      "empty": "No host groups yet. Use New group to add one.",
+      "groupName": "Group name",
+      "saving": "Saving…",
+      "save": "Save",
+      "retire": "Retire",
+      "thisGroup": "this group",
+      "hostsIn": "Hosts in {{group}}",
+      "currentlyIn": "currently in {{group}}",
+      "ungrouped": "Ungrouped: {{hosts}}",
+      "none": "none",
+      "confirmRetire": "Retire \"{{group}}\"? Usage recorded from now on will be ungrouped. Past usage keeps this group, so no existing totals change."
+    }
+  },
+  "app": {
+    "brand": "Usage Monitor",
+    "sections": "Dashboard sections",
+    "viewHeading": "Usage Monitor — {{view}}",
+    "footer": "Everything stays on this machine · API-equivalent estimates are not billing claims"
+  },
+  "nav": {
+    "overview": "Overview",
+    "breakdown": "Breakdown",
+    "history": "History"
+  },
+  "filters": {
+    "period": "Period",
+    "host": "Host",
+    "allHosts": "All",
+    "searchTasks": "Filter tasks",
+    "refresh": "Refresh sources",
+    "refreshing": "Refreshing…",
+    "settings": "Settings"
+  },
+  "period": {
+    "select": {
+      "today": "Today",
+      "last24": "Last 24 hours",
+      "7": "Last 7 days",
+      "30": "Last 30 days",
+      "90": "Last 90 days",
+      "all": "All retained"
+    },
+    "inline": {
+      "today": "today",
+      "last24": "last 24 hours",
+      "7": "last 7 days",
+      "30": "last 30 days",
+      "90": "last 90 days",
+      "all": "all retained history",
+      "custom": "the selected range"
+    }
+  },
+  "overview": {
+    "drivers": "What drove it",
+    "context": "Context",
+    "byHarness": "By harness",
+    "byModel": "By model",
+    "byTask": "By task",
+    "tokenMix": "Token mix",
+    "planLimits": "Plan limits",
+    "hosts": "Hosts",
+    "tokens": "Tokens",
+    "cachedInput": "Cached input",
+    "cacheCoverage": "of {{tokens}} reporting tokens",
+    "tasks": "Tasks",
+    "models": "Models"
+  },
+  "tokenMix": {
+    "composition": "Token composition",
+    "empty": "No tokens in this period",
+    "fresh": "Fresh input",
+    "cached": "Cached",
+    "output": "Output",
+    "unreported": "Cache not reported"
+  },
+  "quota": {
+    "used": "{{percent}} used",
+    "resets": "resets {{at}}"
+  },
+  "rank": {
+    "empty": "No usage in this period",
+    "more": "{{remaining}} more",
+    "moreLink": "{{remaining}} more →"
+  },
+  "breakdown": {
+    "groupBy": "Group by",
+    "byHarness": "Harness",
+    "byModel": "Model → Reasoning",
+    "byTask": "Task → Session",
+    "bySourceHost": "Host",
+    "byHostGroup": "Host Group",
+    "treeView": "⊟ Tree view",
+    "tableView": "⊞ Table view",
+    "empty": "No usage matches the current filters."
+  },
+  "table": {
+    "group": "Group",
+    "records": "Records",
+    "tokens": "Tokens",
+    "cost": "Cost"
+  },
+  "history": {
+    "empty": "No usage history matches the filters.",
+    "summary": "{{tasks}} tasks · {{sessions}} sessions · {{records}} records",
+    "groupSessions": "{{sessions}} sessions · {{tokens}}",
+    "lastActive": "Last active",
+    "harness": "Harness",
+    "model": "Model",
+    "reasoning": "Reasoning",
+    "host": "Host"
+  }
+}

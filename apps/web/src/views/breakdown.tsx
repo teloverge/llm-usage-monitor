@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { OverviewView, RankedUsage } from "@llm-usage-monitor/contracts";
 import { Rollup } from "../components/rollup.tsx";
 import { formatCount, formatMoney, formatTokens } from "../model/format.ts";
@@ -16,44 +17,54 @@ export type BreakdownDimension =
   | "bySourceHost"
   | "byHostGroup";
 
-const DIMENSIONS: Array<{ value: BreakdownDimension; label: string }> = [
-  { value: "byHarness", label: "Harness" },
-  { value: "byModel", label: "Model → Reasoning" },
-  { value: "byTask", label: "Task → Session" },
-  { value: "bySourceHost", label: "Host" },
-  { value: "byHostGroup", label: "Host Group" },
+/** Ids only; labels are looked up per render so they follow the language. */
+const DIMENSIONS: readonly BreakdownDimension[] = [
+  "byHarness",
+  "byModel",
+  "byTask",
+  "bySourceHost",
+  "byHostGroup",
 ];
 
 export function Breakdown({
   data,
+  hostLabel,
   dimension,
   onDimensionChange,
 }: {
   data: OverviewView;
+  hostLabel: (sourceHostId: string) => string;
   dimension: BreakdownDimension;
   onDimensionChange: (value: BreakdownDimension) => void;
 }) {
+  const { t } = useTranslation();
   const [asTable, setAsTable] = useState(false);
-  // Harness rows carry raw ids, exactly as in the Overview's By-harness panel.
+  // Harness and host rows carry raw ids, exactly as in the Overview's panels.
   // Relabelled here for the same reason: `unknown` must not read as the name of
-  // something the user installed.
+  // something the user installed, and an unnamed host needs translated
+  // positional wording the analysis layer cannot supply.
   const rows =
     dimension === "byHarness"
-      ? data.byHarness.map((row) => ({ ...row, key: harnessLabel(row.key) }))
-      : data[dimension];
+      ? data.byHarness.map((row) => ({
+          ...row,
+          key: harnessLabel(row.key, t("common.unknownHarness")),
+        }))
+      : dimension === "bySourceHost"
+        ? data.bySourceHost.map((row) => ({ ...row, key: hostLabel(row.key) }))
+        : data[dimension];
   return (
     <section className="breakdown">
       <div className="group-by">
-        <span className="panel-label">Group by</span>
+        <span className="panel-label">{t("breakdown.groupBy")}</span>
         {DIMENSIONS.map((item) => (
           <button
             type="button"
-            key={item.value}
-            className={`chip ${dimension === item.value ? "on" : ""}`}
-            aria-pressed={dimension === item.value}
-            onClick={() => onDimensionChange(item.value)}
+            key={item}
+            className={`chip ${dimension === item ? "on" : ""}`}
+            aria-pressed={dimension === item}
+            onClick={() => onDimensionChange(item)}
           >
-            {item.label}
+            {t(`breakdown.${item}`)}
           </button>
         ))}
         {/*
@@ -68,12 +79,12 @@ export function Breakdown({
           aria-pressed={asTable}
           onClick={() => setAsTable(!asTable)}
         >
-          {asTable ? "⊟ Tree view" : "⊞ Table view"}
+          {asTable ? t("breakdown.treeView") : t("breakdown.tableView")}
         </button>
       </div>
       <div className="panel breakdown-body">
         {rows.length === 0 ? (
-          <p className="empty-state">No usage matches the current filters.</p>
+          <p className="empty-state">{t("breakdown.empty")}</p>
         ) : asTable ? (
           <BreakdownTable rows={rows} />
         ) : (
@@ -88,6 +99,7 @@ export function Breakdown({
 }
 
 function BreakdownTable({ rows }: { rows: RankedUsage[] }) {
+  const { t } = useTranslation();
   const flat = rows.flatMap((row) => [
     { depth: 0, row },
     ...(row.children ?? []).flatMap((child) => [
@@ -99,10 +111,10 @@ function BreakdownTable({ rows }: { rows: RankedUsage[] }) {
     <table className="data-table">
       <thead>
         <tr>
-          <th>Group</th>
-          <th className="n">Records</th>
-          <th className="n">Tokens</th>
-          <th className="n">Cost</th>
+          <th>{t("table.group")}</th>
+          <th className="n">{t("table.records")}</th>
+          <th className="n">{t("table.tokens")}</th>
+          <th className="n">{t("table.cost")}</th>
         </tr>
       </thead>
       <tbody>

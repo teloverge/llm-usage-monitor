@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ModelPrice } from "@llm-usage-monitor/contracts";
 import { executeAction } from "../../api.ts";
+import { formatCount } from "../../model/format.ts";
 
 /**
  * Only `cacheWrite` may be cleared back to "unset"; the other three are required
@@ -19,6 +21,7 @@ export function Pricing({
   prices: ModelPrice[];
   onSaved: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState(prices);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -42,11 +45,15 @@ export function Pricing({
     <section className="pricing-panel" aria-labelledby="pricing-table-title">
       <div className="pricing-toolbar">
         <div>
-          <h2 id="pricing-table-title">Model rates</h2>
-          <p>USD per one million tokens · {draft.length} configured models</p>
+          <h2 id="pricing-table-title">{t("settings.rates.heading")}</h2>
+          <p>{t("settings.rates.subtitle", { models: formatCount(draft.length) })}</p>
         </div>
         <button type="button" className="primary" disabled={!dirty || saving} onClick={save}>
-          {saving ? "Saving…" : dirty ? "Save changes" : "Prices saved"}
+          {saving
+            ? t("settings.rates.saving")
+            : dirty
+              ? t("settings.rates.save")
+              : t("settings.rates.saved")}
         </button>
       </div>
       {error && (
@@ -57,18 +64,16 @@ export function Pricing({
       {draft.length ? (
         <div className="table-card pricing-table">
           <table>
-            <caption className="sr-only">
-              Configured model prices in USD per one million tokens
-            </caption>
+            <caption className="sr-only">{t("settings.rates.caption")}</caption>
             <thead>
               <tr>
-                <th>Provider</th>
-                <th>Model</th>
-                <th>Input</th>
-                <th>Cache read</th>
-                <th>Cache write</th>
-                <th>Output</th>
-                <th>Effective</th>
+                <th>{t("settings.rates.provider")}</th>
+                <th>{t("settings.rates.model")}</th>
+                <th>{t("settings.rates.input")}</th>
+                <th>{t("settings.rates.cachedInput")}</th>
+                <th>{t("settings.rates.cacheWrite")}</th>
+                <th>{t("settings.rates.output")}</th>
+                <th>{t("settings.rates.effective")}</th>
               </tr>
             </thead>
             <tbody>
@@ -79,7 +84,7 @@ export function Pricing({
                   {(["input", "cachedInput", "cacheWrite", "output"] as const).map((key) => (
                     <td key={key}>
                       <input
-                        aria-label={`${price.model} ${key}`}
+                        aria-label={`${price.model} ${t(`settings.rates.${key}`)}`}
                         type="number"
                         inputMode="decimal"
                         min="0"
@@ -107,7 +112,7 @@ export function Pricing({
           </table>
         </div>
       ) : (
-        <p className="empty-state">Loading the local price catalog…</p>
+        <p className="empty-state">{t("settings.rates.loading")}</p>
       )}
     </section>
   );
