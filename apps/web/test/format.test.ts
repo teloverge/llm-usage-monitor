@@ -154,6 +154,14 @@ describe("Formatters", () => {
       assert.equal(formatCount(100_000), "1,00,000");
       assert.equal(formatTokens(1_240_000), `12.4${NBSP}लाख`);
     });
+    // Russian groups with NBSP — the ordinary one, where French uses the
+    // narrow variant — and compacts against тыс. and млн.
+    inLocale("ru", () => {
+      assert.equal(formatMoney(142.3), `142,30${NBSP}USD`);
+      assert.equal(formatCount(10_000), `10${NBSP}000`);
+      assert.equal(formatTokens(645_000), `645${NBSP}тыс.`);
+      assert.equal(formatTokens(1_240_000), `1,2${NBSP}млн`);
+    });
   });
 
   it("rejects an unsupported locale rather than formatting in it", () => {

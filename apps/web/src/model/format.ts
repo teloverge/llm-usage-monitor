@@ -1,6 +1,6 @@
-export type SupportedLocale = "en" | "es" | "de" | "fr" | "ja" | "zh" | "hi";
+export type SupportedLocale = "en" | "es" | "de" | "fr" | "ja" | "zh" | "hi" | "ru";
 
-const SUPPORTED: readonly SupportedLocale[] = ["en", "es", "de", "fr", "ja", "zh", "hi"];
+const SUPPORTED: readonly SupportedLocale[] = ["en", "es", "de", "fr", "ja", "zh", "hi", "ru"];
 const DEFAULT_LOCALE: SupportedLocale = "en";
 
 /**
