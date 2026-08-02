@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
+
+- Grok Build sessions are now monitored alongside Codex and Claude Code. Usage is read from Grok Build's local logs, never from its conversation transcripts. Each turn is attributed to the model actually in effect at that moment — including across a mid-session model switch — and a turn whose model can no longer be determined reads as unknown rather than being guessed.
+- Grok Build's plan appears beside the other plan limits. The free tier shows its plan name without inventing a meter for a cap it does not have; a paid tier's weekly on-demand window will appear as a meter once a cap exists.
+- Grok Build usage is attributed to the credential it states it is using, fingerprinted from the account identifier; key material is never read. grok-4.5 is priced by default at OpenRouter's published rates, editable in Settings like every other rate.
+- Cache writes are not observable in Grok Build's metadata and read as unavailable rather than zero.
+
+## 0.4.2
 
 - The dashboard is now available in Russian. Count-bearing phrases use colon phrasing («Записей: 42»), which stays grammatical for every number where a single plural form could not. Machine-authored and not reviewed by a native speaker, like the other non-English languages.
 - Every entry in the Language picker now carries its ISO code beside the endonym — "English (en)", "Русский (ru)" — a second anchor for a reader who has landed in a script they cannot read.
