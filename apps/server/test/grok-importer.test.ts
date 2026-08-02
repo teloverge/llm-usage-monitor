@@ -185,6 +185,25 @@ describe("Grok importer", () => {
     );
   });
 
+  it("joins on instants, not string shapes, when timestamp precision differs", async () => {
+    // A turn stamped at a whole second must still precede an inference later in
+    // that same second: lexicographically "…00Z" > "…00.500Z", so a string join
+    // would hand this inference to the previous turn's model.
+    const home = await writeHome({
+      unified: [inferenceLine("2026-08-02T19:00:00.500Z")],
+      sessions: [
+        {
+          events: [
+            turnStarted("2026-08-02T18:00:00Z", "grok-4.3-mini", 1),
+            turnStarted("2026-08-02T19:00:00Z", "grok-4.5", 2),
+          ],
+        },
+      ],
+    });
+    const { records } = await collect(home);
+    assert.equal(records[0]!.model, "grok-4.5");
+  });
+
   it("falls back to the summary's current model when the timeline is missing", async () => {
     const home = await writeHome({
       unified: [inferenceLine("2026-08-02T18:36:02.784Z")],

@@ -153,19 +153,30 @@ function recordFromInference(event: InferenceEvent, facts: SessionFacts): Parsed
 
 /**
  * The model in effect at an inference timestamp: the last `turn_started` at or
- * before it. An inference always follows its turn's start, so an earlier-only
+ * before it. An inference always follows its turn's start, so a later-only
  * timeline means clock jitter; the earliest entry is then the honest choice.
  * No timeline falls back to the summary's current model — and a model is never
  * guessed, so both absent means "unknown".
+ *
+ * The two timestamps come from two different files, so they are compared as
+ * instants, not strings: "…00Z" sorts lexicographically AFTER "…00.500Z", and
+ * a string join would hand that inference to the previous turn's model.
  */
 function modelInEffect(facts: SessionFacts, timestamp: string): string {
+  const at = instant(timestamp);
   let model = "";
   for (const entry of facts.timeline) {
-    if (entry.timestamp <= timestamp) model = entry.model;
+    if (instant(entry.timestamp) <= at) model = entry.model;
   }
   if (!model) model = facts.timeline[0]?.model ?? "";
   if (!model) model = facts.currentModelId;
   return model || "unknown";
+}
+
+/** Epoch milliseconds; an unparseable timestamp sorts before everything. */
+function instant(timestamp: string): number {
+  const parsed = Date.parse(timestamp);
+  return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
 }
 
 /**
@@ -341,7 +352,7 @@ async function readSessionFacts(directory: string | undefined): Promise<SessionF
   } catch {
     // No timeline is evidence we do not have, not a failure.
   }
-  facts.timeline.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  facts.timeline.sort((a, b) => instant(a.timestamp) - instant(b.timestamp));
   try {
     const summary = JSON.parse(await fs.readFile(join(directory, "summary.json"), "utf8"));
     if (summary && typeof summary === "object") {
