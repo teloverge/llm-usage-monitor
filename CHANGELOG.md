@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.2
 
 - The dashboard is now available in Russian. Count-bearing phrases use colon phrasing («Записей: 42»), which stays grammatical for every number where a single plural form could not. Machine-authored and not reviewed by a native speaker, like the other non-English languages.
 - Every entry in the Language picker now carries its ISO code beside the endonym — "English (en)", "Русский (ru)" — a second anchor for a reader who has landed in a script they cannot read.
