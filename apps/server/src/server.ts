@@ -4,6 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { basename, extname, join, resolve } from "node:path";
 import {
   filtersSchema,
+  type CredentialSighting,
   type DashboardActionOutcome,
   type UsageFilters,
 } from "@llm-usage-monitor/contracts";
@@ -11,9 +12,13 @@ import { createDashboardActions } from "@llm-usage-monitor/dashboard-actions";
 import { analyzeHistory, analyzeUsage } from "@llm-usage-monitor/usage-analysis";
 import { UsageLedger } from "@llm-usage-monitor/usage-ledger";
 import { ClaudeSessionProvider } from "./claude-importer.ts";
+import { claudeCredentialSighting } from "./claude-credential.ts";
+import { readClaudeConfig } from "./claude-quota.ts";
 import { CodexSessionProvider } from "./codex-importer.ts";
+import { codexCredentialSighting } from "./codex-credential.ts";
 import { mergeDefaultPrices } from "./default-prices.ts";
 import { resolveLocalSourceHost } from "./local-source-host.ts";
+import { runProviderImport } from "./run-import.ts";
 
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 export interface DiscoveryRecord {
@@ -43,19 +48,39 @@ export async function startUsageMonitorServer(options: {
   const claudeImporter = new ClaudeSessionProvider();
   // Each provider keeps its own import state and its own records, so the two
   // imports are independent: one failing or finding nothing leaves the other's
-  // history untouched.
-  const runImport = async (
+  // history untouched. `runProviderImport` extends that independence to the two
+  // halves of a single import — see its comment for why the quota write must
+  // not be able to take the records down with it.
+  const runImport = (
     provider: CodexSessionProvider | ClaudeSessionProvider,
     home: string | undefined,
-  ) => {
-    const result = await provider.collect(local.host.id, home, ledger.importState(provider.id));
-    ledger.replaceQuotaSnapshots(result.quotaSnapshots);
-    return ledger.commitProviderImport(provider.id, result.records, result.state);
-  };
+    observeCredential: (home: string, observedAt: string) => Promise<CredentialSighting | null>,
+  ) =>
+    runProviderImport(
+      provider,
+      ledger,
+      local.host.id,
+      home,
+      (providerId, error) => {
+        console.warn(`auxiliary write refused for ${providerId}:`, error);
+      },
+      observeCredential,
+    );
   const actions = createDashboardActions({
     localSourceHostId: local.host.id,
-    importCodex: (codexHome) => runImport(importer, codexHome),
-    importClaude: (claudeHome) => runImport(claudeImporter, claudeHome),
+    importCodex: (codexHome) =>
+      runImport(importer, codexHome, (home, observedAt) =>
+        codexCredentialSighting(home, local.host.id, observedAt),
+      ),
+    importClaude: (claudeHome) =>
+      runImport(claudeImporter, claudeHome, async (home, observedAt) =>
+        claudeCredentialSighting(
+          await readClaudeConfig(home),
+          process.env,
+          local.host.id,
+          observedAt,
+        ),
+      ),
     migrateLegacy: (id, records) => ledger.applyMigration(id, records),
     replacePrices: (prices) => ledger.replacePrices(prices),
     clearRecords: () => ledger.clearRecords(),
@@ -99,6 +124,7 @@ export async function startUsageMonitorServer(options: {
           hostGroups: ledger.hostGroups(),
           memberships: ledger.memberships(),
           quotaSnapshots: ledger.quotaSnapshots(),
+          credentials: ledger.credentialObservations(),
           filters,
         }),
       );
@@ -115,6 +141,7 @@ export async function startUsageMonitorServer(options: {
         sourceHosts: ledger.sourceHosts(),
         hostGroups: ledger.hostGroups(),
         memberships: ledger.memberships(),
+        credentials: ledger.credentialObservations(),
       });
     if (request.method === "POST" && resource === "api/actions") {
       if (request.headers.origin !== origin)
@@ -187,20 +214,13 @@ async function writeDiscovery(dataDirectory: string, discovery: DiscoveryRecord)
   await fs.rename(temporary, target);
 }
 function parseFilters(params: URLSearchParams): UsageFilters {
+  // Derived from the schema, not hand-copied: a literal key list here once
+  // silently dropped `credentialId` — filtersSchema.parse only ever sees keys
+  // present in this constructed object, so the missing key never threw, it
+  // just vanished. `.shape` is the schema's own key list, so a filter added
+  // there cannot be forgotten here again.
   const value = Object.fromEntries(
-    [
-      "timeframe",
-      "from",
-      "to",
-      "provider",
-      "model",
-      "reasoningLevel",
-      "query",
-      "sourceHostId",
-      "hostGroupId",
-      "harnessId",
-      "usageSourceId",
-    ].flatMap((key) => {
+    Object.keys(filtersSchema.shape).flatMap((key) => {
       const item = params.get(key);
       return item === null || item === "" ? [] : [[key, item]];
     }),

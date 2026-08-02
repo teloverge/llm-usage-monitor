@@ -121,6 +121,33 @@ describe("Usage Monitor Server", () => {
       ["Laptops"],
     );
   });
+  it("serves credential observations in the catalog", async () => {
+    const root = await mkdtemp(join(tmpdir(), "usage-monitor-server-"));
+    const web = join(root, "web");
+    await mkdir(web);
+    await writeFile(join(web, "index.html"), "<!doctype html><title>test</title>");
+    const running = await startUsageMonitorServer({
+      dataDirectory: join(root, "data"),
+      webDirectory: web,
+    });
+    cleanup.push(async () => {
+      await running.close();
+      await rm(root, { recursive: true, force: true });
+    });
+
+    const catalog = (await fetch(new URL("api/catalog", running.discovery.dashboardUrl)).then(
+      (response) => response.json(),
+    )) as { credentials?: unknown[] };
+    const overview = (await fetch(new URL("api/overview", running.discovery.dashboardUrl)).then(
+      (response) => response.json(),
+    )) as OverviewView;
+
+    // Present and empty, not absent: a fresh ledger has observed nothing, and
+    // the view must still be able to render the unattributed state.
+    assert.ok(Array.isArray(catalog.credentials));
+    assert.deepEqual(overview.credentials, []);
+    assert.ok(Array.isArray(overview.byCredential));
+  });
 });
 
 describe("Harness filter transport", () => {
@@ -172,5 +199,36 @@ describe("Harness filter transport", () => {
     // turn that throw into a response. Verified by running this test: the actual
     // status is 500, matching the plan.
     assert.equal(response.status, 500);
+  });
+});
+
+describe("Credential filter transport", () => {
+  it("echoes a credential filter back in the overview response", async () => {
+    const root = await mkdtemp(join(tmpdir(), "usage-monitor-server-"));
+    const web = join(root, "web");
+    await mkdir(web);
+    await writeFile(join(web, "index.html"), "<!doctype html><title>test</title>");
+    const running = await startUsageMonitorServer({
+      dataDirectory: join(root, "data"),
+      webDirectory: web,
+    });
+    cleanup.push(async () => {
+      await running.close();
+      await rm(root, { recursive: true, force: true });
+    });
+    const response = await fetch(
+      new URL(
+        "api/overview?timeframe=all&credentialId=unattributed",
+        running.discovery.dashboardUrl,
+      ),
+    );
+    const view = (await response.json()) as OverviewView;
+    assert.equal(response.status, 200);
+    // parseFilters used to build its object from a hand-written key list that
+    // omitted credentialId, so filtersSchema.parse silently dropped the
+    // parameter instead of rejecting it: the topbar filter looked like it
+    // worked, but the server discarded it before it ever reached the ledger.
+    // Asserting only a 200 status would have passed before the fix too.
+    assert.equal(view.filters.credentialId, "unattributed");
   });
 });

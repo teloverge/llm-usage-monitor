@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  credentialIdFor,
+  credentialObservationSchema,
+  credentialSightingSchema,
   dashboardActionSchema,
+  filtersSchema,
   timeframeSchema,
+  UNATTRIBUTED_CREDENTIAL,
   usageQuotaSnapshotSchema,
   usageRecordSchema,
 } from "../src/index.ts";
@@ -107,6 +112,70 @@ describe("Usage quota snapshots", () => {
         observedAt: "2026-07-23T10:00:00.000Z",
         windows: [],
       }),
+    );
+  });
+});
+
+describe("credential contracts", () => {
+  const sighting = {
+    usageSourceId: "codex-local",
+    sourceHostId: "host:a",
+    mode: "subscription" as const,
+    fingerprint: "9a1b2c3d4e5f",
+    inferred: false,
+    observedAt: "2026-07-26T22:00:00.000Z",
+  };
+
+  it("accepts a sighting a collector can state", () => {
+    assert.deepEqual(credentialSightingSchema.parse(sighting), sighting);
+  });
+
+  it("refuses a sighting that tries to set its own effective date", () => {
+    // The whole point of the split: a collector able to set `effectiveFrom`
+    // could backdate attribution, which the spec forbids outright.
+    assert.throws(() =>
+      credentialSightingSchema.parse({ ...sighting, effectiveFrom: "2020-01-01T00:00:00.000Z" }),
+    );
+  });
+
+  it("accepts an observation once the ledger has dated it", () => {
+    const observation = { ...sighting, effectiveFrom: "2026-07-26T22:00:00.000Z" };
+    assert.deepEqual(credentialObservationSchema.parse(observation), observation);
+  });
+
+  it("accepts an empty fingerprint for a source that states no account", () => {
+    assert.equal(credentialSightingSchema.parse({ ...sighting, fingerprint: "" }).fingerprint, "");
+  });
+
+  it("refuses a fingerprint that is not 12 lowercase hex", () => {
+    for (const fingerprint of ["9A1B2C3D4E5F", "9a1b2c", "9a1b2c3d4e5fa", "zzzzzzzzzzzz"]) {
+      assert.throws(
+        () => credentialSightingSchema.parse({ ...sighting, fingerprint }),
+        new RegExp(""),
+        `should refuse ${fingerprint}`,
+      );
+    }
+  });
+
+  it("refuses a mode outside the known set", () => {
+    assert.throws(() => credentialSightingSchema.parse({ ...sighting, mode: "oauth" }));
+  });
+
+  it("derives a bucket key that is stable and carries no secret", () => {
+    assert.equal(credentialIdFor(sighting), "subscription:9a1b2c3d4e5f");
+    assert.equal(credentialIdFor({ mode: "api-key", fingerprint: "" }), "api-key:");
+  });
+
+  it("names the unattributed bucket distinctly", () => {
+    assert.equal(UNATTRIBUTED_CREDENTIAL, "unattributed");
+    assert.notEqual(UNATTRIBUTED_CREDENTIAL, credentialIdFor({ mode: "unknown", fingerprint: "" }));
+  });
+
+  it("accepts a credential filter", () => {
+    assert.equal(
+      filtersSchema.parse({ timeframe: "30", credentialId: "subscription:9a1b2c3d4e5f" })
+        .credentialId,
+      "subscription:9a1b2c3d4e5f",
     );
   });
 });

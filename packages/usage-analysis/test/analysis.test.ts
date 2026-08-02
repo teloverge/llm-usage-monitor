@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { UsageRecord } from "@llm-usage-monitor/contracts";
-import { analyzeHistory, analyzeUsage, timeframeRange } from "../src/index.ts";
+import type {
+  CredentialObservation,
+  UsageQuotaSnapshot,
+  UsageRecord,
+} from "@llm-usage-monitor/contracts";
+import {
+  analyzeHistory,
+  analyzeUsage,
+  currentQuota,
+  effectiveCredential,
+  timeframeRange,
+} from "../src/index.ts";
 
 const record = (
   timestamp: string,
@@ -610,5 +620,224 @@ describe("Host Group labelling", () => {
       }).byHostGroup.map((row) => row.key),
       ["group:one"],
     );
+  });
+});
+
+describe("currentQuota", () => {
+  const snapshot: UsageQuotaSnapshot = {
+    usageSourceId: "claude-code-local",
+    sourceHostId: "host:a",
+    plan: "claude_max_20x",
+    observedAt: "2026-07-26T22:37:38.317Z",
+    windows: [
+      {
+        id: "session",
+        label: "5-hour window",
+        usedPercent: 2,
+        resetsAt: "2026-07-27T03:10:00.127Z",
+      },
+      {
+        id: "weekly_all",
+        label: "Weekly window",
+        usedPercent: 6,
+        resetsAt: "2026-07-31T22:00:00.127Z",
+      },
+      { id: "weekly_scoped:fable", label: "Weekly window · Fable", usedPercent: 0 },
+    ],
+  };
+
+  it("keeps windows that have not reset yet", () => {
+    const [current] = currentQuota([snapshot], new Date("2026-07-26T20:00:00.000Z"));
+    assert.equal(current?.windows.length, 3);
+  });
+
+  it("drops a window resetting at exactly now", () => {
+    // Exclusive comparison, consistent with this file's other now-vs-instant
+    // boundaries (e.g. effectiveTo): the reset instant itself counts as expired.
+    const [current] = currentQuota([snapshot], new Date("2026-07-27T03:10:00.127Z"));
+    assert.deepEqual(
+      current?.windows.map((window) => window.id),
+      ["weekly_all", "weekly_scoped:fable"],
+    );
+  });
+
+  it("drops a window whose reset instant has passed", () => {
+    // The percentage is not merely old, it is known-wrong: the window cleared.
+    const [current] = currentQuota([snapshot], new Date("2026-07-28T00:00:00.000Z"));
+    assert.deepEqual(
+      current?.windows.map((window) => window.id),
+      ["weekly_all", "weekly_scoped:fable"],
+    );
+  });
+
+  it("keeps a window that states no reset instant", () => {
+    const [current] = currentQuota([snapshot], new Date("2030-01-01T00:00:00.000Z"));
+    assert.deepEqual(
+      current?.windows.map((window) => window.id),
+      ["weekly_scoped:fable"],
+    );
+  });
+
+  it("keeps the group when every window has expired", () => {
+    const expired = { ...snapshot, windows: snapshot.windows.slice(0, 2) };
+    const [current] = currentQuota([expired], new Date("2030-01-01T00:00:00.000Z"));
+    // "We know this account exists and have nothing current" is not "no account".
+    assert.equal(current?.windows.length, 0);
+    assert.equal(current?.plan, "claude_max_20x");
+    assert.equal(current?.observedAt, "2026-07-26T22:37:38.317Z");
+  });
+
+  it("is applied by analyzeUsage at its own now", () => {
+    const view = analyzeUsage({
+      records: [],
+      prices: [],
+      memberships: [],
+      quotaSnapshots: [snapshot],
+      filters: { timeframe: "all" },
+      now: new Date("2026-07-28T00:00:00.000Z"),
+    });
+    assert.equal(view.quotaSnapshots[0]?.windows.length, 2);
+  });
+});
+
+describe("effectiveCredential", () => {
+  const observation = (
+    mode: "subscription" | "api-key",
+    effectiveFrom: string,
+  ): CredentialObservation => ({
+    usageSourceId: "codex-local",
+    sourceHostId: "host:a",
+    mode,
+    fingerprint: mode === "subscription" ? "9a1b2c3d4e5f" : "",
+    inferred: false,
+    effectiveFrom,
+    observedAt: effectiveFrom,
+  });
+  const history = [
+    observation("subscription", "2026-07-10T00:00:00.000Z"),
+    observation("api-key", "2026-07-20T00:00:00.000Z"),
+  ];
+
+  it("finds nothing before the first observation", () => {
+    // Never backfilled: the first observation says nothing about the month
+    // before it, and guessing would turn a thin signal into a confident lie.
+    assert.equal(
+      effectiveCredential(history, "codex-local", "host:a", "2026-07-01T00:00:00.000Z"),
+      undefined,
+    );
+  });
+
+  it("finds the credential in effect between two observations", () => {
+    assert.equal(
+      effectiveCredential(history, "codex-local", "host:a", "2026-07-15T00:00:00.000Z")?.mode,
+      "subscription",
+    );
+  });
+
+  it("finds the latest observation at or before the record", () => {
+    assert.equal(
+      effectiveCredential(history, "codex-local", "host:a", "2026-07-25T00:00:00.000Z")?.mode,
+      "api-key",
+    );
+    assert.equal(
+      effectiveCredential(history, "codex-local", "host:a", "2026-07-20T00:00:00.000Z")?.mode,
+      "api-key",
+    );
+  });
+
+  it("does not borrow another source's or another host's credential", () => {
+    assert.equal(
+      effectiveCredential(history, "claude-code-local", "host:a", "2026-07-25T00:00:00.000Z"),
+      undefined,
+    );
+    assert.equal(
+      effectiveCredential(history, "codex-local", "host:b", "2026-07-25T00:00:00.000Z"),
+      undefined,
+    );
+  });
+});
+
+describe("credential attribution", () => {
+  const record = (id: string, timestamp: string): UsageRecord => ({
+    id,
+    sourceHostId: "host:a",
+    usageSourceId: "codex-local",
+    harnessId: "codex",
+    timestamp,
+    taskName: "Task",
+    provider: "openai",
+    model: "gpt",
+    modeFlags: { ultra: false, fast: false },
+    inputTokens: 10,
+    cachedInputTokens: 0,
+    outputTokens: 5,
+    totalTokens: 15,
+    lastTokenUsage: null,
+    source: "codex-local",
+  });
+  const credentials: CredentialObservation[] = [
+    {
+      usageSourceId: "codex-local",
+      sourceHostId: "host:a",
+      mode: "subscription",
+      fingerprint: "9a1b2c3d4e5f",
+      inferred: false,
+      effectiveFrom: "2026-07-15T00:00:00.000Z",
+      observedAt: "2026-07-15T00:00:00.000Z",
+    },
+  ];
+  const analyze = (filters = {}) =>
+    analyzeUsage({
+      records: [
+        record("old", "2026-07-01T00:00:00.000Z"),
+        record("new", "2026-07-20T00:00:00.000Z"),
+      ],
+      prices: [],
+      memberships: [],
+      credentials,
+      filters: { timeframe: "all", ...filters },
+      now: new Date("2026-07-26T00:00:00.000Z"),
+    });
+
+  it("splits usage across the credential and the unattributed bucket", () => {
+    assert.deepEqual(
+      analyze()
+        .byCredential.map((row) => [row.key, row.records])
+        .sort(),
+      [
+        ["subscription:9a1b2c3d4e5f", 1],
+        ["unattributed", 1],
+      ].sort(),
+    );
+  });
+
+  it("carries the observations so a view can label them", () => {
+    assert.equal(analyze().credentials.length, 1);
+  });
+
+  it("filters to one credential", () => {
+    const view = analyze({ credentialId: "subscription:9a1b2c3d4e5f" });
+    assert.equal(view.totals.records, 1);
+  });
+
+  it("filters to the unattributed bucket", () => {
+    // Reachable on purpose: on an existing ledger most history is unattributed,
+    // and the reader needs to be able to see exactly which records those are.
+    assert.equal(analyze({ credentialId: "unattributed" }).totals.records, 1);
+  });
+
+  it("attributes nothing when no observation exists", () => {
+    const view = analyzeUsage({
+      records: [record("new", "2026-07-20T00:00:00.000Z")],
+      prices: [],
+      memberships: [],
+      filters: { timeframe: "all" },
+      now: new Date("2026-07-26T00:00:00.000Z"),
+    });
+    assert.deepEqual(
+      view.byCredential.map((row) => row.key),
+      ["unattributed"],
+    );
+    assert.deepEqual(view.credentials, []);
   });
 });

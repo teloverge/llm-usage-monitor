@@ -10,6 +10,7 @@ import type {
 } from "@llm-usage-monitor/contracts";
 import { useTranslation } from "react-i18next";
 import { SearchChip, SelectChip } from "./components/chip.tsx";
+import { credentialOptions } from "./model/credential.ts";
 import { sourceHostLabel, sourceHostLabels } from "./model/source-host.ts";
 import { executeAction, getCatalog, getHistory, getOverview } from "./api.ts";
 import { History } from "./views/history.tsx";
@@ -181,6 +182,12 @@ export function App() {
                 })),
               ]}
               onChange={(value) => change("sourceHostId", value)}
+            />
+            <SelectChip
+              label={t("filters.credential")}
+              value={filters.credentialId ?? ""}
+              options={credentialOptions(overview?.credentials ?? [], t)}
+              onChange={(value) => change("credentialId", value)}
             />
             <SearchChip
               value={filters.query ?? ""}
