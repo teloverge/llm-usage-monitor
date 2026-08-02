@@ -9,6 +9,7 @@ describe("Harness labels", () => {
   it("names the harnesses it knows", () => {
     assert.equal(harnessLabel("codex", UNKNOWN), "Codex");
     assert.equal(harnessLabel("claude-code", UNKNOWN), "Claude Code");
+    assert.equal(harnessLabel("grok-build", UNKNOWN), "Grok Build");
   });
 
   // Product names are never translated, so the injected wording must not reach
@@ -38,6 +39,7 @@ describe("Usage source labels", () => {
   it("names a registered source through its harness", () => {
     assert.equal(usageSourceLabel("codex-local"), "Codex");
     assert.equal(usageSourceLabel("claude-code-local"), "Claude Code");
+    assert.equal(usageSourceLabel("grok-build-local"), "Grok Build");
   });
 
   // `harnessForSource` maps every unregistered source to the same "unknown"

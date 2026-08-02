@@ -4,6 +4,7 @@ import { SERIES } from "../theme/palette.ts";
 const HARNESS_LABELS: Record<string, string> = {
   codex: "Codex",
   "claude-code": "Claude Code",
+  "grok-build": "Grok Build",
 };
 
 /**
@@ -15,6 +16,7 @@ const HARNESS_LABELS: Record<string, string> = {
 const HARNESS_COLORS: Record<string, string> = {
   codex: SERIES.teal,
   "claude-code": SERIES.blue,
+  "grok-build": SERIES.orange,
 };
 
 export function harnessColor(harnessId: string): string {

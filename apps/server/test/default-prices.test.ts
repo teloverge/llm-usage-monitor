@@ -63,6 +63,34 @@ describe("default prices", () => {
     );
   });
 
+  it("reaches an existing catalog with xAI's rates", () => {
+    // Same reasoning as the Claude case: an install predating Grok Build support
+    // must not price every grok record at zero.
+    const merged = mergeDefaultPrices([
+      {
+        provider: "openai",
+        model: "gpt-5.4",
+        input: 99,
+        cachedInput: 9,
+        output: 999,
+        source: "user",
+        effectiveDate: "2026-07-23",
+      },
+    ]);
+    assert.deepEqual(
+      merged.find((price) => price.provider === "xai"),
+      {
+        provider: "xai",
+        model: "grok-4.5",
+        input: 2,
+        cachedInput: 0.5,
+        output: 6,
+        source: "https://openrouter.ai/x-ai/grok-4.5",
+        effectiveDate: "2026-08-02",
+      },
+    );
+  });
+
   it("does not resurrect a default the user edited away from", () => {
     const edited: ModelPrice = {
       provider: "anthropic",
