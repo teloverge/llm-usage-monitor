@@ -1,0 +1,191 @@
+{
+  "common": {
+    "unknownHarness": "Environnement inconnu",
+    "notReported": "Non renseigné",
+    "unpriced": "Sans tarif",
+    "sourceHostFallback": "Hôte source {{index}}",
+    "untitledTask": "Tâche sans titre"
+  },
+  "credential": {
+    "mode": {
+      "subscription": "Abonnement",
+      "apiKey": "Clé d'API",
+      "bedrock": "Bedrock",
+      "vertex": "Vertex",
+      "unknown": "Identifiant non reconnu"
+    },
+    "inferred": "déduit",
+    "notCounted": "Cette utilisation est facturée à part et n'est pas décomptée des limites affichées ici.",
+    "unattributed": "Non attribué"
+  },
+  "headline": {
+    "coverage": {
+      "none": "Aucun enregistrement sur cette période",
+      "all": "{{records}} enregistrements tarifés",
+      "partial": "{{priced}} enregistrements tarifés sur {{records}}"
+    },
+    "title": "Coût équivalent API du travail · {{period}}",
+    "disclaimer": "{{coverage}} · estimé selon vos tarifs API configurés, pas une facture",
+    "measureGroup": "Mesure de la tendance",
+    "cost": "Coût (USD)",
+    "tokens": "Tokens",
+    "seriesCost": "Coût estimé",
+    "empty": "Aucune activité sur cette période"
+  },
+  "settings": {
+    "sections": "Sections des paramètres",
+    "tabs": {
+      "rates": "Tarifs des modèles",
+      "host-groups": "Groupes d'hôtes",
+      "language": "Langue"
+    },
+    "rates": {
+      "heading": "Tarifs des modèles",
+      "subtitle": "USD par million de tokens · {{models}} modèles configurés",
+      "caption": "Prix des modèles configurés en USD par million de tokens",
+      "saving": "Enregistrement…",
+      "save": "Enregistrer les modifications",
+      "saved": "Prix enregistrés",
+      "provider": "Fournisseur",
+      "model": "Modèle",
+      "input": "Entrée",
+      "cachedInput": "Lecture du cache",
+      "cacheWrite": "Écriture du cache",
+      "output": "Sortie",
+      "effective": "En vigueur depuis",
+      "loading": "Chargement du catalogue de prix local…"
+    },
+    "language": {
+      "heading": "Langue",
+      "hint": "S'applique uniquement à ce navigateur. Les nombres, les dates et la monnaie suivent la langue choisie."
+    },
+    "hostGroups": {
+      "heading": "Groupes d'hôtes",
+      "effectiveHint": "Le regroupement s'applique à l'utilisation enregistrée à partir de maintenant. L'utilisation antérieure conserve le regroupement en vigueur à l'époque.",
+      "newGroup": "Nouveau groupe",
+      "empty": "Aucun groupe d'hôtes pour l'instant. Utilisez Nouveau groupe pour en ajouter un.",
+      "groupName": "Nom du groupe",
+      "saving": "Enregistrement…",
+      "save": "Enregistrer",
+      "retire": "Retirer",
+      "thisGroup": "ce groupe",
+      "hostsIn": "Hôtes dans {{group}}",
+      "currentlyIn": "actuellement dans {{group}}",
+      "ungrouped": "Sans groupe : {{hosts}}",
+      "none": "aucun",
+      "confirmRetire": "Retirer « {{group}} » ? L'utilisation enregistrée à partir de maintenant sera sans groupe. L'utilisation passée conserve ce groupe, donc aucun total existant ne change."
+    }
+  },
+  "app": {
+    "brand": "Usage Monitor",
+    "sections": "Sections du tableau de bord",
+    "viewHeading": "Usage Monitor — {{view}}",
+    "footer": "Tout reste sur cette machine · Les estimations équivalentes API ne sont pas des factures"
+  },
+  "nav": {
+    "overview": "Vue d'ensemble",
+    "breakdown": "Répartition",
+    "history": "Historique"
+  },
+  "filters": {
+    "period": "Période",
+    "host": "Hôte",
+    "allHosts": "Tous",
+    "searchTasks": "Filtrer les tâches",
+    "refresh": "Actualiser les sources",
+    "refreshing": "Actualisation…",
+    "settings": "Paramètres",
+    "credential": "Identifiant",
+    "allCredentials": "Tous les identifiants"
+  },
+  "period": {
+    "select": {
+      "today": "Aujourd'hui",
+      "last24": "Dernières 24 heures",
+      "7": "7 derniers jours",
+      "30": "30 derniers jours",
+      "90": "90 derniers jours",
+      "all": "Tout l'historique"
+    },
+    "inline": {
+      "today": "aujourd'hui",
+      "last24": "dernières 24 heures",
+      "7": "7 derniers jours",
+      "30": "30 derniers jours",
+      "90": "90 derniers jours",
+      "all": "tout l'historique conservé",
+      "custom": "la période sélectionnée"
+    }
+  },
+  "overview": {
+    "drivers": "Ce qui l'a généré",
+    "context": "Contexte",
+    "byHarness": "Par environnement",
+    "byModel": "Par modèle",
+    "byTask": "Par tâche",
+    "tokenMix": "Mix de tokens",
+    "planLimits": "Limites du forfait",
+    "hosts": "Hôtes",
+    "tokens": "Tokens",
+    "cachedInput": "Entrée en cache",
+    "cacheCoverage": "sur {{tokens}} tokens déclarés",
+    "tasks": "Tâches",
+    "models": "Modèles"
+  },
+  "tokenMix": {
+    "composition": "Composition des tokens",
+    "empty": "Aucun token sur cette période",
+    "fresh": "Nouvelle entrée",
+    "cached": "En cache",
+    "output": "Sortie",
+    "unreported": "Cache non renseigné"
+  },
+  "quota": {
+    "used": "{{percent}} utilisé",
+    "resets": "se réinitialise le {{at}}",
+    "asOf": "au {{at}}",
+    "window": {
+      "session": "Fenêtre de session",
+      "weekly": "Fenêtre hebdomadaire",
+      "weeks": "Fenêtre de {{n}} semaines",
+      "daily": "Fenêtre quotidienne",
+      "days": "Fenêtre de {{n}} jours",
+      "hours": "Fenêtre de {{n}} heures",
+      "minutes": "Fenêtre de {{n}} minutes",
+      "extraUsage": "Utilisation supplémentaire"
+    }
+  },
+  "rank": {
+    "empty": "Aucune utilisation sur cette période",
+    "more": "{{remaining}} de plus",
+    "moreLink": "{{remaining}} de plus →"
+  },
+  "breakdown": {
+    "groupBy": "Regrouper par",
+    "byHarness": "Environnement",
+    "byModel": "Modèle → Raisonnement",
+    "byTask": "Tâche → Session",
+    "bySourceHost": "Hôte",
+    "byHostGroup": "Groupe d'hôtes",
+    "byCredential": "Identifiant",
+    "treeView": "⊟ Vue arborescente",
+    "tableView": "⊞ Vue tableau",
+    "empty": "Aucune utilisation ne correspond aux filtres actuels."
+  },
+  "table": {
+    "group": "Groupe",
+    "records": "Enregistrements",
+    "tokens": "Tokens",
+    "cost": "Coût"
+  },
+  "history": {
+    "empty": "Aucun historique d'utilisation ne correspond aux filtres.",
+    "summary": "{{tasks}} tâches · {{sessions}} sessions · {{records}} enregistrements",
+    "groupSessions": "{{sessions}} sessions · {{tokens}}",
+    "lastActive": "Dernière activité",
+    "harness": "Environnement",
+    "model": "Modèle",
+    "reasoning": "Raisonnement",
+    "host": "Hôte"
+  }
+}
