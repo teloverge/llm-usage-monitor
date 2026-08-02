@@ -3,6 +3,7 @@ import { usageRecordSchema, type UsageRecord } from "./index.ts";
 const HARNESS_BY_SOURCE: Record<string, string> = {
   "codex-local": "codex",
   "claude-code-local": "claude-code",
+  "grok-build-local": "grok-build",
 };
 
 /**

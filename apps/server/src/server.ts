@@ -16,6 +16,8 @@ import { claudeCredentialSighting } from "./claude-credential.ts";
 import { readClaudeConfig } from "./claude-quota.ts";
 import { CodexSessionProvider } from "./codex-importer.ts";
 import { codexCredentialSighting } from "./codex-credential.ts";
+import { GrokSessionProvider } from "./grok-importer.ts";
+import { grokCredentialSighting } from "./grok-credential.ts";
 import { mergeDefaultPrices } from "./default-prices.ts";
 import { resolveLocalSourceHost } from "./local-source-host.ts";
 import { runProviderImport } from "./run-import.ts";
@@ -46,13 +48,14 @@ export async function startUsageMonitorServer(options: {
   if (mergedPrices.length !== configuredPrices.length) ledger.replacePrices(mergedPrices);
   const importer = new CodexSessionProvider();
   const claudeImporter = new ClaudeSessionProvider();
+  const grokImporter = new GrokSessionProvider();
   // Each provider keeps its own import state and its own records, so the two
   // imports are independent: one failing or finding nothing leaves the other's
   // history untouched. `runProviderImport` extends that independence to the two
   // halves of a single import — see its comment for why the quota write must
   // not be able to take the records down with it.
   const runImport = (
-    provider: CodexSessionProvider | ClaudeSessionProvider,
+    provider: CodexSessionProvider | ClaudeSessionProvider | GrokSessionProvider,
     home: string | undefined,
     observeCredential: (home: string, observedAt: string) => Promise<CredentialSighting | null>,
   ) =>
@@ -80,6 +83,10 @@ export async function startUsageMonitorServer(options: {
           local.host.id,
           observedAt,
         ),
+      ),
+    importGrok: (grokHome) =>
+      runImport(grokImporter, grokHome, (home, observedAt) =>
+        grokCredentialSighting(home, local.host.id, observedAt),
       ),
     migrateLegacy: (id, records) => ledger.applyMigration(id, records),
     replacePrices: (prices) => ledger.replacePrices(prices),

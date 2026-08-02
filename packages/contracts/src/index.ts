@@ -410,6 +410,13 @@ export const dashboardActionSchema = z.discriminatedUnion("type", [
   z
     .object({
       version: z.literal(1),
+      type: z.literal("import-grok"),
+      grokHome: z.string().max(2_000).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      version: z.literal(1),
       type: z.literal("migrate-legacy"),
       migrationId: z.string().min(1).max(200),
       records: z.array(usageRecordSchema.omit({ sourceHostId: true }).passthrough()).max(100_000),
