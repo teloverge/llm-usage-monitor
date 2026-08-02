@@ -98,6 +98,7 @@ export function App() {
       // rather than an expected "not installed" case.
       await executeAction({ version: 1, type: "import-codex" });
       await executeAction({ version: 1, type: "import-claude" });
+      await executeAction({ version: 1, type: "import-grok" });
       await refresh();
     } catch (reason) {
       // Without this the import failure is an unhandled rejection: refresh() never
