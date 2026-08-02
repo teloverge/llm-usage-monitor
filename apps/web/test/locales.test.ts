@@ -15,7 +15,7 @@ import { describe, it } from "node:test";
  * not use, and two loading mechanisms for one file set is a disagreement
  * waiting to happen.
  */
-const TRANSLATED = ["de", "es", "fr", "hi", "ja", "zh"] as const;
+const TRANSLATED = ["de", "es", "fr", "hi", "ja", "ru", "zh"] as const;
 
 function readLocale(code: string): unknown {
   const url = new URL(`../src/i18n/locales/${code}.json`, import.meta.url);

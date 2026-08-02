@@ -36,6 +36,7 @@ describe("Language resolution", () => {
     // the picker labels it Simplified, so the substitution is at least declared.
     assert.equal(resolveLanguage(null, ["zh-TW"]), "zh");
     assert.equal(resolveLanguage(null, ["hi-IN"]), "hi");
+    assert.equal(resolveLanguage(null, ["ru-BY"]), "ru");
   });
 
   // The primary subtag is matched case-insensitively — a browser or a
@@ -64,6 +65,7 @@ describe("Language resolution", () => {
       { value: "fr", label: "Français" },
       { value: "hi", label: "हिन्दी" },
       { value: "ja", label: "日本語" },
+      { value: "ru", label: "Русский" },
       { value: "zh", label: "中文（简体）" },
     ]);
   });
