@@ -48,6 +48,18 @@ _Avoid_: server-lite, remote server, fleet server
 A user-defined, effective-dated grouping of Source Hosts used for stable historical Usage Analysis.
 _Avoid_: tag, current-only grouping
 
+**Credential**:
+The means by which a Harness reaches a model provider: a subscription account,
+an API key, or a cloud gateway. Identified by a non-reversible fingerprint of an
+account identifier; the underlying secret is never read or stored.
+_Avoid_: token, key, auth, login
+
+**Credential Observation**:
+A discovered, effective-dated fact that one Usage Source on one Source Host was
+reaching its provider by a given Credential. Unlike Host Group membership it is
+observed rather than declared, and it is never backdated.
+_Avoid_: session auth, credential history, login event
+
 **Fleet**:
 All Source Hosts governed by one Usage Ledger.
 _Avoid_: tenant, cluster

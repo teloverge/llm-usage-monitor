@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { OverviewView, RankedUsage } from "@llm-usage-monitor/contracts";
 import { Rollup } from "../components/rollup.tsx";
+import { credentialLabel } from "../model/credential.ts";
 import { formatCount, formatMoney, formatTokens } from "../model/format.ts";
 import { harnessLabel } from "../model/harness.ts";
 import { rankedRowKey } from "../model/rank-scale.ts";
@@ -12,6 +13,7 @@ import { rankedRowKey } from "../model/rank-scale.ts";
  */
 export type BreakdownDimension =
   | "byHarness"
+  | "byCredential"
   | "byModel"
   | "byTask"
   | "bySourceHost"
@@ -20,6 +22,7 @@ export type BreakdownDimension =
 /** Ids only; labels are looked up per render so they follow the language. */
 const DIMENSIONS: readonly BreakdownDimension[] = [
   "byHarness",
+  "byCredential",
   "byModel",
   "byTask",
   "bySourceHost",
@@ -51,7 +54,9 @@ export function Breakdown({
         }))
       : dimension === "bySourceHost"
         ? data.bySourceHost.map((row) => ({ ...row, key: hostLabel(row.key) }))
-        : data[dimension];
+        : dimension === "byCredential"
+          ? data.byCredential.map((row) => ({ ...row, key: credentialLabel(row.key, t) }))
+          : data[dimension];
   return (
     <section className="breakdown">
       <div className="group-by">

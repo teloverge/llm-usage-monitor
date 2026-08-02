@@ -1,4 +1,5 @@
 import type {
+  CredentialObservation,
   DashboardAction,
   DashboardActionOutcome,
   HostGroup,
@@ -26,6 +27,7 @@ export async function getCatalog(): Promise<{
   sourceHosts: SourceHost[];
   hostGroups: HostGroup[];
   memberships: HostGroupMembership[];
+  credentials: CredentialObservation[];
 }> {
   return requestJson("./api/catalog");
 }

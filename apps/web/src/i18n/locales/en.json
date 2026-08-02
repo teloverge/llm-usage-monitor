@@ -6,6 +6,18 @@
     "sourceHostFallback": "Source Host {{index}}",
     "untitledTask": "Untitled task"
   },
+  "credential": {
+    "mode": {
+      "subscription": "Subscription",
+      "apiKey": "API key",
+      "bedrock": "Bedrock",
+      "vertex": "Vertex",
+      "unknown": "Unrecognised credential"
+    },
+    "inferred": "inferred",
+    "notCounted": "This usage is billed separately and does not count against the limits shown here.",
+    "unattributed": "Not attributed"
+  },
   "headline": {
     "coverage": {
       "none": "No records in this period",
@@ -82,7 +94,9 @@
     "searchTasks": "Filter tasks",
     "refresh": "Refresh sources",
     "refreshing": "Refreshing…",
-    "settings": "Settings"
+    "settings": "Settings",
+    "credential": "Credential",
+    "allCredentials": "All credentials"
   },
   "period": {
     "select": {
@@ -128,7 +142,18 @@
   },
   "quota": {
     "used": "{{percent}} used",
-    "resets": "resets {{at}}"
+    "resets": "resets {{at}}",
+    "asOf": "as of {{at}}",
+    "window": {
+      "session": "Session window",
+      "weekly": "Weekly window",
+      "weeks": "{{n}}-week window",
+      "daily": "Daily window",
+      "days": "{{n}}-day window",
+      "hours": "{{n}}-hour window",
+      "minutes": "{{n}}-minute window",
+      "extraUsage": "Extra usage"
+    }
   },
   "rank": {
     "empty": "No usage in this period",
@@ -142,6 +167,7 @@
     "byTask": "Task → Session",
     "bySourceHost": "Host",
     "byHostGroup": "Host Group",
+    "byCredential": "Credential",
     "treeView": "⊟ Tree view",
     "tableView": "⊞ Table view",
     "empty": "No usage matches the current filters."

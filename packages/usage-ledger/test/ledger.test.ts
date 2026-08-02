@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
-import type { UsageRecord } from "@llm-usage-monitor/contracts";
+import type { CredentialSighting, UsageRecord } from "@llm-usage-monitor/contracts";
 import { UsageLedger } from "../src/index.ts";
 
 const ledgers: UsageLedger[] = [];
@@ -369,5 +369,154 @@ describe("Ledger legacy migration", () => {
     assert.equal(record?.usageSourceId, "codex-local");
     assert.equal(record?.harnessId, "codex");
     assert.equal(record?.reasoningLevel, undefined);
+  });
+});
+
+describe("Credential observations", () => {
+  const sighting = (over: Partial<CredentialSighting> = {}): CredentialSighting => ({
+    usageSourceId: "codex-local",
+    sourceHostId: "host:a",
+    mode: "subscription",
+    fingerprint: "9a1b2c3d4e5f",
+    inferred: false,
+    observedAt: "2026-07-20T10:00:00.000Z",
+    ...over,
+  });
+
+  it("dates a first sighting from when it was seen", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting());
+    const [observation] = store.credentialObservations();
+    assert.equal(observation?.effectiveFrom, "2026-07-20T10:00:00.000Z");
+    assert.equal(observation?.mode, "subscription");
+  });
+
+  it("does not open a new row when the same credential is seen again", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting());
+    store.recordCredentialObservation(sighting({ observedAt: "2026-07-25T10:00:00.000Z" }));
+
+    // auth.json is rewritten on every token refresh. A row per sighting would
+    // march effectiveFrom forward daily, leave no observation preceding any
+    // record, and strand every record in the unattributed bucket forever.
+    assert.equal(store.credentialObservations().length, 1);
+    assert.equal(store.credentialObservations()[0]?.effectiveFrom, "2026-07-20T10:00:00.000Z");
+    assert.equal(store.credentialObservations()[0]?.observedAt, "2026-07-25T10:00:00.000Z");
+  });
+
+  it("does not move the latest confirmation backwards", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting({ observedAt: "2026-07-25T10:00:00.000Z" }));
+    store.recordCredentialObservation(sighting({ observedAt: "2026-07-20T10:00:00.000Z" }));
+    assert.equal(store.credentialObservations()[0]?.observedAt, "2026-07-25T10:00:00.000Z");
+  });
+
+  it("opens a new row when the mode changes, keeping the old one", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting());
+    store.recordCredentialObservation(
+      sighting({ mode: "api-key", observedAt: "2026-07-25T10:00:00.000Z" }),
+    );
+    assert.deepEqual(
+      store
+        .credentialObservations()
+        .map((observation) => [observation.mode, observation.effectiveFrom]),
+      [
+        ["subscription", "2026-07-20T10:00:00.000Z"],
+        ["api-key", "2026-07-25T10:00:00.000Z"],
+      ],
+    );
+  });
+
+  it("opens a new row when the account changes", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting());
+    store.recordCredentialObservation(
+      sighting({ fingerprint: "0f1e2d3c4b5a", observedAt: "2026-07-25T10:00:00.000Z" }),
+    );
+    assert.equal(store.credentialObservations().length, 2);
+  });
+
+  it("opens a third row when a credential returns after another intervened", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting({ observedAt: "2026-07-20T10:00:00.000Z" }));
+    store.recordCredentialObservation(
+      sighting({ mode: "api-key", observedAt: "2026-07-22T10:00:00.000Z" }),
+    );
+    store.recordCredentialObservation(
+      sighting({ mode: "subscription", observedAt: "2026-07-25T10:00:00.000Z" }),
+    );
+
+    // A third row, not a merge back into the first: the middle span belongs
+    // to the other credential, and records landing in it must not resolve
+    // back to this one. The comeback is dated from when it came back, not
+    // from when it was first ever seen.
+    assert.deepEqual(
+      store.credentialObservations().map((observation) => observation.mode),
+      ["subscription", "api-key", "subscription"],
+    );
+    assert.equal(new Set(store.credentialObservations().map((o) => o.effectiveFrom)).size, 3);
+    assert.equal(store.credentialObservations()[2]?.effectiveFrom, "2026-07-25T10:00:00.000Z");
+  });
+
+  it("keeps each usage source and host independent", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting());
+    store.recordCredentialObservation(sighting({ usageSourceId: "claude-code-local" }));
+    store.recordCredentialObservation(sighting({ sourceHostId: "host:b" }));
+    assert.equal(store.credentialObservations().length, 3);
+  });
+
+  it("returns observations oldest first", () => {
+    const store = create();
+    // Independent (usage source, host) pairs, so the second insert is a
+    // first-ever row for host:a and does not touch the clamp on host:b's
+    // latest row — this is purely about SELECT ordering, not clock handling.
+    store.recordCredentialObservation(
+      sighting({ sourceHostId: "host:b", observedAt: "2026-07-25T10:00:00.000Z" }),
+    );
+    store.recordCredentialObservation(
+      sighting({ sourceHostId: "host:a", observedAt: "2026-07-20T10:00:00.000Z" }),
+    );
+    assert.deepEqual(
+      store.credentialObservations().map((observation) => observation.effectiveFrom),
+      ["2026-07-20T10:00:00.000Z", "2026-07-25T10:00:00.000Z"],
+    );
+  });
+
+  it("clamps effectiveFrom against a backwards clock jump", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting({ observedAt: "2026-07-20T10:00:00.000Z" }));
+    store.recordCredentialObservation(
+      sighting({ mode: "api-key", observedAt: "2026-07-01T10:00:00.000Z" }),
+    );
+    const observations = store.credentialObservations();
+    const subscriptionRow = observations.find((observation) => observation.mode === "subscription");
+    const apiKeyRow = observations.find((observation) => observation.mode === "api-key");
+    assert.ok(subscriptionRow && apiKeyRow);
+
+    // A clock jump backwards (NTP correction, VM resume, dual boot) must not
+    // backdate the new credential ahead of a row already on record — README,
+    // CHANGELOG, and CONTEXT all promise attribution is never backdated.
+    assert.ok(apiKeyRow!.effectiveFrom >= subscriptionRow!.effectiveFrom);
+    assert.equal(apiKeyRow!.effectiveFrom, "2026-07-20T10:00:00.000Z");
+  });
+
+  it("survives clearing records", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting());
+    store.clearRecords();
+
+    // A first-seen date cannot be recovered once lost: re-observing tomorrow
+    // dates the credential to tomorrow and unattributes everything before it.
+    // Clearing USAGE must not destroy an observation about the machine.
+    assert.equal(store.credentialObservations().length, 1);
+  });
+
+  it("keeps the optional plan and the inferred flag", () => {
+    const store = create();
+    store.recordCredentialObservation(sighting({ plan: "claude_max_20x", inferred: true }));
+    assert.equal(store.credentialObservations()[0]?.plan, "claude_max_20x");
+    assert.equal(store.credentialObservations()[0]?.inferred, true);
   });
 });

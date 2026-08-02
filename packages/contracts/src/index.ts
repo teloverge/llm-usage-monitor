@@ -55,15 +55,48 @@ export const rateLimitsSchema = z
  * than a full or empty meter. `resetsAt` is an ISO instant, not the Unix epoch
  * seconds Codex emits; conversion belongs in the importer.
  */
+/**
+ * What SHAPE of label a window wants, so the view can render it in the reader's
+ * language. `label` below is the same thing already rendered into English.
+ */
+export const quotaWindowKindSchema = z.enum([
+  "session",
+  "weekly",
+  "daily",
+  "hourly",
+  "minute",
+  "extra-usage",
+]);
+
 export const usageQuotaWindowSchema = z
   .object({
     id: z.string().min(1).max(200),
+    /**
+     * The window's name in English, as the server derived it.
+     *
+     * Required, and NOT superseded by `kind`: snapshots written before `kind`
+     * existed are still sitting in ledgers, and the schema is strict, so this
+     * must keep parsing them. It is also the escape hatch for a window whose
+     * kind this codebase does not recognise — a new cap must still appear,
+     * even if only in English.
+     */
     label: z.string().min(1).max(200),
+    /**
+     * Optional because it is the newer half of the pair. Present, the view
+     * translates; absent, the view falls back to `label`.
+     */
+    kind: quotaWindowKindSchema.optional(),
+    /**
+     * A per-model cap's model name, appended to the label. Source-owned copy —
+     * Anthropic's own display name for the model — so it is never translated.
+     */
+    scope: z.string().min(1).max(200).optional(),
     usedPercent: z.number().nonnegative().optional(),
     windowMinutes: z.number().int().nonnegative().optional(),
     resetsAt: z.string().datetime().optional(),
   })
   .strict();
+export type QuotaWindowKind = z.infer<typeof quotaWindowKindSchema>;
 /**
  * A point-in-time observation of one usage source's plan quota on one host.
  * Keyed by (usageSourceId, sourceHostId): quota is a property of the account as
@@ -86,6 +119,66 @@ export const usageQuotaSnapshotSchema = z
   .strict();
 export type UsageQuotaSnapshot = z.infer<typeof usageQuotaSnapshotSchema>;
 export type UsageQuotaWindow = z.infer<typeof usageQuotaWindowSchema>;
+
+export const credentialModeSchema = z.enum([
+  "subscription",
+  "api-key",
+  "bedrock",
+  "vertex",
+  "unknown",
+]);
+
+/**
+ * The facts a collector can state about a credential.
+ *
+ * `fingerprint` is a one-way digest of an ACCOUNT identifier — 12 lowercase hex,
+ * or empty when the source names no account. It exists to tell two accounts
+ * apart, never to identify one, and it is never taken from key material.
+ */
+const credentialFacts = {
+  usageSourceId: z.string().min(1).max(200),
+  sourceHostId: z.string().min(1).max(200),
+  mode: credentialModeSchema,
+  fingerprint: z.string().regex(/^([0-9a-f]{12})?$/),
+  plan: z.string().max(200).optional(),
+  /** True when the mode was deduced rather than stated by the source. */
+  inferred: z.boolean(),
+  observedAt: z.string().datetime(),
+};
+
+/**
+ * What a collector hands the ledger. `effectiveFrom` is absent BY CONSTRUCTION:
+ * it means "first time this credential was seen", which only the ledger knows,
+ * and a collector able to set it could backdate attribution.
+ */
+export const credentialSightingSchema = z.object(credentialFacts).strict();
+
+/** A sighting the ledger has dated. */
+export const credentialObservationSchema = z
+  .object({ ...credentialFacts, effectiveFrom: z.string().datetime() })
+  .strict();
+
+export type CredentialMode = z.infer<typeof credentialModeSchema>;
+export type CredentialSighting = z.infer<typeof credentialSightingSchema>;
+export type CredentialObservation = z.infer<typeof credentialObservationSchema>;
+
+/**
+ * Bucket key and filter value. Derivable from the observation itself, so no
+ * lookup is needed to group or filter by credential, and it carries a
+ * fingerprint rather than an identifier.
+ */
+export function credentialIdFor(credential: { mode: string; fingerprint: string }): string {
+  return `${credential.mode}:${credential.fingerprint}`;
+}
+
+/**
+ * The bucket for records older than the earliest observation for their
+ * (usage source, host). Deliberately not a valid `credentialIdFor` output, so it
+ * can never collide with a real credential — including `unknown:`, which means
+ * "we saw a credential and could not classify it", a different statement from
+ * "we had not started looking yet".
+ */
+export const UNATTRIBUTED_CREDENTIAL = "unattributed";
 
 export const usageRecordSchema = z
   .object({
@@ -185,19 +278,6 @@ export interface ModelPrice {
 
 export const timeframeSchema = z.enum(["today", "last24", "7", "30", "90", "all", "custom"]);
 export type Timeframe = z.infer<typeof timeframeSchema>;
-export interface UsageFilters {
-  timeframe: Timeframe;
-  from?: string;
-  to?: string;
-  provider?: string;
-  model?: string;
-  reasoningLevel?: string;
-  query?: string;
-  sourceHostId?: string;
-  hostGroupId?: string;
-  harnessId?: string;
-  usageSourceId?: string;
-}
 export interface UsageTotals {
   estimatedCost: number;
   pricedRecords: number;
@@ -254,6 +334,20 @@ export interface OverviewView {
   byHostGroup: RankedUsage[];
   byHarness: RankedUsage[];
   /**
+   * Keyed by `credentialIdFor` output, plus the `UNATTRIBUTED_CREDENTIAL`
+   * bucket for records older than the earliest observation for their source and
+   * host. That bucket is never merged into a real credential — it is the guard
+   * that keeps a thin signal from reading as a confident one.
+   */
+  byCredential: RankedUsage[];
+  /**
+   * The observations themselves, so a view can render a badge and label a filter
+   * without a second request. Not filtered by `filters`, for the same reason
+   * `quotaSnapshots` is not: which credential a machine uses is a standing fact,
+   * not a property of the selected records.
+   */
+  credentials: CredentialObservation[];
+  /**
    * Latest snapshot per (usage source, host) — a list, not a single value,
    * because a host can run several harnesses and each has its own plan quota.
    * Empty means nothing reported quota, which is distinct from a source
@@ -275,8 +369,17 @@ export const filtersSchema = z
     hostGroupId: z.string().max(200).optional(),
     harnessId: z.string().max(200).optional(),
     usageSourceId: z.string().max(200).optional(),
+    credentialId: z.string().max(200).optional(),
   })
   .strict();
+/**
+ * Derived from `filtersSchema` rather than hand-written, so the two cannot
+ * drift again: an earlier hand-written copy of this interface only stayed in
+ * sync because someone happened to notice and patch it by hand mid-branch.
+ * `timeframe` has a `.default()` in the schema, but `z.infer` (the output
+ * type) still makes it required here, matching what every consumer expects.
+ */
+export type UsageFilters = z.infer<typeof filtersSchema>;
 export const modelPriceSchema = z
   .object({
     provider: z.string().min(1).max(100),

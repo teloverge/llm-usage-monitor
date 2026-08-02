@@ -58,7 +58,11 @@ export function Overview({
             `usageSourceLabel` derives its names from the same table `harnessLabel`
             uses, so the two panels cannot disagree about what "Codex" is called.
           */}
-          <QuotaMeters snapshots={data.quotaSnapshots} harnessLabel={usageSourceLabel} />
+          <QuotaMeters
+            snapshots={data.quotaSnapshots}
+            harnessLabel={usageSourceLabel}
+            credentials={data.credentials}
+          />
         </Panel>
         <Panel label={t("overview.hosts")}>
           <RankList rows={hostRows} limit={5} />
