@@ -2,8 +2,13 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { setFormatLocale, type SupportedLocale } from "../model/format.ts";
 import { LANGUAGE_STORAGE_KEY, resolveLanguage } from "./language.ts";
+import de from "./locales/de.json";
 import en from "./locales/en.json";
 import es from "./locales/es.json";
+import fr from "./locales/fr.json";
+import hi from "./locales/hi.json";
+import ja from "./locales/ja.json";
+import zh from "./locales/zh.json";
 
 /**
  * Resources are bundled, not fetched. This dashboard's premise is that
@@ -12,8 +17,13 @@ import es from "./locales/es.json";
  * an async init for no benefit.
  */
 const resources = {
+  de: { translation: de },
   en: { translation: en },
   es: { translation: es },
+  fr: { translation: fr },
+  hi: { translation: hi },
+  ja: { translation: ja },
+  zh: { translation: zh },
 } as const;
 
 function storedLanguage(): string | null {
