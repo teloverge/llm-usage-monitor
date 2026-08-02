@@ -5,6 +5,7 @@ export interface DashboardActionPorts {
   localSourceHostId: string;
   importCodex(codexHome?: string): Promise<number>;
   importClaude(claudeHome?: string): Promise<number>;
+  importGrok(grokHome?: string): Promise<number>;
   migrateLegacy(id: string, records: UsageRecord[]): number;
   replacePrices(prices: ModelPrice[]): void;
   clearRecords(): number;
@@ -27,6 +28,12 @@ export function createDashboardActions(ports: DashboardActionPorts) {
             ok: true,
             code: "claude-imported",
             affectedRecords: await ports.importClaude(action.claudeHome),
+          };
+        case "import-grok":
+          return {
+            ok: true,
+            code: "grok-imported",
+            affectedRecords: await ports.importGrok(action.grokHome),
           };
         case "migrate-legacy": {
           const records = action.records.map((record) =>

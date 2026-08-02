@@ -29,6 +29,11 @@ describe("Legacy Usage Record decoding", () => {
     assert.equal(record.harnessId, "codex");
   });
 
+  it("registers grok-build-local as the Grok Build harness", () => {
+    const record = decodeUsageRecord({ ...legacy, source: "grok-build-local", provider: "xai" });
+    assert.equal(record.harnessId, "grok-build");
+  });
+
   it("maps an unknown reasoning level to unreported rather than a bucket", () => {
     const record = decodeUsageRecord({ ...legacy, reasoningLevel: "unknown" });
     assert.equal(record.reasoningLevel, undefined);

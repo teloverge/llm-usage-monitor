@@ -53,9 +53,28 @@ const ANTHROPIC_DEFAULT_PRICES: ModelPrice[] = [
   effectiveDate: "2026-07-26",
 }));
 
+/**
+ * OpenRouter's published rate for the model Grok Build ships with, per the
+ * Grok Build spec (issue #8): the user chose OpenRouter as the rate source.
+ * Cached input is the listed 75%-discount cache-read rate; Grok Build's local
+ * metadata never reports cache writes, so no write rate is configured.
+ */
+const XAI_DEFAULT_PRICES: ModelPrice[] = [["grok-4.5", 2, 0.5, 6]].map(
+  ([model, input, cachedInput, output]) => ({
+    provider: "xai",
+    model: String(model),
+    input: Number(input),
+    cachedInput: Number(cachedInput),
+    output: Number(output),
+    source: "https://openrouter.ai/x-ai/grok-4.5",
+    effectiveDate: "2026-08-02",
+  }),
+);
+
 export const DEFAULT_PRICES: ModelPrice[] = [
   ...OPENAI_DEFAULT_PRICES,
   ...ANTHROPIC_DEFAULT_PRICES,
+  ...XAI_DEFAULT_PRICES,
   {
     provider: "openai",
     model: "codex-auto-review",
@@ -79,7 +98,11 @@ export const DEFAULT_PRICES: ModelPrice[] = [
  * predates Claude support would import Claude records and price them all at zero.
  */
 function isAdditiveDefault(price: ModelPrice): boolean {
-  return price.provider === "anthropic" || price.model === "codex-auto-review";
+  return (
+    price.provider === "anthropic" ||
+    price.provider === "xai" ||
+    price.model === "codex-auto-review"
+  );
 }
 
 export function mergeDefaultPrices(configured: ModelPrice[]): ModelPrice[] {
