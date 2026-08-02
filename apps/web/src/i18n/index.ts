@@ -8,6 +8,7 @@ import es from "./locales/es.json";
 import fr from "./locales/fr.json";
 import hi from "./locales/hi.json";
 import ja from "./locales/ja.json";
+import ru from "./locales/ru.json";
 import zh from "./locales/zh.json";
 
 /**
@@ -23,6 +24,7 @@ const resources = {
   fr: { translation: fr },
   hi: { translation: hi },
   ja: { translation: ja },
+  ru: { translation: ru },
   zh: { translation: zh },
 } as const;
 

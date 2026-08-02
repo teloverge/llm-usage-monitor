@@ -22,11 +22,13 @@ export function LanguageSettings() {
           {/*
             Each option is labelled in its OWN language, never translated into
             the current one. Someone who has landed in a language they cannot
-            read needs to recognise their own entry to get back out.
+            read needs to recognise their own entry to get back out — the ISO
+            code beside the endonym is a second anchor for exactly that reader,
+            legible even when the endonym's script is not.
           */}
           {SUPPORTED_LANGUAGES.map((language) => (
             <option key={language.value} value={language.value}>
-              {language.label}
+              {`${language.label} (${language.value})`}
             </option>
           ))}
         </select>

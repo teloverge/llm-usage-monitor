@@ -12,6 +12,7 @@ export const SUPPORTED_LANGUAGES = [
   { value: "fr", label: "Français" },
   { value: "hi", label: "हिन्दी" },
   { value: "ja", label: "日本語" },
+  { value: "ru", label: "Русский" },
   { value: "zh", label: "中文（简体）" },
 ] as const satisfies ReadonlyArray<{ value: SupportedLocale; label: string }>;
 
