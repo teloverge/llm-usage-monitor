@@ -16,7 +16,7 @@ describe("Language resolution", () => {
   // A stale or hand-edited localStorage value must not wedge the UI into a
   // language with no resources behind it.
   it("ignores a stored value that is not supported", () => {
-    assert.equal(resolveLanguage("fr", ["es-ES"]), "es");
+    assert.equal(resolveLanguage("pt", ["es-ES"]), "es");
     assert.equal(resolveLanguage("", ["es-ES"]), "es");
   });
 
@@ -28,6 +28,16 @@ describe("Language resolution", () => {
     assert.equal(resolveLanguage("es-AR", []), "es");
   });
 
+  it("resolves every added language from a regional browser tag", () => {
+    assert.equal(resolveLanguage(null, ["de-AT"]), "de");
+    assert.equal(resolveLanguage(null, ["fr-CA"]), "fr");
+    assert.equal(resolveLanguage(null, ["ja-JP"]), "ja");
+    // A Traditional-script reader lands on the one Chinese the dashboard has —
+    // the picker labels it Simplified, so the substitution is at least declared.
+    assert.equal(resolveLanguage(null, ["zh-TW"]), "zh");
+    assert.equal(resolveLanguage(null, ["hi-IN"]), "hi");
+  });
+
   // The primary subtag is matched case-insensitively — a browser or a
   // hand-edited storage value may report it upper-cased (BCP 47 only
   // requires the REGION subtag, not the primary language, to be upper-cased).
@@ -37,18 +47,24 @@ describe("Language resolution", () => {
   });
 
   it("walks the browser list in order and takes the first supported entry", () => {
-    assert.equal(resolveLanguage(null, ["fr-FR", "de", "es-ES", "en"]), "es");
+    assert.equal(resolveLanguage(null, ["pt-BR", "it", "es-ES", "en"]), "es");
+    assert.equal(resolveLanguage(null, ["fr-FR", "de", "es-ES"]), "fr");
   });
 
   it("defaults to English when nothing matches", () => {
-    assert.equal(resolveLanguage(null, ["fr-FR", "de"]), "en");
+    assert.equal(resolveLanguage(null, ["pt-BR", "it"]), "en");
     assert.equal(resolveLanguage(null, []), "en");
   });
 
   it("offers each supported language under its own endonym", () => {
     assert.deepEqual(SUPPORTED_LANGUAGES, [
+      { value: "de", label: "Deutsch" },
       { value: "en", label: "English" },
       { value: "es", label: "Español" },
+      { value: "fr", label: "Français" },
+      { value: "hi", label: "हिन्दी" },
+      { value: "ja", label: "日本語" },
+      { value: "zh", label: "中文（简体）" },
     ]);
   });
 });

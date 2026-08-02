@@ -6,8 +6,13 @@ import type { SupportedLocale } from "../model/format.ts";
  * recognise their own in the list to get out again.
  */
 export const SUPPORTED_LANGUAGES = [
+  { value: "de", label: "Deutsch" },
   { value: "en", label: "English" },
   { value: "es", label: "Español" },
+  { value: "fr", label: "Français" },
+  { value: "hi", label: "हिन्दी" },
+  { value: "ja", label: "日本語" },
+  { value: "zh", label: "中文（简体）" },
 ] as const satisfies ReadonlyArray<{ value: SupportedLocale; label: string }>;
 
 export const LANGUAGE_STORAGE_KEY = "llm-usage-monitor.language";

@@ -1,0 +1,191 @@
+{
+  "common": {
+    "unknownHarness": "Unbekannte Umgebung",
+    "notReported": "Nicht gemeldet",
+    "unpriced": "Ohne Tarif",
+    "sourceHostFallback": "Quell-Host {{index}}",
+    "untitledTask": "Unbenannte Aufgabe"
+  },
+  "credential": {
+    "mode": {
+      "subscription": "Abonnement",
+      "apiKey": "API-Schlüssel",
+      "bedrock": "Bedrock",
+      "vertex": "Vertex",
+      "unknown": "Unbekannte Zugangsdaten"
+    },
+    "inferred": "abgeleitet",
+    "notCounted": "Diese Nutzung wird separat abgerechnet und zählt nicht zu den hier angezeigten Limits.",
+    "unattributed": "Nicht zugeordnet"
+  },
+  "headline": {
+    "coverage": {
+      "none": "Keine Datensätze in diesem Zeitraum",
+      "all": "{{records}} Datensätze mit Tarif",
+      "partial": "{{priced}} von {{records}} Datensätzen mit Tarif"
+    },
+    "title": "API-äquivalente Kosten der Arbeit · {{period}}",
+    "disclaimer": "{{coverage}} · geschätzt nach deinen konfigurierten API-Tarifen, keine Rechnung",
+    "measureGroup": "Messgröße des Trends",
+    "cost": "Kosten (USD)",
+    "tokens": "Tokens",
+    "seriesCost": "Geschätzte Kosten",
+    "empty": "Keine Aktivität in diesem Zeitraum"
+  },
+  "settings": {
+    "sections": "Einstellungsbereiche",
+    "tabs": {
+      "rates": "Modelltarife",
+      "host-groups": "Host-Gruppen",
+      "language": "Sprache"
+    },
+    "rates": {
+      "heading": "Modelltarife",
+      "subtitle": "USD pro Million Tokens · {{models}} konfigurierte Modelle",
+      "caption": "Konfigurierte Modellpreise in USD pro Million Tokens",
+      "saving": "Wird gespeichert…",
+      "save": "Änderungen speichern",
+      "saved": "Preise gespeichert",
+      "provider": "Anbieter",
+      "model": "Modell",
+      "input": "Eingabe",
+      "cachedInput": "Cache-Lesen",
+      "cacheWrite": "Cache-Schreiben",
+      "output": "Ausgabe",
+      "effective": "Gültig ab",
+      "loading": "Lokaler Preiskatalog wird geladen…"
+    },
+    "language": {
+      "heading": "Sprache",
+      "hint": "Gilt nur für diesen Browser. Zahlen, Datumsangaben und Währung folgen der gewählten Sprache."
+    },
+    "hostGroups": {
+      "heading": "Host-Gruppen",
+      "effectiveHint": "Die Gruppierung gilt für ab jetzt erfasste Nutzung. Frühere Nutzung behält die damals gültige Gruppierung.",
+      "newGroup": "Neue Gruppe",
+      "empty": "Noch keine Host-Gruppen. Lege mit Neue Gruppe eine an.",
+      "groupName": "Gruppenname",
+      "saving": "Wird gespeichert…",
+      "save": "Speichern",
+      "retire": "Stilllegen",
+      "thisGroup": "diese Gruppe",
+      "hostsIn": "Hosts in {{group}}",
+      "currentlyIn": "derzeit in {{group}}",
+      "ungrouped": "Ohne Gruppe: {{hosts}}",
+      "none": "keine",
+      "confirmRetire": "\"{{group}}\" stilllegen? Ab jetzt erfasste Nutzung bleibt ohne Gruppe. Frühere Nutzung behält diese Gruppe, bestehende Summen ändern sich also nicht."
+    }
+  },
+  "app": {
+    "brand": "Usage Monitor",
+    "sections": "Dashboard-Bereiche",
+    "viewHeading": "Usage Monitor — {{view}}",
+    "footer": "Alles bleibt auf diesem Rechner · API-äquivalente Schätzungen sind keine Abrechnung"
+  },
+  "nav": {
+    "overview": "Übersicht",
+    "breakdown": "Aufschlüsselung",
+    "history": "Verlauf"
+  },
+  "filters": {
+    "period": "Zeitraum",
+    "host": "Host",
+    "allHosts": "Alle",
+    "searchTasks": "Aufgaben filtern",
+    "refresh": "Quellen aktualisieren",
+    "refreshing": "Wird aktualisiert…",
+    "settings": "Einstellungen",
+    "credential": "Zugangsdaten",
+    "allCredentials": "Alle Zugangsdaten"
+  },
+  "period": {
+    "select": {
+      "today": "Heute",
+      "last24": "Letzte 24 Stunden",
+      "7": "Letzte 7 Tage",
+      "30": "Letzte 30 Tage",
+      "90": "Letzte 90 Tage",
+      "all": "Gesamter Verlauf"
+    },
+    "inline": {
+      "today": "heute",
+      "last24": "letzte 24 Stunden",
+      "7": "letzte 7 Tage",
+      "30": "letzte 30 Tage",
+      "90": "letzte 90 Tage",
+      "all": "gesamter aufbewahrter Verlauf",
+      "custom": "der ausgewählte Zeitraum"
+    }
+  },
+  "overview": {
+    "drivers": "Haupttreiber",
+    "context": "Kontext",
+    "byHarness": "Nach Umgebung",
+    "byModel": "Nach Modell",
+    "byTask": "Nach Aufgabe",
+    "tokenMix": "Token-Mix",
+    "planLimits": "Plan-Limits",
+    "hosts": "Hosts",
+    "tokens": "Tokens",
+    "cachedInput": "Eingabe aus dem Cache",
+    "cacheCoverage": "von {{tokens}} meldenden Tokens",
+    "tasks": "Aufgaben",
+    "models": "Modelle"
+  },
+  "tokenMix": {
+    "composition": "Token-Zusammensetzung",
+    "empty": "Keine Tokens in diesem Zeitraum",
+    "fresh": "Neue Eingabe",
+    "cached": "Aus dem Cache",
+    "output": "Ausgabe",
+    "unreported": "Cache nicht gemeldet"
+  },
+  "quota": {
+    "used": "{{percent}} verbraucht",
+    "resets": "wird am {{at}} zurückgesetzt",
+    "asOf": "Stand {{at}}",
+    "window": {
+      "session": "Sitzungsfenster",
+      "weekly": "Wochenfenster",
+      "weeks": "{{n}}-Wochen-Fenster",
+      "daily": "Tagesfenster",
+      "days": "{{n}}-Tage-Fenster",
+      "hours": "{{n}}-Stunden-Fenster",
+      "minutes": "{{n}}-Minuten-Fenster",
+      "extraUsage": "Zusätzliche Nutzung"
+    }
+  },
+  "rank": {
+    "empty": "Keine Nutzung in diesem Zeitraum",
+    "more": "{{remaining}} weitere",
+    "moreLink": "{{remaining}} weitere →"
+  },
+  "breakdown": {
+    "groupBy": "Gruppieren nach",
+    "byHarness": "Umgebung",
+    "byModel": "Modell → Reasoning",
+    "byTask": "Aufgabe → Sitzung",
+    "bySourceHost": "Host",
+    "byHostGroup": "Host-Gruppe",
+    "byCredential": "Zugangsdaten",
+    "treeView": "⊟ Baumansicht",
+    "tableView": "⊞ Tabellenansicht",
+    "empty": "Keine Nutzung entspricht den aktuellen Filtern."
+  },
+  "table": {
+    "group": "Gruppe",
+    "records": "Datensätze",
+    "tokens": "Tokens",
+    "cost": "Kosten"
+  },
+  "history": {
+    "empty": "Kein Nutzungsverlauf entspricht den Filtern.",
+    "summary": "{{tasks}} Aufgaben · {{sessions}} Sitzungen · {{records}} Datensätze",
+    "groupSessions": "{{sessions}} Sitzungen · {{tokens}}",
+    "lastActive": "Zuletzt aktiv",
+    "harness": "Umgebung",
+    "model": "Modell",
+    "reasoning": "Reasoning",
+    "host": "Host"
+  }
+}
