@@ -8,8 +8,11 @@ its tokens from one `inference_done` event and its model from the session's
 `events.jsonl` `turn_started` timeline — the model in effect at the inference
 timestamp — falling back to `summary.json`'s `current_model_id` when the
 timeline is missing, and recording the model as unknown when both are gone.
-A model is never guessed, matching the ledger's "unavailable rather than zero"
-convention.
+Timestamps from the two files are compared as instants, never as strings, and
+when clock jitter leaves every timeline entry after the inference, the earliest
+entry wins over the summary: it is still stated evidence about this session's
+turns, where `current_model_id` is only a current setting. A model is never
+guessed, matching the ledger's "unavailable rather than zero" convention.
 
 ## Considered Options
 
