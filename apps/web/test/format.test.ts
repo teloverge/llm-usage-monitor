@@ -40,6 +40,12 @@ function inLocale(locale: string, body: () => void): void {
  */
 const NBSP = "\u00A0";
 
+/**
+ * French separates digit groups with U+202F NARROW NO-BREAK SPACE \u2014 a second
+ * invisible character with the same tidy-up hazard as NBSP above.
+ */
+const NNBSP = "\u202F";
+
 describe("Formatters", () => {
   it("formats money to cents with an explicit currency code", () => {
     inLocale("en", () => {
@@ -112,9 +118,47 @@ describe("Formatters", () => {
     });
   });
 
+  /**
+   * One distinctive pin per added locale, in the spirit of the Spanish pins
+   * above: enough to prove each language formats by its own CLDR conventions
+   * rather than inheriting English, without pinning every formatter × locale.
+   */
+  it("formats each added locale by its own conventions", () => {
+    // German groups four-digit integers (Spanish does not) and abbreviates
+    // millions as "Mio.".
+    inLocale("de", () => {
+      assert.equal(formatMoney(142.3), `142,30${NBSP}USD`);
+      assert.equal(formatCount(4900), "4.900");
+      assert.equal(formatTokens(1_240_000), `1,2${NBSP}Mio.`);
+      assert.equal(formatPercent(0.682), `68,2${NBSP}%`);
+    });
+    inLocale("fr", () => {
+      assert.equal(formatCount(100_000), `100${NNBSP}000`);
+      assert.equal(formatTokens(645_000), `645${NBSP}k`);
+      assert.equal(formatPercent(0.682), `68,2${NBSP}%`);
+    });
+    // Japanese and Chinese compact against 万 (ten thousand), not the Latin
+    // locales' thousand, and place the currency code before the amount.
+    inLocale("ja", () => {
+      assert.equal(formatMoney(142.3), `USD${NBSP}142.30`);
+      assert.equal(formatTokens(1_240_000), "124万");
+      assert.equal(formatBucketLabel("2026-07-20"), "7月20日");
+    });
+    inLocale("zh", () => {
+      assert.equal(formatTokens(1_240_000), "124万");
+      assert.equal(formatDateTime("2026-07-23T12:06:40.000Z", "UTC"), "2026年7月23日 12:06");
+    });
+    // Hindi groups in the Indian system and compacts against लाख (a hundred
+    // thousand), so a million reads as 12.4 lakh, not 1.2M.
+    inLocale("hi", () => {
+      assert.equal(formatCount(100_000), "1,00,000");
+      assert.equal(formatTokens(1_240_000), `12.4${NBSP}लाख`);
+    });
+  });
+
   it("rejects an unsupported locale rather than formatting in it", () => {
     inLocale("en", () => {
-      setFormatLocale("fr-CA");
+      setFormatLocale("pt-BR");
       assert.equal(
         formatMoney(142.3),
         `USD${NBSP}142.30`,

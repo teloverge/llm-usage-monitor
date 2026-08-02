@@ -1,0 +1,191 @@
+{
+  "common": {
+    "unknownHarness": "未知环境",
+    "notReported": "未报告",
+    "unpriced": "未定价",
+    "sourceHostFallback": "源主机 {{index}}",
+    "untitledTask": "无标题任务"
+  },
+  "credential": {
+    "mode": {
+      "subscription": "订阅",
+      "apiKey": "API 密钥",
+      "bedrock": "Bedrock",
+      "vertex": "Vertex",
+      "unknown": "无法识别的凭据"
+    },
+    "inferred": "推断",
+    "notCounted": "此用量单独计费，不计入此处显示的限额。",
+    "unattributed": "未归因"
+  },
+  "headline": {
+    "coverage": {
+      "none": "此期间没有记录",
+      "all": "{{records}} 条记录已定价",
+      "partial": "{{records}} 条记录中 {{priced}} 条已定价"
+    },
+    "title": "工作的 API 等价成本 · {{period}}",
+    "disclaimer": "{{coverage}} · 按你配置的 API 费率估算，并非账单",
+    "measureGroup": "趋势指标",
+    "cost": "成本 (USD)",
+    "tokens": "Token",
+    "seriesCost": "估算成本",
+    "empty": "此期间没有活动"
+  },
+  "settings": {
+    "sections": "设置栏目",
+    "tabs": {
+      "rates": "模型费率",
+      "host-groups": "主机组",
+      "language": "语言"
+    },
+    "rates": {
+      "heading": "模型费率",
+      "subtitle": "每百万 Token 的 USD · 已配置 {{models}} 个模型",
+      "caption": "已配置的模型价格（USD/百万 Token）",
+      "saving": "正在保存…",
+      "save": "保存更改",
+      "saved": "价格已保存",
+      "provider": "提供商",
+      "model": "模型",
+      "input": "输入",
+      "cachedInput": "缓存读取",
+      "cacheWrite": "缓存写入",
+      "output": "输出",
+      "effective": "生效时间",
+      "loading": "正在加载本地价格目录…"
+    },
+    "language": {
+      "heading": "语言",
+      "hint": "仅对此浏览器生效。数字、日期和货币将跟随所选语言。"
+    },
+    "hostGroups": {
+      "heading": "主机组",
+      "effectiveHint": "分组从现在起对新记录的用量生效。之前的用量保留当时的分组。",
+      "newGroup": "新建组",
+      "empty": "还没有主机组。使用“新建组”添加一个。",
+      "groupName": "组名",
+      "saving": "正在保存…",
+      "save": "保存",
+      "retire": "停用",
+      "thisGroup": "此组",
+      "hostsIn": "{{group}} 中的主机",
+      "currentlyIn": "当前在 {{group}} 中",
+      "ungrouped": "未分组：{{hosts}}",
+      "none": "无",
+      "confirmRetire": "停用“{{group}}”？从现在起记录的用量将不再分组。过去的用量保留此组，现有总计不会改变。"
+    }
+  },
+  "app": {
+    "brand": "Usage Monitor",
+    "sections": "仪表板栏目",
+    "viewHeading": "Usage Monitor — {{view}}",
+    "footer": "一切都保留在本机 · API 等价估算并非计费声明"
+  },
+  "nav": {
+    "overview": "概览",
+    "breakdown": "细分",
+    "history": "历史"
+  },
+  "filters": {
+    "period": "期间",
+    "host": "主机",
+    "allHosts": "全部",
+    "searchTasks": "筛选任务",
+    "refresh": "刷新数据源",
+    "refreshing": "正在刷新…",
+    "settings": "设置",
+    "credential": "凭据",
+    "allCredentials": "所有凭据"
+  },
+  "period": {
+    "select": {
+      "today": "今天",
+      "last24": "过去 24 小时",
+      "7": "过去 7 天",
+      "30": "过去 30 天",
+      "90": "过去 90 天",
+      "all": "全部历史"
+    },
+    "inline": {
+      "today": "今天",
+      "last24": "过去 24 小时",
+      "7": "过去 7 天",
+      "30": "过去 30 天",
+      "90": "过去 90 天",
+      "all": "保留的全部历史",
+      "custom": "所选范围"
+    }
+  },
+  "overview": {
+    "drivers": "主要驱动因素",
+    "context": "上下文",
+    "byHarness": "按环境",
+    "byModel": "按模型",
+    "byTask": "按任务",
+    "tokenMix": "Token 构成",
+    "planLimits": "计划限额",
+    "hosts": "主机",
+    "tokens": "Token",
+    "cachedInput": "缓存输入",
+    "cacheCoverage": "在 {{tokens}} 个报告的 Token 中",
+    "tasks": "任务",
+    "models": "模型"
+  },
+  "tokenMix": {
+    "composition": "Token 组成",
+    "empty": "此期间没有 Token",
+    "fresh": "新输入",
+    "cached": "已缓存",
+    "output": "输出",
+    "unreported": "未报告缓存"
+  },
+  "quota": {
+    "used": "已用 {{percent}}",
+    "resets": "{{at}} 重置",
+    "asOf": "截至 {{at}}",
+    "window": {
+      "session": "会话窗口",
+      "weekly": "每周窗口",
+      "weeks": "{{n}} 周窗口",
+      "daily": "每日窗口",
+      "days": "{{n}} 天窗口",
+      "hours": "{{n}} 小时窗口",
+      "minutes": "{{n}} 分钟窗口",
+      "extraUsage": "额外用量"
+    }
+  },
+  "rank": {
+    "empty": "此期间没有用量",
+    "more": "另有 {{remaining}} 项",
+    "moreLink": "另有 {{remaining}} 项 →"
+  },
+  "breakdown": {
+    "groupBy": "分组方式",
+    "byHarness": "环境",
+    "byModel": "模型 → 推理",
+    "byTask": "任务 → 会话",
+    "bySourceHost": "主机",
+    "byHostGroup": "主机组",
+    "byCredential": "凭据",
+    "treeView": "⊟ 树状视图",
+    "tableView": "⊞ 表格视图",
+    "empty": "没有符合当前筛选条件的用量。"
+  },
+  "table": {
+    "group": "组",
+    "records": "记录",
+    "tokens": "Token",
+    "cost": "成本"
+  },
+  "history": {
+    "empty": "没有符合筛选条件的使用历史。",
+    "summary": "{{tasks}} 个任务 · {{sessions}} 个会话 · {{records}} 条记录",
+    "groupSessions": "{{sessions}} 个会话 · {{tokens}}",
+    "lastActive": "最近活动",
+    "harness": "环境",
+    "model": "模型",
+    "reasoning": "推理",
+    "host": "主机"
+  }
+}

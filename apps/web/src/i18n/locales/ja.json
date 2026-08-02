@@ -1,0 +1,191 @@
+{
+  "common": {
+    "unknownHarness": "不明な環境",
+    "notReported": "未報告",
+    "unpriced": "料金未設定",
+    "sourceHostFallback": "ソースホスト {{index}}",
+    "untitledTask": "無題のタスク"
+  },
+  "credential": {
+    "mode": {
+      "subscription": "サブスクリプション",
+      "apiKey": "APIキー",
+      "bedrock": "Bedrock",
+      "vertex": "Vertex",
+      "unknown": "不明な認証情報"
+    },
+    "inferred": "推定",
+    "notCounted": "この使用量は別途請求され、ここに表示される上限には含まれません。",
+    "unattributed": "未帰属"
+  },
+  "headline": {
+    "coverage": {
+      "none": "この期間にレコードはありません",
+      "all": "{{records}} 件のレコードを料金換算済み",
+      "partial": "{{records}} 件中 {{priced}} 件を料金換算済み"
+    },
+    "title": "作業のAPI換算コスト · {{period}}",
+    "disclaimer": "{{coverage}} · 設定したAPI料金に基づく推定値であり、請求額ではありません",
+    "measureGroup": "トレンドの指標",
+    "cost": "コスト (USD)",
+    "tokens": "トークン",
+    "seriesCost": "推定コスト",
+    "empty": "この期間にアクティビティはありません"
+  },
+  "settings": {
+    "sections": "設定セクション",
+    "tabs": {
+      "rates": "モデル料金",
+      "host-groups": "ホストグループ",
+      "language": "言語"
+    },
+    "rates": {
+      "heading": "モデル料金",
+      "subtitle": "100万トークンあたりのUSD · 設定済みモデル {{models}} 件",
+      "caption": "設定済みモデル価格（100万トークンあたりのUSD）",
+      "saving": "保存中…",
+      "save": "変更を保存",
+      "saved": "価格を保存しました",
+      "provider": "プロバイダー",
+      "model": "モデル",
+      "input": "入力",
+      "cachedInput": "キャッシュ読み取り",
+      "cacheWrite": "キャッシュ書き込み",
+      "output": "出力",
+      "effective": "適用開始",
+      "loading": "ローカル価格カタログを読み込み中…"
+    },
+    "language": {
+      "heading": "言語",
+      "hint": "このブラウザーにのみ適用されます。数値、日付、通貨は選択した言語に従います。"
+    },
+    "hostGroups": {
+      "heading": "ホストグループ",
+      "effectiveHint": "グループ化は今後記録される使用量に適用されます。過去の使用量は当時のグループ化を保持します。",
+      "newGroup": "新しいグループ",
+      "empty": "ホストグループはまだありません。「新しいグループ」から追加してください。",
+      "groupName": "グループ名",
+      "saving": "保存中…",
+      "save": "保存",
+      "retire": "廃止",
+      "thisGroup": "このグループ",
+      "hostsIn": "{{group}} のホスト",
+      "currentlyIn": "現在 {{group}} に所属",
+      "ungrouped": "未分類: {{hosts}}",
+      "none": "なし",
+      "confirmRetire": "「{{group}}」を廃止しますか？今後記録される使用量はグループなしになります。過去の使用量はこのグループを保持するため、既存の合計は変わりません。"
+    }
+  },
+  "app": {
+    "brand": "Usage Monitor",
+    "sections": "ダッシュボードのセクション",
+    "viewHeading": "Usage Monitor — {{view}}",
+    "footer": "すべてこのマシン内に保存 · API換算の推定値は請求額ではありません"
+  },
+  "nav": {
+    "overview": "概要",
+    "breakdown": "内訳",
+    "history": "履歴"
+  },
+  "filters": {
+    "period": "期間",
+    "host": "ホスト",
+    "allHosts": "すべて",
+    "searchTasks": "タスクを絞り込む",
+    "refresh": "ソースを更新",
+    "refreshing": "更新中…",
+    "settings": "設定",
+    "credential": "認証情報",
+    "allCredentials": "すべての認証情報"
+  },
+  "period": {
+    "select": {
+      "today": "今日",
+      "last24": "過去24時間",
+      "7": "過去7日間",
+      "30": "過去30日間",
+      "90": "過去90日間",
+      "all": "全履歴"
+    },
+    "inline": {
+      "today": "今日",
+      "last24": "過去24時間",
+      "7": "過去7日間",
+      "30": "過去30日間",
+      "90": "過去90日間",
+      "all": "保持されている全履歴",
+      "custom": "選択した範囲"
+    }
+  },
+  "overview": {
+    "drivers": "主な要因",
+    "context": "コンテキスト",
+    "byHarness": "環境別",
+    "byModel": "モデル別",
+    "byTask": "タスク別",
+    "tokenMix": "トークン構成",
+    "planLimits": "プランの上限",
+    "hosts": "ホスト",
+    "tokens": "トークン",
+    "cachedInput": "キャッシュ済み入力",
+    "cacheCoverage": "報告している {{tokens}} トークンのうち",
+    "tasks": "タスク",
+    "models": "モデル"
+  },
+  "tokenMix": {
+    "composition": "トークンの構成",
+    "empty": "この期間にトークンはありません",
+    "fresh": "新規入力",
+    "cached": "キャッシュ済み",
+    "output": "出力",
+    "unreported": "キャッシュ未報告"
+  },
+  "quota": {
+    "used": "{{percent}} 使用済み",
+    "resets": "{{at}} にリセット",
+    "asOf": "{{at}} 時点",
+    "window": {
+      "session": "セッションウィンドウ",
+      "weekly": "週間ウィンドウ",
+      "weeks": "{{n}}週間ウィンドウ",
+      "daily": "日次ウィンドウ",
+      "days": "{{n}}日間ウィンドウ",
+      "hours": "{{n}}時間ウィンドウ",
+      "minutes": "{{n}}分間ウィンドウ",
+      "extraUsage": "追加使用量"
+    }
+  },
+  "rank": {
+    "empty": "この期間に使用はありません",
+    "more": "他 {{remaining}} 件",
+    "moreLink": "他 {{remaining}} 件 →"
+  },
+  "breakdown": {
+    "groupBy": "グループ化",
+    "byHarness": "環境",
+    "byModel": "モデル → 推論",
+    "byTask": "タスク → セッション",
+    "bySourceHost": "ホスト",
+    "byHostGroup": "ホストグループ",
+    "byCredential": "認証情報",
+    "treeView": "⊟ ツリー表示",
+    "tableView": "⊞ テーブル表示",
+    "empty": "現在のフィルターに一致する使用はありません。"
+  },
+  "table": {
+    "group": "グループ",
+    "records": "レコード",
+    "tokens": "トークン",
+    "cost": "コスト"
+  },
+  "history": {
+    "empty": "フィルターに一致する使用履歴はありません。",
+    "summary": "タスク {{tasks}} 件 · セッション {{sessions}} 件 · レコード {{records}} 件",
+    "groupSessions": "セッション {{sessions}} 件 · {{tokens}}",
+    "lastActive": "最終アクティブ",
+    "harness": "環境",
+    "model": "モデル",
+    "reasoning": "推論",
+    "host": "ホスト"
+  }
+}

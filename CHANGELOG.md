@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The dashboard is now available in German, French, Japanese, Simplified Chinese, and Hindi, alongside the existing English and Spanish. Numbers, dates and compact figures follow each language's own conventions — Japanese and Chinese count tokens in units of 万, Hindi groups digits in lakhs. Any regional Chinese browser tag resolves to the one Chinese offered, which the language picker labels as Simplified. Translations are machine-authored and have not been reviewed by native speakers.
+
 ## 0.4.0
 
 - Plan limits now include Claude Code, read from the utilization block Claude Code caches locally. Its session and weekly windows appear beside Codex's, with per-model weekly caps shown separately when a plan has them.
