@@ -25,7 +25,7 @@ The coding harness in which the work occurred, identified by `harnessId` such as
 _Avoid_: client, tool, provider
 
 **Usage Quota Snapshot**:
-A normalized, source-owned observation of plan limits with named windows. It never participates in cost calculation.
+A normalized, source-owned observation of plan limits with named windows, attributed to the Credential in effect at observation. It never participates in cost calculation.
 _Avoid_: rate limits, plan usage, billing state
 
 **Usage Analysis**:
