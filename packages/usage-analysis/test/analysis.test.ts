@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type {
   CredentialObservation,
+  UsageFilters,
   UsageQuotaSnapshot,
   UsageRecord,
 } from "@llm-usage-monitor/contracts";
@@ -510,7 +511,7 @@ describe("Task session children", () => {
 });
 
 describe("Quota snapshots in the overview", () => {
-  it("passes supplied snapshots through unchanged", () => {
+  it("serves supplied snapshots marked active", () => {
     const snapshots = [
       {
         usageSourceId: "codex-local",
@@ -527,7 +528,7 @@ describe("Quota snapshots in the overview", () => {
       quotaSnapshots: snapshots,
       filters: { timeframe: "all" },
     });
-    assert.deepEqual(view.quotaSnapshots, snapshots);
+    assert.deepEqual(view.quotaSnapshots, [{ ...snapshots[0], active: true }]);
   });
 
   it("defaults to no snapshots when none are supplied", () => {
@@ -540,11 +541,11 @@ describe("Quota snapshots in the overview", () => {
     assert.deepEqual(view.quotaSnapshots, []);
   });
 
-  // Quota is not usage: it is the account's standing with the provider, which
-  // does not change because the reader narrowed the date range or typed in the
-  // search box. Filtering it would make the meter read differently depending on
-  // an unrelated control, and read as 0% for any filter that matches nothing.
-  it("reports quota unchanged regardless of the active filters", () => {
+  // The task query still never touches quota — a card has no task to match —
+  // but Period, Host and Credential now DO filter snapshots: the Plan limits
+  // tab treats the Period chip as its recency filter, with "All" revealing
+  // accounts long since logged out.
+  it("ignores the task query", () => {
     const snapshots = [
       {
         usageSourceId: "codex-local",
@@ -559,10 +560,111 @@ describe("Quota snapshots in the overview", () => {
       prices: [],
       memberships: [],
       quotaSnapshots: snapshots,
-      filters: { timeframe: "today", query: "matches-nothing", sourceHostId: "host:zzz" },
+      filters: { timeframe: "all", query: "matches-nothing" },
     });
     assert.equal(view.totals.records, 0);
-    assert.deepEqual(view.quotaSnapshots, snapshots);
+    assert.equal(view.quotaSnapshots.length, 1);
+  });
+});
+
+describe("Plan limits", () => {
+  const now = new Date("2026-08-03T12:00:00.000Z");
+  const quota = (over: Partial<UsageQuotaSnapshot> = {}): UsageQuotaSnapshot => ({
+    usageSourceId: "claude-code-local",
+    sourceHostId: "host:a",
+    observedAt: "2026-08-03T10:00:00.000Z",
+    windows: [{ id: "session", label: "Session", usedPercent: 20 }],
+    ...over,
+  });
+  const analyze = (snapshots: UsageQuotaSnapshot[], filters: UsageFilters) =>
+    analyzeUsage({
+      records: [],
+      prices: [],
+      memberships: [],
+      quotaSnapshots: snapshots,
+      filters,
+      now,
+    });
+
+  it("marks only the latest observation per source and host active", () => {
+    const view = analyze(
+      [
+        quota({ credentialId: "subscription:aaaaaaaaaaaa", observedAt: "2026-07-01T10:00:00.000Z" }),
+        quota({ credentialId: "subscription:bbbbbbbbbbbb" }),
+      ],
+      { timeframe: "all" },
+    );
+    assert.deepEqual(
+      view.quotaSnapshots.map((item) => [item.credentialId, item.active]),
+      [
+        ["subscription:bbbbbbbbbbbb", true],
+        ["subscription:aaaaaaaaaaaa", false],
+      ],
+    );
+  });
+
+  it("does not let filtering to an old credential promote it to active", () => {
+    const view = analyze(
+      [
+        quota({ credentialId: "subscription:aaaaaaaaaaaa", observedAt: "2026-07-01T10:00:00.000Z" }),
+        quota({ credentialId: "subscription:bbbbbbbbbbbb" }),
+      ],
+      { timeframe: "all", credentialId: "subscription:aaaaaaaaaaaa" },
+    );
+    assert.deepEqual(
+      view.quotaSnapshots.map((item) => [item.credentialId, item.active]),
+      [["subscription:aaaaaaaaaaaa", false]],
+    );
+  });
+
+  it("filters by period on the observation time", () => {
+    const view = analyze(
+      [
+        quota(),
+        quota({
+          credentialId: "subscription:aaaaaaaaaaaa",
+          observedAt: "2026-06-01T10:00:00.000Z",
+        }),
+      ],
+      { timeframe: "7" },
+    );
+    assert.equal(view.quotaSnapshots.length, 1);
+    assert.equal(view.quotaSnapshots[0]?.credentialId, undefined);
+  });
+
+  it("filters by host", () => {
+    const view = analyze(
+      [quota(), quota({ sourceHostId: "host:b", usageSourceId: "codex-local" })],
+      { timeframe: "all", sourceHostId: "host:b" },
+    );
+    assert.deepEqual(
+      view.quotaSnapshots.map((item) => item.sourceHostId),
+      ["host:b"],
+    );
+  });
+
+  it("resolves the unattributed filter to unstamped snapshots", () => {
+    const view = analyze(
+      [quota(), quota({ credentialId: "subscription:aaaaaaaaaaaa", sourceHostId: "host:b" })],
+      { timeframe: "all", credentialId: "unattributed" },
+    );
+    assert.equal(view.quotaSnapshots.length, 1);
+    assert.equal(view.quotaSnapshots[0]?.credentialId, undefined);
+  });
+
+  it("orders active snapshots first, then by recency", () => {
+    const view = analyze(
+      [
+        quota({ credentialId: "subscription:aaaaaaaaaaaa", observedAt: "2026-07-01T10:00:00.000Z" }),
+        quota({ credentialId: "subscription:cccccccccccc", observedAt: "2026-07-15T10:00:00.000Z" }),
+        quota({ credentialId: "subscription:bbbbbbbbbbbb" }),
+      ],
+      { timeframe: "all" },
+    );
+    assert.deepEqual(
+      view.quotaSnapshots.map((item) => item.credentialId),
+      ["subscription:bbbbbbbbbbbb", "subscription:cccccccccccc", "subscription:aaaaaaaaaaaa"],
+    );
   });
 });
 

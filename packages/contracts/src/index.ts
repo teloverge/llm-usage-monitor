@@ -365,12 +365,13 @@ export interface OverviewView {
    */
   credentials: CredentialObservation[];
   /**
-   * Latest snapshot per (usage source, host) — a list, not a single value,
-   * because a host can run several harnesses and each has its own plan quota.
-   * Empty means nothing reported quota, which is distinct from a source
-   * reporting itself as unused.
+   * The Plan limits tab's data: snapshots retained per credential, marked
+   * `active` for the latest observation per (usage source, host), filtered by
+   * period (on observation time), host, and credential — never by the task
+   * query. Empty means nothing matching was observed, which is distinct from a
+   * source reporting itself as unused.
    */
-  quotaSnapshots: UsageQuotaSnapshot[];
+  quotaSnapshots: QuotaSnapshotView[];
 }
 
 export const filtersSchema = z

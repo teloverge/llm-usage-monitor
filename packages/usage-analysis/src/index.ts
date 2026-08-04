@@ -4,6 +4,7 @@ import type {
   HostGroupMembership,
   ModelPrice,
   OverviewView,
+  QuotaSnapshotView,
   RankedUsage,
   UsageFilters,
   UsageHistoryRecord,
@@ -26,10 +27,12 @@ export interface AnalysisInput {
   memberships: HostGroupMembership[];
   filters: UsageFilters;
   /**
-   * Deliberately NOT filtered by `filters`. Quota is the account's standing with
-   * the provider, not a property of the selected records — narrowing the period
-   * or typing in the search box must not change what the meter reads, and a
-   * filter matching nothing must not render as 0% used.
+   * Filtered by period, host and credential — the Plan limits tab treats the
+   * Period chip as its recency filter over `observedAt`, "All" being what
+   * reveals accounts long since logged out. The task query never applies: a
+   * quota card has no task to match. (Until 0.6 these were served unfiltered;
+   * that stance made sense while the meters sat beside usage totals on the
+   * Overview, which they no longer do.)
    */
   quotaSnapshots?: UsageQuotaSnapshot[];
   /**
@@ -77,7 +80,7 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
     byHarness: rank(priced, ({ record }) => record.harnessId),
     byCredential: rank(priced, ({ record }) => credentialKey(credentials, record)),
     credentials,
-    quotaSnapshots: currentQuota(input.quotaSnapshots ?? [], now),
+    quotaSnapshots: planLimits(input.quotaSnapshots ?? [], input.filters, now),
   };
 }
 
@@ -106,6 +109,55 @@ export function currentQuota(snapshots: UsageQuotaSnapshot[], now: Date): UsageQ
       return Number.isNaN(resets) || resets > at;
     }),
   }));
+}
+
+/**
+ * The Plan limits tab's read of the snapshot store.
+ *
+ * `active` is computed BEFORE any filter runs: it marks the latest observation
+ * per (usage source, host) — the credential that source is on now — and
+ * narrowing the view to an old credential must not promote that credential's
+ * card to active.
+ *
+ * Sorted active-first, then by recency, so the accounts currently in use lead
+ * regardless of how stale the retained history behind them is.
+ */
+export function planLimits(
+  snapshots: UsageQuotaSnapshot[],
+  filters: UsageFilters,
+  now: Date,
+): QuotaSnapshotView[] {
+  const latest = new Map<string, string>();
+  for (const snapshot of snapshots) {
+    const key = `${snapshot.usageSourceId}\u0000${snapshot.sourceHostId}`;
+    const seen = latest.get(key);
+    if (!seen || snapshot.observedAt > seen) latest.set(key, snapshot.observedAt);
+  }
+  const [from, to] = timeframeRange(filters, now);
+  return currentQuota(snapshots, now)
+    .map((snapshot) => ({
+      ...snapshot,
+      active:
+        latest.get(`${snapshot.usageSourceId}\u0000${snapshot.sourceHostId}`) ===
+        snapshot.observedAt,
+    }))
+    .filter((snapshot) => {
+      const observed = Date.parse(snapshot.observedAt);
+      return (
+        observed >= from &&
+        observed <= to &&
+        (!filters.sourceHostId || snapshot.sourceHostId === filters.sourceHostId) &&
+        (!filters.credentialId ||
+          (filters.credentialId === UNATTRIBUTED_CREDENTIAL
+            ? !snapshot.credentialId
+            : snapshot.credentialId === filters.credentialId))
+      );
+    })
+    .sort(
+      (left, right) =>
+        Number(right.active) - Number(left.active) ||
+        right.observedAt.localeCompare(left.observedAt),
+    );
 }
 
 export function filterUsageRecords(
