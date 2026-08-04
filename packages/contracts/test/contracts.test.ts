@@ -179,3 +179,24 @@ describe("credential contracts", () => {
     );
   });
 });
+
+describe("Usage Quota Snapshot credential attribution", () => {
+  const base = {
+    usageSourceId: "codex-local",
+    sourceHostId: "host:a",
+    observedAt: "2026-08-01T10:00:00.000Z",
+    windows: [],
+  };
+
+  it("accepts the credential stamped at observation", () => {
+    const parsed = usageQuotaSnapshotSchema.parse({
+      ...base,
+      credentialId: "subscription:9a1b2c3d4e5f",
+    });
+    assert.equal(parsed.credentialId, "subscription:9a1b2c3d4e5f");
+  });
+
+  it("still accepts a snapshot observed with no credential", () => {
+    assert.equal(usageQuotaSnapshotSchema.parse(base).credentialId, undefined);
+  });
+});

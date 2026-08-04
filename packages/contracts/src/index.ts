@@ -109,6 +109,13 @@ export const usageQuotaSnapshotSchema = z
     sourceHostId: z.string().min(1).max(200),
     accountScope: z.string().max(200).optional(),
     plan: z.string().max(200).optional(),
+    /**
+     * `credentialIdFor` of the Credential in effect when this was observed,
+     * stamped by the import pipeline rather than the source. Absent means no
+     * credential was observed alongside the reading — the snapshot then reads
+     * as unattributed, the same statement the record attribution makes.
+     */
+    credentialId: z.string().min(1).max(220).optional(),
     observedAt: z.string().datetime(),
     windows: z.array(usageQuotaWindowSchema).max(50),
     balance: z
@@ -324,6 +331,16 @@ export interface RankedUsage {
 export interface TimelinePoint extends UsageTotals {
   bucket: string;
 }
+/**
+ * A snapshot as the analysis serves it. `active` marks the latest observation
+ * per (usage source, host) — the credential that source is on NOW. It is
+ * derived, which is why it lives on a view type rather than in the stored
+ * snapshot schema a collector validates against.
+ */
+export interface QuotaSnapshotView extends UsageQuotaSnapshot {
+  active: boolean;
+}
+
 export interface OverviewView {
   filters: UsageFilters;
   totals: UsageTotals;
