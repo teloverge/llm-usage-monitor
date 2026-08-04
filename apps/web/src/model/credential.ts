@@ -38,21 +38,6 @@ export function countsAgainstPlan(mode: string): boolean {
   return mode === "subscription";
 }
 
-/** The credential a source is on NOW, for the badge. */
-export function latestCredential(
-  credentials: CredentialObservation[],
-  usageSourceId: string,
-  sourceHostId: string,
-): CredentialObservation | undefined {
-  let latest: CredentialObservation | undefined;
-  for (const credential of credentials) {
-    if (credential.usageSourceId !== usageSourceId) continue;
-    if (credential.sourceHostId !== sourceHostId) continue;
-    if (!latest || credential.effectiveFrom > latest.effectiveFrom) latest = credential;
-  }
-  return latest;
-}
-
 /**
  * How a credential is named wherever it appears — the Breakdown row and the
  * filter chip both call this.

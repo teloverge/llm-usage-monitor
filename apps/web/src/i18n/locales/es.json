@@ -85,7 +85,8 @@
   "nav": {
     "overview": "Resumen",
     "breakdown": "Desglose",
-    "history": "Historial"
+    "history": "Historial",
+    "planLimits": "Límites del plan"
   },
   "filters": {
     "period": "Periodo",
@@ -100,19 +101,19 @@
   },
   "period": {
     "select": {
-      "today": "Hoy",
-      "last24": "Últimas 24 horas",
       "7": "Últimos 7 días",
       "30": "Últimos 30 días",
       "90": "Últimos 90 días",
+      "today": "Hoy",
+      "last24": "Últimas 24 horas",
       "all": "Todo el historial"
     },
     "inline": {
-      "today": "hoy",
-      "last24": "últimas 24 horas",
       "7": "últimos 7 días",
       "30": "últimos 30 días",
       "90": "últimos 90 días",
+      "today": "hoy",
+      "last24": "últimas 24 horas",
       "all": "todo el historial conservado",
       "custom": "el rango seleccionado"
     }
@@ -124,7 +125,6 @@
     "byModel": "Por modelo",
     "byTask": "Por tarea",
     "tokenMix": "Mezcla de tokens",
-    "planLimits": "Límites del plan",
     "hosts": "Hosts",
     "tokens": "Tokens",
     "cachedInput": "Entrada en caché",
@@ -154,6 +154,10 @@
       "minutes": "Ventana de {{n}} minutos",
       "extraUsage": "Uso adicional"
     }
+  },
+  "planLimits": {
+    "active": "En uso",
+    "empty": "No se observaron límites del plan en este período."
   },
   "rank": {
     "empty": "No hay uso en este periodo",

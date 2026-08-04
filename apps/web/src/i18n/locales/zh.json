@@ -85,7 +85,8 @@
   "nav": {
     "overview": "概览",
     "breakdown": "细分",
-    "history": "历史"
+    "history": "历史",
+    "planLimits": "计划限额"
   },
   "filters": {
     "period": "期间",
@@ -100,19 +101,19 @@
   },
   "period": {
     "select": {
-      "today": "今天",
-      "last24": "过去 24 小时",
       "7": "过去 7 天",
       "30": "过去 30 天",
       "90": "过去 90 天",
+      "today": "今天",
+      "last24": "过去 24 小时",
       "all": "全部历史"
     },
     "inline": {
-      "today": "今天",
-      "last24": "过去 24 小时",
       "7": "过去 7 天",
       "30": "过去 30 天",
       "90": "过去 90 天",
+      "today": "今天",
+      "last24": "过去 24 小时",
       "all": "保留的全部历史",
       "custom": "所选范围"
     }
@@ -124,7 +125,6 @@
     "byModel": "按模型",
     "byTask": "按任务",
     "tokenMix": "Token 构成",
-    "planLimits": "计划限额",
     "hosts": "主机",
     "tokens": "Token",
     "cachedInput": "缓存输入",
@@ -154,6 +154,10 @@
       "minutes": "{{n}} 分钟窗口",
       "extraUsage": "额外用量"
     }
+  },
+  "planLimits": {
+    "active": "使用中",
+    "empty": "此期间未观测到计划限额。"
   },
   "rank": {
     "empty": "此期间没有用量",

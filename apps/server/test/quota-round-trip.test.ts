@@ -43,7 +43,12 @@ describe("Quota snapshot round trip", () => {
         now: new Date("2026-07-20T00:00:00.000Z"),
       });
 
-      assert.deepEqual(view.quotaSnapshots, imported.quotaSnapshots);
+      // The analysis enriches, never rewrites: the stored snapshot comes back
+      // byte-for-byte with only the derived `active` marking added.
+      assert.deepEqual(
+        view.quotaSnapshots,
+        imported.quotaSnapshots.map((snapshot) => ({ ...snapshot, active: true })),
+      );
       assert.equal(view.quotaSnapshots[0]?.plan, "plus");
       assert.equal(view.quotaSnapshots[0]?.windows[0]?.label, "5-hour window");
       assert.equal(view.quotaSnapshots[0]?.windows[0]?.usedPercent, 41.5);
