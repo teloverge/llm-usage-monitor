@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.0
+## 0.5.1
 
 - Plan limits moved from the Overview to their own tab, organized as one card per credential: the subscription is the thing, the harness merely where it was observed from, so one account seen from several machines is a single card. The account currently in use is marked "In use".
 - Multiple subscriptions to the same provider are now retained side by side. Switching accounts no longer overwrites the previous account's last-known meters; each snapshot is stamped with the credential in effect when it was observed, and a reading from before the monitor could identify the account is superseded once the same source reports who it is.
