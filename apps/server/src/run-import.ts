@@ -1,7 +1,8 @@
-import type {
-  CredentialSighting,
-  UsageQuotaSnapshot,
-  UsageRecord,
+import {
+  credentialIdFor,
+  type CredentialSighting,
+  type UsageQuotaSnapshot,
+  type UsageRecord,
 } from "@llm-usage-monitor/contracts";
 
 export interface ProviderImportResult {
@@ -42,7 +43,9 @@ export interface ImportLedger {
  * the credential observation — happen after that commit and cannot fail the
  * import. When a snapshot is refused the ledger keeps the previous one, and the
  * panel's "as of" line already shows the reader how old that reading is — the
- * staleness is visible without inventing a second error channel for it.
+ * staleness is visible without inventing a second error channel for it. The
+ * credential is read before the quota is written because the snapshot carries
+ * the credential's id; the two remain independently fallible.
  */
 export async function runProviderImport(
   provider: ImportProvider,
@@ -57,17 +60,35 @@ export async function runProviderImport(
 ): Promise<number> {
   const result = await provider.collect(sourceHostId, home, ledger.importState(provider.id));
   const committed = ledger.commitProviderImport(provider.id, result.records, result.state);
+  // The sighting is resolved BEFORE the quota write so each snapshot can be
+  // stamped with the credential in effect at observation — the fact the ledger
+  // now keys retention on. A collector failure downgrades the stamp, never the
+  // snapshot: the reading is still true, it is merely unattributed.
+  let sighting: CredentialSighting | null = null;
+  if (observeCredential) {
+    try {
+      sighting = await observeCredential(result.stats.home, new Date().toISOString());
+    } catch (error) {
+      onAuxiliaryWriteFailed(provider.id, error);
+    }
+  }
+  // Computed outside the map: TypeScript does not carry the null-check
+  // narrowing of a mutable binding into a closure, and the id is the same for
+  // every snapshot in the run anyway.
+  const stamp = sighting ? credentialIdFor(sighting) : null;
+  const stamped = stamp
+    ? result.quotaSnapshots.map((snapshot) => ({ ...snapshot, credentialId: stamp }))
+    : result.quotaSnapshots;
   try {
-    ledger.replaceQuotaSnapshots(result.quotaSnapshots);
+    ledger.replaceQuotaSnapshots(stamped);
   } catch (error) {
     // Refused, not ignored: swallowing this silently would hide a mapper that
     // has drifted from the contract behind a panel that merely looks stale.
     onAuxiliaryWriteFailed(provider.id, error);
   }
-  if (observeCredential) {
+  if (sighting) {
     try {
-      const sighting = await observeCredential(result.stats.home, new Date().toISOString());
-      if (sighting) ledger.recordCredentialObservation(sighting);
+      ledger.recordCredentialObservation(sighting);
     } catch (error) {
       // Same reasoning as the quota write above: the credential is a reading
       // about the machine, not the usage, and must not be able to discard a run.

@@ -234,4 +234,63 @@ describe("runProviderImport credential observation", () => {
       ledger.close();
     }
   });
+
+  it("stamps the stored snapshot with the credential in effect at observation", async () => {
+    const ledger = new UsageLedger();
+    try {
+      await runProviderImport(
+        provider([goodSnapshot]),
+        ledger,
+        "host:a",
+        undefined,
+        () => {},
+        async () => sighting,
+      );
+      assert.equal(ledger.quotaSnapshots()[0]?.credentialId, "subscription:9a1b2c3d4e5f");
+    } finally {
+      ledger.close();
+    }
+  });
+
+  it("stores the snapshot unstamped when the collector observed nothing", async () => {
+    const ledger = new UsageLedger();
+    try {
+      await runProviderImport(
+        provider([goodSnapshot]),
+        ledger,
+        "host:a",
+        undefined,
+        () => {},
+        async () => null,
+      );
+      assert.equal(ledger.quotaSnapshots().length, 1);
+      assert.equal(ledger.quotaSnapshots()[0]?.credentialId, undefined);
+    } finally {
+      ledger.close();
+    }
+  });
+
+  it("stores the snapshot unstamped when the collector throws", async () => {
+    const ledger = new UsageLedger();
+    const failures: string[] = [];
+    try {
+      await runProviderImport(
+        provider([goodSnapshot]),
+        ledger,
+        "host:a",
+        undefined,
+        (id) => failures.push(id),
+        async () => {
+          throw new Error("auth.json vanished mid-read");
+        },
+      );
+      // The reading is still true; only its attribution is unknown. A collector
+      // failure downgrades the stamp, never the snapshot.
+      assert.equal(ledger.quotaSnapshots().length, 1);
+      assert.equal(ledger.quotaSnapshots()[0]?.credentialId, undefined);
+      assert.deepEqual(failures, ["fake-local"]);
+    } finally {
+      ledger.close();
+    }
+  });
 });

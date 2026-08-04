@@ -85,7 +85,8 @@
   "nav": {
     "overview": "Übersicht",
     "breakdown": "Aufschlüsselung",
-    "history": "Verlauf"
+    "history": "Verlauf",
+    "planLimits": "Plan-Limits"
   },
   "filters": {
     "period": "Zeitraum",
@@ -100,19 +101,19 @@
   },
   "period": {
     "select": {
-      "today": "Heute",
-      "last24": "Letzte 24 Stunden",
       "7": "Letzte 7 Tage",
       "30": "Letzte 30 Tage",
       "90": "Letzte 90 Tage",
+      "today": "Heute",
+      "last24": "Letzte 24 Stunden",
       "all": "Gesamter Verlauf"
     },
     "inline": {
-      "today": "heute",
-      "last24": "letzte 24 Stunden",
       "7": "letzte 7 Tage",
       "30": "letzte 30 Tage",
       "90": "letzte 90 Tage",
+      "today": "heute",
+      "last24": "letzte 24 Stunden",
       "all": "gesamter aufbewahrter Verlauf",
       "custom": "der ausgewählte Zeitraum"
     }
@@ -124,7 +125,6 @@
     "byModel": "Nach Modell",
     "byTask": "Nach Aufgabe",
     "tokenMix": "Token-Mix",
-    "planLimits": "Plan-Limits",
     "hosts": "Hosts",
     "tokens": "Tokens",
     "cachedInput": "Eingabe aus dem Cache",
@@ -154,6 +154,10 @@
       "minutes": "{{n}}-Minuten-Fenster",
       "extraUsage": "Zusätzliche Nutzung"
     }
+  },
+  "planLimits": {
+    "active": "In Benutzung",
+    "empty": "In diesem Zeitraum wurden keine Plan-Limits beobachtet."
   },
   "rank": {
     "empty": "Keine Nutzung in diesem Zeitraum",

@@ -6,7 +6,6 @@ import {
   credentialLabel,
   credentialModeKey,
   credentialOptions,
-  latestCredential,
   parseCredentialId,
 } from "../src/model/credential.ts";
 
@@ -25,26 +24,6 @@ const observation = (over: Partial<CredentialObservation> = {}): CredentialObser
   effectiveFrom: "2026-07-10T00:00:00.000Z",
   observedAt: "2026-07-10T00:00:00.000Z",
   ...over,
-});
-
-describe("latestCredential", () => {
-  it("picks the most recent observation for the source and host", () => {
-    const found = latestCredential(
-      [observation(), observation({ mode: "api-key", effectiveFrom: "2026-07-20T00:00:00.000Z" })],
-      "codex-local",
-      "host:a",
-    );
-    assert.equal(found?.mode, "api-key");
-  });
-
-  it("does not borrow another source's or host's credential", () => {
-    assert.equal(latestCredential([observation()], "claude-code-local", "host:a"), undefined);
-    assert.equal(latestCredential([observation()], "codex-local", "host:b"), undefined);
-  });
-
-  it("reports nothing when none has been observed", () => {
-    assert.equal(latestCredential([], "codex-local", "host:a"), undefined);
-  });
 });
 
 describe("credentialModeKey", () => {

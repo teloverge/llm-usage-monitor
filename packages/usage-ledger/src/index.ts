@@ -67,12 +67,17 @@ export class UsageLedger {
   }
 
   /**
-   * Keeps the NEWEST snapshot per (usage source, host), not the most recently
-   * written one. Quota state is a point-in-time observation, so an import that
-   * happens to see older evidence — a partial scan, a re-read of an archived
-   * session, two sources racing — must not overwrite a fresher reading. Without
-   * the WHERE clause this is last-write-wins, which passes any test that writes
-   * in ascending order and silently reverts the quota meter in production.
+   * Keeps the NEWEST snapshot per (usage source, host, credential), not the
+   * most recently written one. Quota state is a point-in-time observation, so
+   * an import that happens to see older evidence — a partial scan, a re-read of
+   * an archived session, two sources racing — must not overwrite a fresher
+   * reading. Without the WHERE clause this is last-write-wins, which passes any
+   * test that writes in ascending order and silently reverts the quota meter in
+   * production.
+   *
+   * The credential is part of the key so an account SWITCH is not an overwrite:
+   * each subscription keeps its last-known meters, which is what lets several
+   * accounts on the same provider sit side by side on the Plan limits tab.
    *
    * The comparison is lexicographic on ISO-8601. `usageQuotaSnapshotSchema`
    * pins `observedAt` to UTC (Zod's `.datetime()` rejects offsets), so that is
@@ -85,16 +90,27 @@ export class UsageLedger {
     const validated = snapshots.map((snapshot) => usageQuotaSnapshotSchema.parse(snapshot));
     this.transaction(() => {
       const insert = this.database
-        .prepare(`INSERT INTO usage_quota_snapshots (usage_source_id, source_host_id, observed_at, payload) VALUES (?, ?, ?, ?)
-        ON CONFLICT(usage_source_id, source_host_id) DO UPDATE SET observed_at=excluded.observed_at, payload=excluded.payload
+        .prepare(`INSERT INTO usage_quota_snapshots (usage_source_id, source_host_id, credential_id, observed_at, payload) VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(usage_source_id, source_host_id, credential_id) DO UPDATE SET observed_at=excluded.observed_at, payload=excluded.payload
         WHERE excluded.observed_at > usage_quota_snapshots.observed_at`);
-      for (const snapshot of validated)
+      // A stamped snapshot supersedes the unattributed row for its source and
+      // host. That row is the same account before it could be identified — a
+      // pre-upgrade reading, or a run where the credential collector saw
+      // nothing — not evidence of a distinct account, and leaving it would
+      // render a permanent stale card beside the identified one.
+      const supersede = this.database.prepare(
+        "DELETE FROM usage_quota_snapshots WHERE usage_source_id=? AND source_host_id=? AND credential_id=''",
+      );
+      for (const snapshot of validated) {
+        if (snapshot.credentialId) supersede.run(snapshot.usageSourceId, snapshot.sourceHostId);
         insert.run(
           snapshot.usageSourceId,
           snapshot.sourceHostId,
+          snapshot.credentialId ?? "",
           snapshot.observedAt,
           JSON.stringify(snapshot),
         );
+      }
     });
   }
 
@@ -392,8 +408,29 @@ export class UsageLedger {
       CREATE TABLE IF NOT EXISTS model_prices (provider TEXT NOT NULL, model TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(provider, model));
       CREATE TABLE IF NOT EXISTS provider_import_state (provider_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS applied_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS usage_quota_snapshots (usage_source_id TEXT NOT NULL, source_host_id TEXT NOT NULL, observed_at TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(usage_source_id, source_host_id));
+      CREATE TABLE IF NOT EXISTS usage_quota_snapshots (usage_source_id TEXT NOT NULL, source_host_id TEXT NOT NULL, credential_id TEXT NOT NULL DEFAULT '', observed_at TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(usage_source_id, source_host_id, credential_id));
       CREATE TABLE IF NOT EXISTS credential_observations (usage_source_id TEXT NOT NULL, source_host_id TEXT NOT NULL, mode TEXT NOT NULL, fingerprint TEXT NOT NULL, payload TEXT NOT NULL, effective_from TEXT NOT NULL, observed_at TEXT NOT NULL, PRIMARY KEY (usage_source_id, source_host_id, mode, fingerprint, effective_from));
+    `);
+    this.upgradeQuotaSnapshotsKey();
+  }
+
+  /**
+   * Re-keys a pre-0.6 snapshot table. The primary key gained `credential_id`
+   * so one account's login no longer overwrites another's last-known meters;
+   * a legacy table — detected by the missing column, since CREATE IF NOT
+   * EXISTS will not have touched it — is rebuilt with every row keyed as
+   * unattributed. The next import stamps the live account and supersedes the
+   * unattributed row, so the rebuild needs no knowledge of credentials.
+   */
+  private upgradeQuotaSnapshotsKey(): void {
+    const columns = this.database.prepare("PRAGMA table_info(usage_quota_snapshots)").all();
+    if (columns.some((column) => String(column.name) === "credential_id")) return;
+    this.database.exec(`
+      ALTER TABLE usage_quota_snapshots RENAME TO usage_quota_snapshots_legacy;
+      CREATE TABLE usage_quota_snapshots (usage_source_id TEXT NOT NULL, source_host_id TEXT NOT NULL, credential_id TEXT NOT NULL DEFAULT '', observed_at TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(usage_source_id, source_host_id, credential_id));
+      INSERT INTO usage_quota_snapshots (usage_source_id, source_host_id, credential_id, observed_at, payload)
+        SELECT usage_source_id, source_host_id, '', observed_at, payload FROM usage_quota_snapshots_legacy;
+      DROP TABLE usage_quota_snapshots_legacy;
     `);
   }
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- Plan limits moved from the Overview to their own tab, organized as one card per credential: the subscription is the thing, the harness merely where it was observed from, so one account seen from several machines is a single card. The account currently in use is marked "In use".
+- Multiple subscriptions to the same provider are now retained side by side. Switching accounts no longer overwrites the previous account's last-known meters; each snapshot is stamped with the credential in effect when it was observed, and a reading from before the monitor could identify the account is superseded once the same source reports who it is.
+- The Period chip is the tab's recency filter — "All retained" reveals accounts long since logged out, whose expired windows are withheld as always — and the Host and Credential chips narrow the cards. The task search does not apply to plan limits.
+
 ## 0.5.0
 
 - Grok Build sessions are now monitored alongside Codex and Claude Code. Usage is read from Grok Build's local logs, never from its conversation transcripts. Each turn is attributed to the model actually in effect at that moment — including across a mid-session model switch — and a turn whose model can no longer be determined reads as unknown rather than being guessed.

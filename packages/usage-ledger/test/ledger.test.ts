@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, it } from "node:test";
-import type { CredentialSighting, UsageRecord } from "@llm-usage-monitor/contracts";
+import type {
+  CredentialSighting,
+  UsageQuotaSnapshot,
+  UsageRecord,
+} from "@llm-usage-monitor/contracts";
 import { UsageLedger } from "../src/index.ts";
 
 const ledgers: UsageLedger[] = [];
@@ -518,5 +526,104 @@ describe("Credential observations", () => {
     store.recordCredentialObservation(sighting({ plan: "claude_max_20x", inferred: true }));
     assert.equal(store.credentialObservations()[0]?.plan, "claude_max_20x");
     assert.equal(store.credentialObservations()[0]?.inferred, true);
+  });
+});
+
+const quotaFixture = (over: Partial<UsageQuotaSnapshot> = {}): UsageQuotaSnapshot => ({
+  usageSourceId: "test-local",
+  sourceHostId: "host:a",
+  observedAt: "2026-08-01T10:00:00.000Z",
+  windows: [{ id: "session", label: "5-hour window", usedPercent: 40 }],
+  ...over,
+});
+
+describe("quota snapshot retention per credential", () => {
+  it("retains one snapshot per credential instead of overwriting on account switch", () => {
+    const ledger = create();
+    ledger.replaceQuotaSnapshots([quotaFixture({ credentialId: "subscription:aaaaaaaaaaaa" })]);
+    ledger.replaceQuotaSnapshots([
+      quotaFixture({
+        credentialId: "subscription:bbbbbbbbbbbb",
+        observedAt: "2026-08-02T10:00:00.000Z",
+      }),
+    ]);
+    const kept = ledger.quotaSnapshots().map((item) => item.credentialId);
+    assert.deepEqual(kept.sort(), ["subscription:aaaaaaaaaaaa", "subscription:bbbbbbbbbbbb"]);
+  });
+
+  it("keeps the newest snapshot per credential, not the last written", () => {
+    const ledger = create();
+    ledger.replaceQuotaSnapshots([quotaFixture({ credentialId: "subscription:aaaaaaaaaaaa" })]);
+    ledger.replaceQuotaSnapshots([
+      quotaFixture({
+        credentialId: "subscription:aaaaaaaaaaaa",
+        observedAt: "2026-07-31T10:00:00.000Z",
+        windows: [{ id: "session", label: "5-hour window", usedPercent: 99 }],
+      }),
+    ]);
+    const kept = ledger.quotaSnapshots();
+    assert.equal(kept.length, 1);
+    assert.equal(kept[0]?.windows[0]?.usedPercent, 40);
+  });
+
+  it("supersedes the unattributed row once the same source reports a credential", () => {
+    const ledger = create();
+    ledger.replaceQuotaSnapshots([quotaFixture()]);
+    ledger.replaceQuotaSnapshots([
+      quotaFixture({
+        credentialId: "subscription:aaaaaaaaaaaa",
+        observedAt: "2026-08-02T10:00:00.000Z",
+      }),
+    ]);
+    const kept = ledger.quotaSnapshots();
+    assert.equal(kept.length, 1);
+    assert.equal(kept[0]?.credentialId, "subscription:aaaaaaaaaaaa");
+  });
+
+  it("does not supersede another host's unattributed row", () => {
+    const ledger = create();
+    ledger.replaceQuotaSnapshots([quotaFixture({ sourceHostId: "host:b" })]);
+    ledger.replaceQuotaSnapshots([
+      quotaFixture({
+        credentialId: "subscription:aaaaaaaaaaaa",
+        observedAt: "2026-08-02T10:00:00.000Z",
+      }),
+    ]);
+    assert.equal(ledger.quotaSnapshots().length, 2);
+  });
+});
+
+describe("quota snapshot key migration", () => {
+  it("re-keys a legacy table as unattributed and keeps its rows", () => {
+    const directory = mkdtempSync(join(tmpdir(), "lum-ledger-"));
+    const path = join(directory, "ledger.sqlite");
+    const legacy = new DatabaseSync(path);
+    legacy.exec(
+      `CREATE TABLE usage_quota_snapshots (usage_source_id TEXT NOT NULL, source_host_id TEXT NOT NULL, observed_at TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(usage_source_id, source_host_id));`,
+    );
+    const stored = quotaFixture({ observedAt: "2026-07-01T00:00:00.000Z" });
+    legacy
+      .prepare("INSERT INTO usage_quota_snapshots VALUES (?, ?, ?, ?)")
+      .run("test-local", "host:a", stored.observedAt, JSON.stringify(stored));
+    legacy.close();
+    const ledger = new UsageLedger(path);
+    try {
+      assert.equal(ledger.quotaSnapshots().length, 1);
+      // The re-keyed row participates in the new retention: a stamped write
+      // supersedes it rather than colliding with it.
+      ledger.replaceQuotaSnapshots([
+        quotaFixture({
+          credentialId: "subscription:aaaaaaaaaaaa",
+          observedAt: "2026-08-01T00:00:00.000Z",
+        }),
+      ]);
+      assert.deepEqual(
+        ledger.quotaSnapshots().map((item) => item.credentialId),
+        ["subscription:aaaaaaaaaaaa"],
+      );
+    } finally {
+      ledger.close();
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 });

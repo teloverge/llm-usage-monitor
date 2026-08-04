@@ -1,10 +1,9 @@
 import { useTranslation } from "react-i18next";
 import type { OverviewView } from "@llm-usage-monitor/contracts";
 import { formatTokens } from "../model/format.ts";
-import { harnessLabel, usageSourceLabel } from "../model/harness.ts";
+import { harnessLabel } from "../model/harness.ts";
 import { Headline } from "../components/headline.tsx";
 import { Panel, Zone } from "../components/panel.tsx";
-import { QuotaMeters } from "../components/quota-meters.tsx";
 import { RankList } from "../components/rank-list.tsx";
 import { StatStrip } from "../components/stat-strip.tsx";
 import { TokenMix } from "../components/token-mix.tsx";
@@ -51,18 +50,6 @@ export function Overview({
         <Zone>{t("overview.context")}</Zone>
         <Panel label={t("overview.tokenMix")} meta={formatTokens(data.totals.totalTokens)}>
           <TokenMix totals={data.totals} />
-        </Panel>
-        <Panel label={t("overview.planLimits")}>
-          {/*
-            Keyed by usageSourceId, not harnessId — one row per account per host.
-            `usageSourceLabel` derives its names from the same table `harnessLabel`
-            uses, so the two panels cannot disagree about what "Codex" is called.
-          */}
-          <QuotaMeters
-            snapshots={data.quotaSnapshots}
-            harnessLabel={usageSourceLabel}
-            credentials={data.credentials}
-          />
         </Panel>
         <Panel label={t("overview.hosts")}>
           <RankList rows={hostRows} limit={5} />

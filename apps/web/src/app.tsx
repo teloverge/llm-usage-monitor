@@ -17,15 +17,16 @@ import { History } from "./views/history.tsx";
 import { Settings } from "./views/settings/index.tsx";
 import { Breakdown, type BreakdownDimension } from "./views/breakdown.tsx";
 import { Overview } from "./views/overview.tsx";
+import { PlanLimits } from "./views/plan-limits.tsx";
 import logoUrl from "../../../assets/Teloverge-lum-logo.svg?url";
 
-export type View = "overview" | "breakdown" | "history";
+export type View = "overview" | "breakdown" | "history" | "planLimits";
 
 /** The subset the Overview's rank panels can drill into. */
 export type DrillDownDimension = Extract<BreakdownDimension, "byHarness" | "byModel" | "byTask">;
 
 /** Ids only. The labels are looked up per render so they follow the language. */
-const VIEWS: readonly View[] = ["overview", "breakdown", "history"];
+const VIEWS: readonly View[] = ["overview", "breakdown", "history", "planLimits"];
 
 const TIMEFRAMES = ["today", "last24", "7", "30", "90", "all"] as const;
 
@@ -300,6 +301,14 @@ function ViewSlot({
         hostLabel={hostLabel}
         dimension={breakdownDimension}
         onDimensionChange={onBreakdownDimensionChange}
+      />
+    ) : null;
+  if (view === "planLimits")
+    return overview ? (
+      <PlanLimits
+        snapshots={overview.quotaSnapshots}
+        credentials={overview.credentials}
+        hostLabel={hostLabel}
       />
     ) : null;
   return <History records={history} hostLabel={hostLabel} />;
