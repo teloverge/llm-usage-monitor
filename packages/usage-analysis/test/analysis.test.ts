@@ -589,7 +589,10 @@ describe("Plan limits", () => {
   it("marks only the latest observation per source and host active", () => {
     const view = analyze(
       [
-        quota({ credentialId: "subscription:aaaaaaaaaaaa", observedAt: "2026-07-01T10:00:00.000Z" }),
+        quota({
+          credentialId: "subscription:aaaaaaaaaaaa",
+          observedAt: "2026-07-01T10:00:00.000Z",
+        }),
         quota({ credentialId: "subscription:bbbbbbbbbbbb" }),
       ],
       { timeframe: "all" },
@@ -606,7 +609,10 @@ describe("Plan limits", () => {
   it("does not let filtering to an old credential promote it to active", () => {
     const view = analyze(
       [
-        quota({ credentialId: "subscription:aaaaaaaaaaaa", observedAt: "2026-07-01T10:00:00.000Z" }),
+        quota({
+          credentialId: "subscription:aaaaaaaaaaaa",
+          observedAt: "2026-07-01T10:00:00.000Z",
+        }),
         quota({ credentialId: "subscription:bbbbbbbbbbbb" }),
       ],
       { timeframe: "all", credentialId: "subscription:aaaaaaaaaaaa" },
@@ -655,8 +661,14 @@ describe("Plan limits", () => {
   it("orders active snapshots first, then by recency", () => {
     const view = analyze(
       [
-        quota({ credentialId: "subscription:aaaaaaaaaaaa", observedAt: "2026-07-01T10:00:00.000Z" }),
-        quota({ credentialId: "subscription:cccccccccccc", observedAt: "2026-07-15T10:00:00.000Z" }),
+        quota({
+          credentialId: "subscription:aaaaaaaaaaaa",
+          observedAt: "2026-07-01T10:00:00.000Z",
+        }),
+        quota({
+          credentialId: "subscription:cccccccccccc",
+          observedAt: "2026-07-15T10:00:00.000Z",
+        }),
         quota({ credentialId: "subscription:bbbbbbbbbbbb" }),
       ],
       { timeframe: "all" },

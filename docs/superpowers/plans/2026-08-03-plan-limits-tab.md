@@ -50,10 +50,12 @@ README.md, CHANGELOG.md                  capability bullet + 0.6.0 entry
 ### Task 1: Credential identity on the quota snapshot contract
 
 **Files:**
+
 - Modify: `packages/contracts/src/index.ts` (usageQuotaSnapshotSchema, ~line 106; interface near OverviewView, ~line 327)
 - Test: `packages/contracts/test/contracts.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing `usageQuotaSnapshotSchema`, `UsageQuotaSnapshot`.
 - Produces: `UsageQuotaSnapshot.credentialId?: string`; `export interface QuotaSnapshotView extends UsageQuotaSnapshot { active: boolean }`. Tasks 2–6 rely on both names exactly.
 
@@ -143,10 +145,12 @@ git commit -m "Add credential identity to the quota snapshot contract" -m "Co-Au
 ### Task 2: Ledger retains one quota snapshot per credential
 
 **Files:**
+
 - Modify: `packages/usage-ledger/src/index.ts` (`replaceQuotaSnapshots` ~line 84, `migrate()` ~line 383)
 - Test: `packages/usage-ledger/test/ledger.test.ts`
 
 **Interfaces:**
+
 - Consumes: `UsageQuotaSnapshot.credentialId` from Task 1.
 - Produces: `replaceQuotaSnapshots(snapshots: UsageQuotaSnapshot[]): void` and `quotaSnapshots(): UsageQuotaSnapshot[]` keep their signatures; behavior changes to per-credential retention. New private method `upgradeQuotaSnapshotsKey(): void`.
 
@@ -188,9 +192,7 @@ describe("quota snapshot retention per credential", () => {
 
   it("keeps the newest snapshot per credential, not the last written", () => {
     const ledger = create();
-    ledger.replaceQuotaSnapshots([
-      quotaFixture({ credentialId: "subscription:aaaaaaaaaaaa" }),
-    ]);
+    ledger.replaceQuotaSnapshots([quotaFixture({ credentialId: "subscription:aaaaaaaaaaaa" })]);
     ledger.replaceQuotaSnapshots([
       quotaFixture({
         credentialId: "subscription:aaaaaaaaaaaa",
@@ -352,10 +354,12 @@ git commit -m "Retain one quota snapshot per credential in the ledger" -m "Co-Au
 ### Task 3: Import pipeline stamps snapshots with the observed credential
 
 **Files:**
+
 - Modify: `apps/server/src/run-import.ts`
 - Test: `apps/server/test/run-import.test.ts`
 
 **Interfaces:**
+
 - Consumes: `credentialIdFor` from contracts; ledger behavior from Task 2.
 - Produces: `runProviderImport` keeps its exact signature; snapshots reach the ledger with `credentialId` set whenever the credential collector returned a sighting.
 
@@ -364,64 +368,64 @@ git commit -m "Retain one quota snapshot per credential in the ledger" -m "Co-Au
 Append to `apps/server/test/run-import.test.ts` inside the existing `describe("runProviderImport credential observation", ...)` block (it already defines `sighting` with mode `subscription` and fingerprint `9a1b2c3d4e5f`):
 
 ```ts
-  it("stamps the stored snapshot with the credential in effect at observation", async () => {
-    const ledger = new UsageLedger();
-    try {
-      await runProviderImport(
-        provider([goodSnapshot]),
-        ledger,
-        "host:a",
-        undefined,
-        () => {},
-        async () => sighting,
-      );
-      assert.equal(ledger.quotaSnapshots()[0]?.credentialId, "subscription:9a1b2c3d4e5f");
-    } finally {
-      ledger.close();
-    }
-  });
+it("stamps the stored snapshot with the credential in effect at observation", async () => {
+  const ledger = new UsageLedger();
+  try {
+    await runProviderImport(
+      provider([goodSnapshot]),
+      ledger,
+      "host:a",
+      undefined,
+      () => {},
+      async () => sighting,
+    );
+    assert.equal(ledger.quotaSnapshots()[0]?.credentialId, "subscription:9a1b2c3d4e5f");
+  } finally {
+    ledger.close();
+  }
+});
 
-  it("stores the snapshot unstamped when the collector observed nothing", async () => {
-    const ledger = new UsageLedger();
-    try {
-      await runProviderImport(
-        provider([goodSnapshot]),
-        ledger,
-        "host:a",
-        undefined,
-        () => {},
-        async () => null,
-      );
-      assert.equal(ledger.quotaSnapshots().length, 1);
-      assert.equal(ledger.quotaSnapshots()[0]?.credentialId, undefined);
-    } finally {
-      ledger.close();
-    }
-  });
+it("stores the snapshot unstamped when the collector observed nothing", async () => {
+  const ledger = new UsageLedger();
+  try {
+    await runProviderImport(
+      provider([goodSnapshot]),
+      ledger,
+      "host:a",
+      undefined,
+      () => {},
+      async () => null,
+    );
+    assert.equal(ledger.quotaSnapshots().length, 1);
+    assert.equal(ledger.quotaSnapshots()[0]?.credentialId, undefined);
+  } finally {
+    ledger.close();
+  }
+});
 
-  it("stores the snapshot unstamped when the collector throws", async () => {
-    const ledger = new UsageLedger();
-    const failures: string[] = [];
-    try {
-      await runProviderImport(
-        provider([goodSnapshot]),
-        ledger,
-        "host:a",
-        undefined,
-        (id) => failures.push(id),
-        async () => {
-          throw new Error("auth.json vanished mid-read");
-        },
-      );
-      // The reading is still true; only its attribution is unknown. A collector
-      // failure downgrades the stamp, never the snapshot.
-      assert.equal(ledger.quotaSnapshots().length, 1);
-      assert.equal(ledger.quotaSnapshots()[0]?.credentialId, undefined);
-      assert.deepEqual(failures, ["fake-local"]);
-    } finally {
-      ledger.close();
-    }
-  });
+it("stores the snapshot unstamped when the collector throws", async () => {
+  const ledger = new UsageLedger();
+  const failures: string[] = [];
+  try {
+    await runProviderImport(
+      provider([goodSnapshot]),
+      ledger,
+      "host:a",
+      undefined,
+      (id) => failures.push(id),
+      async () => {
+        throw new Error("auth.json vanished mid-read");
+      },
+    );
+    // The reading is still true; only its attribution is unknown. A collector
+    // failure downgrades the stamp, never the snapshot.
+    assert.equal(ledger.quotaSnapshots().length, 1);
+    assert.equal(ledger.quotaSnapshots()[0]?.credentialId, undefined);
+    assert.deepEqual(failures, ["fake-local"]);
+  } finally {
+    ledger.close();
+  }
+});
 ```
 
 - [ ] **Step 2: Run the tests to verify they fail**
@@ -445,42 +449,42 @@ import {
 Replace the body of `runProviderImport` after the `commitProviderImport` line with:
 
 ```ts
-  // The sighting is resolved BEFORE the quota write so each snapshot can be
-  // stamped with the credential in effect at observation — the fact the ledger
-  // now keys retention on. A collector failure downgrades the stamp, never the
-  // snapshot: the reading is still true, it is merely unattributed.
-  let sighting: CredentialSighting | null = null;
-  if (observeCredential) {
-    try {
-      sighting = await observeCredential(result.stats.home, new Date().toISOString());
-    } catch (error) {
-      onAuxiliaryWriteFailed(provider.id, error);
-    }
-  }
-  // Computed outside the map: TypeScript does not carry the null-check
-  // narrowing of a mutable binding into a closure, and the id is the same for
-  // every snapshot in the run anyway.
-  const stamp = sighting ? credentialIdFor(sighting) : null;
-  const stamped = stamp
-    ? result.quotaSnapshots.map((snapshot) => ({ ...snapshot, credentialId: stamp }))
-    : result.quotaSnapshots;
+// The sighting is resolved BEFORE the quota write so each snapshot can be
+// stamped with the credential in effect at observation — the fact the ledger
+// now keys retention on. A collector failure downgrades the stamp, never the
+// snapshot: the reading is still true, it is merely unattributed.
+let sighting: CredentialSighting | null = null;
+if (observeCredential) {
   try {
-    ledger.replaceQuotaSnapshots(stamped);
+    sighting = await observeCredential(result.stats.home, new Date().toISOString());
   } catch (error) {
-    // Refused, not ignored: swallowing this silently would hide a mapper that
-    // has drifted from the contract behind a panel that merely looks stale.
     onAuxiliaryWriteFailed(provider.id, error);
   }
-  if (sighting) {
-    try {
-      ledger.recordCredentialObservation(sighting);
-    } catch (error) {
-      // Same reasoning as the quota write above: the credential is a reading
-      // about the machine, not the usage, and must not be able to discard a run.
-      onAuxiliaryWriteFailed(provider.id, error);
-    }
+}
+// Computed outside the map: TypeScript does not carry the null-check
+// narrowing of a mutable binding into a closure, and the id is the same for
+// every snapshot in the run anyway.
+const stamp = sighting ? credentialIdFor(sighting) : null;
+const stamped = stamp
+  ? result.quotaSnapshots.map((snapshot) => ({ ...snapshot, credentialId: stamp }))
+  : result.quotaSnapshots;
+try {
+  ledger.replaceQuotaSnapshots(stamped);
+} catch (error) {
+  // Refused, not ignored: swallowing this silently would hide a mapper that
+  // has drifted from the contract behind a panel that merely looks stale.
+  onAuxiliaryWriteFailed(provider.id, error);
+}
+if (sighting) {
+  try {
+    ledger.recordCredentialObservation(sighting);
+  } catch (error) {
+    // Same reasoning as the quota write above: the credential is a reading
+    // about the machine, not the usage, and must not be able to discard a run.
+    onAuxiliaryWriteFailed(provider.id, error);
   }
-  return committed;
+}
+return committed;
 ```
 
 Extend the function's doc comment: after "…cannot fail the import.", add "The credential is read before the quota is written because the snapshot carries the credential's id; the two remain independently fallible."
@@ -502,11 +506,13 @@ git commit -m "Stamp imported quota snapshots with the observed credential" -m "
 ### Task 4: Analysis serves filtered, active-marked plan limits
 
 **Files:**
+
 - Modify: `packages/contracts/src/index.ts` (`OverviewView.quotaSnapshots`, ~line 350)
 - Modify: `packages/usage-analysis/src/index.ts`
 - Test: `packages/usage-analysis/test/analysis.test.ts`
 
 **Interfaces:**
+
 - Consumes: `QuotaSnapshotView`, `UNATTRIBUTED_CREDENTIAL`, existing `timeframeRange`, `currentQuota`.
 - Produces: `export function planLimits(snapshots: UsageQuotaSnapshot[], filters: UsageFilters, now: Date): QuotaSnapshotView[]`; `OverviewView.quotaSnapshots: QuotaSnapshotView[]`. Task 6's view consumes `QuotaSnapshotView[]` from `overview.quotaSnapshots`.
 
@@ -517,54 +523,54 @@ In `packages/usage-analysis/test/analysis.test.ts`, `describe("Quota snapshots i
 Replace the assertion in `"passes supplied snapshots through unchanged"` (line ~530) and rename the test:
 
 ```ts
-  it("serves supplied snapshots marked active", () => {
-    const snapshots = [
-      {
-        usageSourceId: "codex-local",
-        sourceHostId: "host:a",
-        plan: "plus",
-        observedAt: "2026-07-23T10:00:00.000Z",
-        windows: [{ id: "primary", label: "5-hour window", usedPercent: 41.5 }],
-      },
-    ];
-    const view = analyzeUsage({
-      records: [],
-      prices: [],
-      memberships: [],
-      quotaSnapshots: snapshots,
-      filters: { timeframe: "all" },
-    });
-    assert.deepEqual(view.quotaSnapshots, [{ ...snapshots[0], active: true }]);
+it("serves supplied snapshots marked active", () => {
+  const snapshots = [
+    {
+      usageSourceId: "codex-local",
+      sourceHostId: "host:a",
+      plan: "plus",
+      observedAt: "2026-07-23T10:00:00.000Z",
+      windows: [{ id: "primary", label: "5-hour window", usedPercent: 41.5 }],
+    },
+  ];
+  const view = analyzeUsage({
+    records: [],
+    prices: [],
+    memberships: [],
+    quotaSnapshots: snapshots,
+    filters: { timeframe: "all" },
   });
+  assert.deepEqual(view.quotaSnapshots, [{ ...snapshots[0], active: true }]);
+});
 ```
 
 Replace `"reports quota unchanged regardless of the active filters"` (and its leading comment, lines ~543-566) entirely with:
 
 ```ts
-  // The task query still never touches quota — a card has no task to match —
-  // but Period, Host and Credential now DO filter snapshots: the Plan limits
-  // tab treats the Period chip as its recency filter, with "All" revealing
-  // accounts long since logged out.
-  it("ignores the task query", () => {
-    const snapshots = [
-      {
-        usageSourceId: "codex-local",
-        sourceHostId: "host:a",
-        plan: "plus",
-        observedAt: "2026-07-23T10:00:00.000Z",
-        windows: [{ id: "primary", label: "5-hour window", usedPercent: 41.5 }],
-      },
-    ];
-    const view = analyzeUsage({
-      records: [],
-      prices: [],
-      memberships: [],
-      quotaSnapshots: snapshots,
-      filters: { timeframe: "all", query: "matches-nothing" },
-    });
-    assert.equal(view.totals.records, 0);
-    assert.equal(view.quotaSnapshots.length, 1);
+// The task query still never touches quota — a card has no task to match —
+// but Period, Host and Credential now DO filter snapshots: the Plan limits
+// tab treats the Period chip as its recency filter, with "All" revealing
+// accounts long since logged out.
+it("ignores the task query", () => {
+  const snapshots = [
+    {
+      usageSourceId: "codex-local",
+      sourceHostId: "host:a",
+      plan: "plus",
+      observedAt: "2026-07-23T10:00:00.000Z",
+      windows: [{ id: "primary", label: "5-hour window", usedPercent: 41.5 }],
+    },
+  ];
+  const view = analyzeUsage({
+    records: [],
+    prices: [],
+    memberships: [],
+    quotaSnapshots: snapshots,
+    filters: { timeframe: "all", query: "matches-nothing" },
   });
+  assert.equal(view.totals.records, 0);
+  assert.equal(view.quotaSnapshots.length, 1);
+});
 ```
 
 - [ ] **Step 2: Add the new failing tests**
@@ -582,12 +588,22 @@ describe("Plan limits", () => {
     ...over,
   });
   const analyze = (snapshots: UsageQuotaSnapshot[], filters: UsageFilters) =>
-    analyzeUsage({ records: [], prices: [], memberships: [], quotaSnapshots: snapshots, filters, now });
+    analyzeUsage({
+      records: [],
+      prices: [],
+      memberships: [],
+      quotaSnapshots: snapshots,
+      filters,
+      now,
+    });
 
   it("marks only the latest observation per source and host active", () => {
     const view = analyze(
       [
-        quota({ credentialId: "subscription:aaaaaaaaaaaa", observedAt: "2026-07-01T10:00:00.000Z" }),
+        quota({
+          credentialId: "subscription:aaaaaaaaaaaa",
+          observedAt: "2026-07-01T10:00:00.000Z",
+        }),
         quota({ credentialId: "subscription:bbbbbbbbbbbb" }),
       ],
       { timeframe: "all" },
@@ -604,7 +620,10 @@ describe("Plan limits", () => {
   it("does not let filtering to an old credential promote it to active", () => {
     const view = analyze(
       [
-        quota({ credentialId: "subscription:aaaaaaaaaaaa", observedAt: "2026-07-01T10:00:00.000Z" }),
+        quota({
+          credentialId: "subscription:aaaaaaaaaaaa",
+          observedAt: "2026-07-01T10:00:00.000Z",
+        }),
         quota({ credentialId: "subscription:bbbbbbbbbbbb" }),
       ],
       { timeframe: "all", credentialId: "subscription:aaaaaaaaaaaa" },
@@ -653,8 +672,14 @@ describe("Plan limits", () => {
   it("orders active snapshots first, then by recency", () => {
     const view = analyze(
       [
-        quota({ credentialId: "subscription:aaaaaaaaaaaa", observedAt: "2026-07-01T10:00:00.000Z" }),
-        quota({ credentialId: "subscription:cccccccccccc", observedAt: "2026-07-15T10:00:00.000Z" }),
+        quota({
+          credentialId: "subscription:aaaaaaaaaaaa",
+          observedAt: "2026-07-01T10:00:00.000Z",
+        }),
+        quota({
+          credentialId: "subscription:cccccccccccc",
+          observedAt: "2026-07-15T10:00:00.000Z",
+        }),
         quota({ credentialId: "subscription:bbbbbbbbbbbb" }),
       ],
       { timeframe: "all" },
@@ -702,14 +727,14 @@ Add `QuotaSnapshotView` to the type import and `UNATTRIBUTED_CREDENTIAL` is alre
 Replace the `AnalysisInput.quotaSnapshots` comment with:
 
 ```ts
-  /**
-   * Filtered by period, host and credential — the Plan limits tab treats the
-   * Period chip as its recency filter over `observedAt`, "All" being what
-   * reveals accounts long since logged out. The task query never applies: a
-   * quota card has no task to match. (Until 0.6 these were served unfiltered;
-   * that stance made sense while the meters sat beside usage totals on the
-   * Overview, which they no longer do.)
-   */
+/**
+ * Filtered by period, host and credential — the Plan limits tab treats the
+ * Period chip as its recency filter over `observedAt`, "All" being what
+ * reveals accounts long since logged out. The task query never applies: a
+ * quota card has no task to match. (Until 0.6 these were served unfiltered;
+ * that stance made sense while the meters sat beside usage totals on the
+ * Overview, which they no longer do.)
+ */
 ```
 
 Add below `currentQuota`:
@@ -785,10 +810,12 @@ git commit -m "Serve plan limits filtered by period, host and credential" -m "Co
 ### Task 5: Credential-first card grouping in the web model
 
 **Files:**
+
 - Create: `apps/web/src/model/plan-limits.ts`
 - Test: `apps/web/test/plan-limits.test.ts`
 
 **Interfaces:**
+
 - Consumes: `QuotaSnapshotView`, `CredentialObservation`, `credentialIdFor` from contracts.
 - Produces (Task 6 renders exactly these):
 
@@ -839,10 +866,7 @@ describe("planCards", () => {
   });
 
   it("keeps unattributed snapshots on per-source cards, never one shared bucket", () => {
-    const cards = planCards([
-      snapshot(),
-      snapshot({ usageSourceId: "codex-local" }),
-    ]);
+    const cards = planCards([snapshot(), snapshot({ usageSourceId: "codex-local" })]);
     assert.equal(cards.length, 2);
     assert.deepEqual(
       cards.map((card) => card.credentialId),
@@ -1016,6 +1040,7 @@ git commit -m "Group plan-limit snapshots into per-credential cards" -m "Co-Auth
 No unit-test cycle here — this task is JSX, locale JSON and CSS; its gates are `bun run typecheck`, the full test suite staying green, and a manual run. Web components have no DOM test harness in this repo; all logic already landed tested in Tasks 4–5.
 
 **Files:**
+
 - Create: `apps/web/src/views/plan-limits.tsx`
 - Modify: `apps/web/src/app.tsx`
 - Modify: `apps/web/src/views/overview.tsx`
@@ -1026,6 +1051,7 @@ No unit-test cycle here — this task is JSX, locale JSON and CSS; its gates are
 - Modify: `apps/web/src/styles.css`
 
 **Interfaces:**
+
 - Consumes: `planCards`/`cardInferred`/`PlanCard` (Task 5), `QuotaSnapshotView` (Task 1), `overview.quotaSnapshots: QuotaSnapshotView[]` (Task 4), existing `credentialLabel`, `countsAgainstPlan`, `usageSourceLabel`, `quotaMeterView`, `QUOTA_GLYPH`, `quotaWindowLabel`, `formatDateTime`, `formatWholePercent`, `Panel`, `STATUS`.
 - Produces: `export function PlanLimits({ snapshots, credentials, hostLabel }: { snapshots: QuotaSnapshotView[]; credentials: CredentialObservation[]; hostLabel: (sourceHostId: string) => string }): JSX element`; `View` union gains `"planLimits"`.
 
@@ -1033,16 +1059,16 @@ No unit-test cycle here — this task is JSX, locale JSON and CSS; its gates are
 
 In each locale, (a) add `"planLimits"` to the `nav` group, reusing the language's existing `overview.planLimits` value; (b) delete `"planLimits"` from the `overview` group; (c) add a top-level `"planLimits"` group directly after the `"quota"` group. Values per locale:
 
-| locale | nav.planLimits | planLimits.active | planLimits.empty |
-|---|---|---|---|
-| en | `Plan limits` | `In use` | `No plan limits observed in this period.` |
-| de | `Plan-Limits` | `In Benutzung` | `In diesem Zeitraum wurden keine Plan-Limits beobachtet.` |
-| es | `Límites del plan` | `En uso` | `No se observaron límites del plan en este período.` |
-| fr | `Limites du forfait` | `En usage` | `Aucune limite de forfait observée sur cette période.` |
-| hi | `प्लान सीमाएँ` | `उपयोग में` | `इस अवधि में कोई प्लान सीमा नहीं देखी गई।` |
-| ja | `プランの上限` | `使用中` | `この期間にプランの上限は観測されていません。` |
-| ru | `Лимиты плана` | `Используется` | `За этот период лимиты плана не наблюдались.` |
-| zh | `计划限额` | `使用中` | `此期间未观测到计划限额。` |
+| locale | nav.planLimits       | planLimits.active | planLimits.empty                                          |
+| ------ | -------------------- | ----------------- | --------------------------------------------------------- |
+| en     | `Plan limits`        | `In use`          | `No plan limits observed in this period.`                 |
+| de     | `Plan-Limits`        | `In Benutzung`    | `In diesem Zeitraum wurden keine Plan-Limits beobachtet.` |
+| es     | `Límites del plan`   | `En uso`          | `No se observaron límites del plan en este período.`      |
+| fr     | `Limites du forfait` | `En usage`        | `Aucune limite de forfait observée sur cette période.`    |
+| hi     | `प्लान सीमाएँ`       | `उपयोग में`       | `इस अवधि में कोई प्लान सीमा नहीं देखी गई।`                |
+| ja     | `プランの上限`       | `使用中`          | `この期間にプランの上限は観測されていません。`            |
+| ru     | `Лимиты плана`       | `Используется`    | `За этот период лимиты плана не наблюдались.`             |
+| zh     | `计划限额`           | `使用中`          | `此期间未观测到计划限额。`                                |
 
 The en.json fragments, exactly (the other locales mirror the structure with the values above):
 
@@ -1132,7 +1158,8 @@ export function PlanLimits({
                 >
                   <p className="quota-source">
                     <span>
-                      {usageSourceLabel(snapshot.usageSourceId)} · {hostLabel(snapshot.sourceHostId)}
+                      {usageSourceLabel(snapshot.usageSourceId)} ·{" "}
+                      {hostLabel(snapshot.sourceHostId)}
                     </span>
                     {/*
                       These figures are caches refreshed only while their harness
@@ -1177,7 +1204,9 @@ export function PlanLimits({
                             <i style={{ width: `${width}%`, background: FILL[status] }} />
                           </div>
                         )}
-                        {resets && <p className="quota-reset">{t("quota.resets", { at: resets })}</p>}
+                        {resets && (
+                          <p className="quota-reset">{t("quota.resets", { at: resets })}</p>
+                        )}
                       </div>
                     );
                   })}
@@ -1207,14 +1236,14 @@ const VIEWS: readonly View[] = ["overview", "breakdown", "history", "planLimits"
 Add the import `import { PlanLimits } from "./views/plan-limits.tsx";` and, in `ViewSlot`, before the final `return <History .../>`:
 
 ```tsx
-  if (view === "planLimits")
-    return overview ? (
-      <PlanLimits
-        snapshots={overview.quotaSnapshots}
-        credentials={overview.credentials}
-        hostLabel={hostLabel}
-      />
-    ) : null;
+if (view === "planLimits")
+  return overview ? (
+    <PlanLimits
+      snapshots={overview.quotaSnapshots}
+      credentials={overview.credentials}
+      hostLabel={hostLabel}
+    />
+  ) : null;
 ```
 
 - [ ] **Step 4: Remove the panel from the Overview**
@@ -1274,6 +1303,7 @@ git commit -m "Move plan limits to a dedicated credential-first tab" -m "Co-Auth
 ### Task 7: Documentation and full verification
 
 **Files:**
+
 - Modify: `README.md` (capability bullets, lines 18-19)
 - Modify: `CHANGELOG.md` (new top entry)
 

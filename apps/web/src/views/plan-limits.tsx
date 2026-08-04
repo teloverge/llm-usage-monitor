@@ -48,11 +48,12 @@ export function PlanLimits({
             */}
             {cardInferred(card, credentials) && <em>{t("credential.inferred")}</em>}
           </p>
-          {card.mode && !countsAgainstPlan(card.mode) && (
-            // The reason this feature exists: without it a percentage sits
-            // beside spend that never touched the window it describes.
-            <p className="quota-note">{t("credential.notCounted")}</p>
-          )}
+          {card.mode &&
+            !countsAgainstPlan(card.mode) && (
+              // The reason this feature exists: without it a percentage sits
+              // beside spend that never touched the window it describes.
+              <p className="quota-note">{t("credential.notCounted")}</p>
+            )}
           <div className="quota-groups">
             {card.snapshots.map((snapshot) => {
               const observedAt = formatDateTime(snapshot.observedAt);
@@ -63,7 +64,8 @@ export function PlanLimits({
                 >
                   <p className="quota-source">
                     <span>
-                      {usageSourceLabel(snapshot.usageSourceId)} · {hostLabel(snapshot.sourceHostId)}
+                      {usageSourceLabel(snapshot.usageSourceId)} ·{" "}
+                      {hostLabel(snapshot.sourceHostId)}
                     </span>
                     {/*
                       These figures are caches refreshed only while their harness
