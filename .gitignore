@@ -17,3 +17,6 @@ dist/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+
+# Armadai managed-host registry (personal/private)
+.armadai/
