@@ -345,10 +345,20 @@ export interface RankedUsage {
 export interface TimelinePoint extends UsageTotals {
   bucket: string;
 }
+/**
+ * One row per (bucket, host) that has records — a host silent in a bucket has
+ * no row, and the consumer zero-fills. Keyed by raw host id for the same reason
+ * `bySourceHost` is. Each bucket's rows sum to the matching `timeline` point,
+ * which is what lets a stacked chart's top edge remain the period total.
+ */
+export interface HostTimelinePoint extends TimelinePoint {
+  sourceHostId: string;
+}
 export interface OverviewView {
   filters: UsageFilters;
   totals: UsageTotals;
   timeline: TimelinePoint[];
+  timelineBySourceHost: HostTimelinePoint[];
   byModel: RankedUsage[];
   byTask: RankedUsage[];
   bySourceHost: RankedUsage[];

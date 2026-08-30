@@ -30,6 +30,7 @@
     "cost": "लागत (USD)",
     "tokens": "टोकन",
     "seriesCost": "अनुमानित लागत",
+    "otherHosts": "अन्य होस्ट",
     "empty": "इस अवधि में कोई गतिविधि नहीं"
   },
   "settings": {
