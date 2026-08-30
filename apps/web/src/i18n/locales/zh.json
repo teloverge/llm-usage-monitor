@@ -30,6 +30,7 @@
     "cost": "成本 (USD)",
     "tokens": "Token",
     "seriesCost": "估算成本",
+    "otherHosts": "其他主机",
     "empty": "此期间没有活动"
   },
   "settings": {

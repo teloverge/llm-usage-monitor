@@ -60,12 +60,22 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
     const groupId = effectiveGroup(input.memberships, record.sourceHostId, record.timestamp);
     return groupId === null ? "Ungrouped" : (groupNames.get(groupId) ?? groupId);
   };
+  const buckets = group(priced, ({ record }) =>
+    timelineBucket(record.timestamp, input.filters.timeframe),
+  );
   return {
     filters: input.filters,
     totals: summarize(priced),
-    timeline: group(priced, ({ record }) =>
-      timelineBucket(record.timestamp, input.filters.timeframe),
-    ).map(({ key, items }) => ({ bucket: key, ...summarize(items) })),
+    timeline: buckets.map(({ key, items }) => ({ bucket: key, ...summarize(items) })),
+    // Nested rather than grouped on a `${bucket}|${hostId}` composite key: a
+    // host id is free text and nothing stops it containing the delimiter.
+    timelineBySourceHost: buckets.flatMap(({ key: bucket, items }) =>
+      group(items, ({ record }) => record.sourceHostId).map(({ key, items: hostItems }) => ({
+        bucket,
+        sourceHostId: key,
+        ...summarize(hostItems),
+      })),
+    ),
     byModel: rankModels(priced),
     byTask: rankTasks(priced),
     // Keyed by raw host id, not a rendered name — exactly as `byHarness` is

@@ -30,6 +30,7 @@
     "cost": "コスト (USD)",
     "tokens": "トークン",
     "seriesCost": "推定コスト",
+    "otherHosts": "その他のホスト",
     "empty": "この期間にアクティビティはありません"
   },
   "settings": {
