@@ -8,6 +8,7 @@ const target = join(root, "..", "dist", "runtime");
 await rm(target, { recursive: true, force: true });
 await mkdir(target, { recursive: true });
 await cp(join(root, "..", "..", "server", "dist", "cli.mjs"), join(target, "server.mjs"));
+await cp(join(root, "..", "..", "source-host-agent", "dist", "cli.mjs"), join(target, "agent.mjs"));
 await cp(join(root, "..", "..", "web", "dist"), join(target, "web"), { recursive: true });
 await cp(join(root, "..", "runtime", "tray.ps1"), join(target, "tray.ps1"));
 await cp(

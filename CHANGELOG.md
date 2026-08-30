@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Bind the standalone dashboard to the local host's Tailscale interface while keeping the VS Code server loopback-only.
+- Allow each managed host to declare its Node executable and give Windows inspections a three-minute timeout.
+
+- Refresh Codex, Claude Code, Grok Build, and OpenCode across the hosts listed in `COMPUTE.md`, consolidating successful records in one ledger while preserving unavailable-source and unreachable-host results.
+- Read OpenCode's per-assistant-response token fields from its SQLite database without selecting prompt, response, credential, path, or command-output fields.
+- Add a Sources settings view and an explicit standalone launch command that builds the browser runtime, starts the server, opens the dashboard, and performs the initial fleet refresh without VS Code.
+
 ## 0.5.0
 
 - Grok Build sessions are now monitored alongside Codex and Claude Code. Usage is read from Grok Build's local logs, never from its conversation transcripts. Each turn is attributed to the model actually in effect at that moment — including across a mid-session model switch — and a turn whose model can no longer be determined reads as unknown rather than being guessed.

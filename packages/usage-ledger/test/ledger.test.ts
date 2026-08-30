@@ -34,6 +34,34 @@ const usage = (id: string): UsageRecord => ({
 });
 
 describe("Usage Ledger", () => {
+  it("replaces the consolidated managed-source inspection snapshot", () => {
+    const ledger = new UsageLedger();
+    ledger.replaceUsageSourceInspections([
+      {
+        sourceHostId: "host:one",
+        managedHostId: "amd-halo",
+        usageSourceId: "codex-local",
+        harnessId: "codex",
+        status: "available",
+        records: 12,
+        inspectedAt: "2026-08-29T12:00:00.000Z",
+      },
+    ]);
+    assert.deepEqual(ledger.usageSourceInspections(), [
+      {
+        sourceHostId: "host:one",
+        managedHostId: "amd-halo",
+        usageSourceId: "codex-local",
+        harnessId: "codex",
+        status: "available",
+        records: 12,
+        inspectedAt: "2026-08-29T12:00:00.000Z",
+      },
+    ]);
+    ledger.replaceUsageSourceInspections([]);
+    assert.deepEqual(ledger.usageSourceInspections(), []);
+    ledger.close();
+  });
   it("commits idempotent records for a Source Host", () => {
     const ledger = create();
     ledger.upsertSourceHost(

@@ -4,6 +4,7 @@ import { createDashboardActions } from "../src/index.ts";
 
 const createPorts = () => ({
   localSourceHostId: "host:local",
+  refreshSources: async () => ({ affectedRecords: 11, inspections: [] }),
   importCodex: async () => 2,
   importClaude: async () => 5,
   importGrok: async () => 4,
@@ -14,6 +15,11 @@ const createPorts = () => ({
 });
 
 describe("Dashboard Actions", () => {
+  it("refreshes every managed source through one action", async () =>
+    assert.deepEqual(
+      await createDashboardActions(createPorts()).execute({ version: 1, type: "refresh-sources" }),
+      { ok: true, code: "sources-refreshed", affectedRecords: 11, inspections: [] },
+    ));
   it("executes a validated action through one interface", async () =>
     assert.deepEqual(
       await createDashboardActions(createPorts()).execute({ version: 1, type: "import-codex" }),

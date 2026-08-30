@@ -87,12 +87,9 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("llmUsageMonitor.openDashboard", openDashboard),
     vscode.commands.registerCommand("llmUsageMonitor.importCodexHistory", async () => {
-      const codexHome = vscode.workspace
-        .getConfiguration("llmUsageMonitor")
-        .get<string>("codexHome", "");
       const result = await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: "Refreshing local Codex usage" },
-        () => action({ version: 1, type: "import-codex", ...(codexHome ? { codexHome } : {}) }),
+        { location: vscode.ProgressLocation.Notification, title: "Refreshing managed LLM usage" },
+        () => action({ version: 1, type: "refresh-sources" }),
       );
       vscode.window.showInformationMessage(
         `Refreshed ${Number(result.affectedRecords || 0).toLocaleString()} Usage Records.`,
@@ -115,7 +112,7 @@ export async function activate(context: vscode.ExtensionContext) {
       await context.globalState.update(MIGRATION_MARKER, true);
     }
     if (vscode.workspace.getConfiguration("llmUsageMonitor").get("autoImport", true))
-      await action({ version: 1, type: "import-codex" }, false);
+      await action({ version: 1, type: "refresh-sources" }, false);
   } catch (error) {
     if (!(error instanceof ServerStoppedError))
       vscode.window.showErrorMessage(
@@ -137,6 +134,9 @@ async function discoverOrStart(
   const nodePath = vscode.workspace
     .getConfiguration("llmUsageMonitor")
     .get<string>("nodePath", "node");
+  const computeFile = vscode.workspace
+    .getConfiguration("llmUsageMonitor")
+    .get<string>("computeFile", "");
   const child = spawn(nodePath, [serverPath, "start"], {
     detached: false,
     windowsHide: true,
@@ -146,6 +146,8 @@ async function discoverOrStart(
       ...process.env,
       LLM_USAGE_MONITOR_WEB_DIR: webDirectory,
       LLM_USAGE_MONITOR_RUNTIME_ID: runtimeId,
+      LLM_USAGE_MONITOR_AGENT_PATH: join(context.extensionPath, "dist", "runtime", "agent.mjs"),
+      ...(computeFile ? { LLM_USAGE_MONITOR_COMPUTE_FILE: computeFile } : {}),
     },
   });
   child.on("error", () => undefined);

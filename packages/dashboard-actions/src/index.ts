@@ -1,8 +1,14 @@
-import type { DashboardActionOutcome, ModelPrice, UsageRecord } from "@llm-usage-monitor/contracts";
+import type {
+  DashboardActionOutcome,
+  ModelPrice,
+  UsageRecord,
+  UsageSourceInspection,
+} from "@llm-usage-monitor/contracts";
 import { dashboardActionSchema, usageRecordSchema } from "@llm-usage-monitor/contracts";
 
 export interface DashboardActionPorts {
   localSourceHostId: string;
+  refreshSources(): Promise<{ affectedRecords: number; inspections: UsageSourceInspection[] }>;
   importCodex(codexHome?: string): Promise<number>;
   importClaude(claudeHome?: string): Promise<number>;
   importGrok(grokHome?: string): Promise<number>;
@@ -17,6 +23,15 @@ export function createDashboardActions(ports: DashboardActionPorts) {
     async execute(input: unknown): Promise<DashboardActionOutcome> {
       const action = dashboardActionSchema.parse(input);
       switch (action.type) {
+        case "refresh-sources": {
+          const result = await ports.refreshSources();
+          return {
+            ok: true,
+            code: "sources-refreshed",
+            affectedRecords: result.affectedRecords,
+            inspections: result.inspections,
+          };
+        }
         case "import-codex":
           return {
             ok: true,

@@ -9,6 +9,7 @@ import type {
   SourceHost,
   UsageFilters,
   UsageHistoryRecord,
+  UsageSourceInspection,
 } from "@llm-usage-monitor/contracts";
 
 export async function getOverview(filters: UsageFilters): Promise<OverviewView> {
@@ -28,6 +29,7 @@ export async function getCatalog(): Promise<{
   hostGroups: HostGroup[];
   memberships: HostGroupMembership[];
   credentials: CredentialObservation[];
+  inspections: UsageSourceInspection[];
 }> {
   return requestJson("./api/catalog");
 }

@@ -35,9 +35,27 @@
   "settings": {
     "sections": "設定セクション",
     "tabs": {
+      "sources": "ソース",
       "rates": "モデル料金",
       "host-groups": "ホストグループ",
       "language": "言語"
+    },
+    "sources": {
+      "heading": "管理対象ソース",
+      "hint": "COMPUTE.md に記載されたホストの最新検査です。ソースがない場合も他の更新は続行します。",
+      "caption": "管理対象ホストと使用量ソースの検査結果",
+      "host": "ホスト",
+      "source": "ソース",
+      "status": "状態",
+      "records": "レコード",
+      "inspected": "検査日時",
+      "empty": "ソース検査はまだ実行されていません。",
+      "state": {
+        "available": "利用可能",
+        "unavailable": "未インストール",
+        "unreachable": "ホストに接続不可",
+        "failed": "読み取り失敗"
+      }
     },
     "rates": {
       "heading": "モデル料金",

@@ -5,17 +5,15 @@
 The Usage Monitor Server is the authoritative process. It owns the Usage Ledger, imports local provider history, performs Usage Analysis, executes Dashboard Actions, and serves the built browser app. Browser tabs and the VS Code extension are clients of that same per-user server.
 
 ```text
-local Codex history
-        |
-        v
-Usage Monitor Server ---> SQLite Usage Ledger
-        |                       |
-        |                       v
-        +----------------> Usage Analysis
-        |                       |
-        +---- React browser <---+
-        |
-        +---- VS Code extension
+local provider stores -------------------+
+                                          |
+COMPUTE.md -> SSH -> remote inspector ----+--> Usage Monitor Server
+                                                |          |
+                                                v          v
+                                         SQLite ledger  Usage Analysis
+                                                |          |
+                                                +---- React browser
+                                                +---- VS Code launcher
 ```
 
 The extension discovers an existing healthy server before starting one. This keeps ownership independent of whichever client opened first and permits the browser app to run without VS Code.
@@ -27,6 +25,7 @@ The extension discovers an existing healthy server before starting one. This kee
 - `usage-analysis` is the single source for filter semantics, API-equivalent costing, totals, timelines, and rankings. Graphs consume these projections rather than recalculating totals in React.
 - `dashboard-actions` is the single mutation seam. Queries remain dedicated read endpoints.
 - `server` composes these modules and owns loopback HTTP security and process discovery.
+- The machine-inspection module hides provider detection and collection behind one result containing four explicit source statuses. The SSH adapter changes where that module runs without changing what the server consumes.
 - `web` renders opinionated cost-first defaults and keeps configuration in an Advanced view.
 - `vscode-extension` owns only VS Code commands, lifecycle, discovery/startup, and legacy migration.
 
@@ -34,11 +33,11 @@ The extension discovers an existing healthy server before starting one. This kee
 
 Every Usage Record belongs to a stable generated Source Host ID. A Source Host stores a preferred hostname plus bounded hostname and IP-address observations. IP addresses inform identification but are not stable identity keys.
 
-Host Group membership is effective-dated so historical fleet totals retain the grouping that applied when usage occurred. With one machine, the local Source Host is the entire Fleet. The schema and analysis already support multiple hosts and groups without enabling network ingestion.
+Host Group membership is effective-dated so historical fleet totals retain the grouping that applied when usage occurred. The server reads managed hosts from a private `COMPUTE.md` registry. It runs the same bundled inspection code locally or over each host's existing OpenSSH connection, then commits every successful result to one ledger.
 
-Future secondary machines run a Source Host Agent at per-user login. The agent will normalize local provider metadata and send only canonical Usage Records and Source Host observations to the primary server. Raw provider history files never leave the source machine.
+The remote process emits canonical Usage Records, quota snapshots, Source Host observations, and one status per requested Usage Source. Raw provider files never leave the source machine. Missing provider stores are normal `unavailable` results. SSH authentication and transport failures become `unreachable` results for every source on that host and do not roll back other hosts.
 
-Remote enrollment and upload remain disabled until the following boundary exists:
+This is operator-triggered inspection, not a durable agent deployment. Remote enrollment and background upload remain disabled until the following interface exists:
 
 - explicit authenticated enrollment and revocation;
 - encrypted transport and primary-server identity verification;
@@ -55,6 +54,8 @@ The server uses a per-user application-data directory:
 - Linux: `$XDG_STATE_HOME/teloverge-llm-usage-monitor`, falling back to `~/.local/state`
 
 `LLM_USAGE_MONITOR_HOME` overrides the location for development and isolated testing. The directory contains the SQLite ledger, stable local Source Host identity, and a replaceable server discovery record.
+
+`LLM_USAGE_MONITOR_COMPUTE_FILE` selects the managed compute registry. `LLM_USAGE_MONITOR_AGENT_PATH` selects the bundled inspector sent over SSH. A standalone source checkout defaults to `.armadai/COMPUTE.md` and `apps/source-host-agent/dist/cli.mjs`.
 
 ## Native shell decision
 

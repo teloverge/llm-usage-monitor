@@ -35,9 +35,27 @@
   "settings": {
     "sections": "Secciones de ajustes",
     "tabs": {
+      "sources": "Fuentes",
       "rates": "Tarifas de modelo",
       "host-groups": "Grupos de hosts",
       "language": "Idioma"
+    },
+    "sources": {
+      "heading": "Fuentes administradas",
+      "hint": "Última inspección de los hosts incluidos en COMPUTE.md. Una fuente ausente no detiene el resto de la actualización.",
+      "caption": "Resultados de inspección de hosts y fuentes de uso",
+      "host": "Host",
+      "source": "Fuente",
+      "status": "Estado",
+      "records": "Registros",
+      "inspected": "Inspeccionado",
+      "empty": "Aún no se ha ejecutado ninguna inspección.",
+      "state": {
+        "available": "Disponible",
+        "unavailable": "No instalada",
+        "unreachable": "Host inaccesible",
+        "failed": "Error de lectura"
+      }
     },
     "rates": {
       "heading": "Tarifas de modelo",

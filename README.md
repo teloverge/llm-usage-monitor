@@ -4,15 +4,16 @@
 
 <h1 align="center">Teloverge LLM Usage Monitor</h1>
 
-<p align="center"><strong>Local token intelligence for Codex, the browser, and eventually a fleet of hosts.</strong></p>
+<p align="center"><strong>Local token intelligence for coding harnesses across managed hosts.</strong></p>
 
-LLM Usage Monitor reads local Codex and Claude Code history, stores normalized usage in SQLite, and presents automatic cost-first charts in a React browser app. The VS Code extension is a thin client for the same shared local server and starts it when necessary.
+LLM Usage Monitor reads Codex, Claude Code, Grok Build, and OpenCode usage metadata, stores normalized usage in SQLite, and presents cost-first charts in a React browser app. It can run on its own or through the thin VS Code launcher.
 
 The dollar total is an **API-equivalent estimate**: what the selected token usage would cost at configured standard API rates. It is useful for comparing subscription usage with API pricing, but it is not a billing claim.
 
 ## Current capabilities
 
-- Imports metadata from local Codex history files and local Claude Code session transcripts; it calls no vendor account servers.
+- Inspects Codex, Claude Code, Grok Build, and OpenCode on every host listed in a `COMPUTE.md` registry. A missing source is reported as unavailable without blocking sources that exist.
+- Uses the local filesystem for the current host and standard OpenSSH for remote hosts. The remote helper returns normalized usage metadata, never raw prompts, responses, credentials, file contents, or command output.
 - Prices cache reads and cache writes separately, because a read costs a fraction of base input while a write costs a premium over it.
 - Never imports prompts, responses, reasoning text, tool calls, file contents, or credentials.
 - Shows API-equivalent spend as a single headline figure with its cost drivers by harness, model, and task, plus token composition and per-source plan limits.
@@ -24,7 +25,7 @@ The dollar total is an **API-equivalent estimate**: what the selected token usag
 - Uses hostname as the preferred Source Host label and retains IP addresses as informative observations.
 - Groups Source Hosts into user-defined Host Groups from Settings, effective from the moment they are saved.
 - Stores canonical Usage Records, Source Hosts, effective-dated Host Group membership, prices, and import state in SQLite.
-- Runs the browser and VS Code surfaces against one loopback-only Usage Monitor Server.
+- Runs the VS Code server on loopback and binds the standalone server only to the local host's Tailscale interface.
 
 ## Workspace structure
 
@@ -52,15 +53,15 @@ vp install
 vp run check
 ```
 
-To build the React app and start the standalone server:
+To build and launch the standalone app, including an initial managed-source refresh:
 
 ```powershell
-vp run build:web
-vp run build:server
-node apps/server/dist/cli.mjs start --open
+vp run standalone
 ```
 
-The server writes its discovery record and SQLite ledger beneath the current user's application-data directory. Set `LLM_USAGE_MONITOR_HOME` to use an isolated data directory, and `LLM_USAGE_MONITOR_WEB_DIR` to serve a different built web directory. The importers read `~/.codex` and `~/.claude`, overridable with `CODEX_HOME` and `CLAUDE_CONFIG_DIR`.
+The standalone process reads the local Tailnet DNS name from `COMPUTE.md`, prints a URL that other Tailnet hosts can open, launches that URL in the default browser, and remains active until stopped with Ctrl+C. Run `vp run standalone:refresh` from another terminal to refresh without opening another browser tab.
+
+The server writes its discovery record and SQLite ledger beneath the current user's application-data directory. It reads `.armadai/COMPUTE.md` from the launch directory by default. Set `LLM_USAGE_MONITOR_COMPUTE_FILE` to use another registry, `LLM_USAGE_MONITOR_HOME` to use an isolated data directory, and `LLM_USAGE_MONITOR_WEB_DIR` to serve a different built web directory. `LLM_USAGE_MONITOR_LISTEN_HOST` and `LLM_USAGE_MONITOR_ADVERTISED_HOST` override the listener and URL host. Provider locations can be overridden with `CODEX_HOME`, `CLAUDE_CONFIG_DIR`, `GROK_HOME`, `OPENCODE_DATA_DIR`, or `OPENCODE_DB`.
 
 ## VS Code extension
 
@@ -77,21 +78,19 @@ When activated, the extension:
 
 Set `llmUsageMonitor.nodePath` if `node` on `PATH` is not Node.js 24 or newer. The server is independent of the VS Code extension once running. Choosing **Exit** from the tray stops it and prevents background restart; **Open Dashboard** or **Refresh Codex History** explicitly starts it again.
 
-## Source Host Agent
+## Managed host inspection
 
-`apps/source-host-agent` reserves the secondary-host boundary. Its eventual startup mechanisms are per-user and non-elevated:
+For each remote `COMPUTE.md` entry, the server pipes the bundled Source Host Agent to the entry's `Node command` over its SSH command. `Node command` defaults to `node`. No agent installation or inbound listener is required. The SSH account needs non-interactive authorization and Node.js 24 or newer. Remote inspections time out after 30 seconds on most hosts and 180 seconds on Windows hosts.
 
-- Windows: Task Scheduler at user logon
-- macOS: LaunchAgent
-- Linux: systemd user service
+The dashboard's Settings → Sources table keeps the latest result for all four sources on every managed host. It distinguishes an available source, a source that is not installed, an unreachable host, and a source whose metadata could not be read.
 
-Remote enrollment and upload intentionally fail closed in this branch. Before those commands are enabled, the agent needs authenticated enrollment, encrypted transport, replay protection, revocation, and bounded retry behavior. It will send normalized usage metadata to the primary Usage Monitor Server, never raw Codex JSONL.
+Durable background enrollment remains disabled. The current path is an operator-triggered SSH inspection using the host authorization already declared in the private compute registry.
 
 See [portable-usage-host.md](docs/architecture/portable-usage-host.md) for the runtime and future fleet topology.
 
 ## Privacy and security boundary
 
-The server binds only to `127.0.0.1`, uses a random unguessable route prefix, rejects cross-origin Dashboard Actions, limits request bodies, validates strict schemas, and uses parameterized SQLite statements. Local Codex files remain local. Future remote ingestion is not enabled merely because fleet-shaped storage exists.
+The VS Code server binds only to `127.0.0.1`. The standalone command binds to the local host's Tailnet DNS address, not every LAN interface. Both modes use a random unguessable route prefix, reject cross-origin Dashboard Actions, limit request bodies, validate strict schemas, and use parameterized SQLite statements. Remote inspection runs inside the remote host's Node.js process. Only normalized records and source status cross SSH.
 
 ## Cost semantics
 

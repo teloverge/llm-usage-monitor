@@ -35,9 +35,27 @@
   "settings": {
     "sections": "Settings sections",
     "tabs": {
+      "sources": "Sources",
       "rates": "Model rates",
       "host-groups": "Host groups",
       "language": "Language"
+    },
+    "sources": {
+      "heading": "Managed sources",
+      "hint": "Latest inspection of the hosts listed in COMPUTE.md. Missing sources do not fail the rest of the refresh.",
+      "caption": "Managed host and usage source inspection results",
+      "host": "Host",
+      "source": "Source",
+      "status": "Status",
+      "records": "Records",
+      "inspected": "Inspected",
+      "empty": "No source inspection has run yet.",
+      "state": {
+        "available": "Available",
+        "unavailable": "Not installed",
+        "unreachable": "Host unreachable",
+        "failed": "Read failed"
+      }
     },
     "rates": {
       "heading": "Model rates",

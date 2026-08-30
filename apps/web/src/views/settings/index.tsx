@@ -5,15 +5,17 @@ import type {
   HostGroupMembership,
   ModelPrice,
   SourceHost,
+  UsageSourceInspection,
 } from "@llm-usage-monitor/contracts";
 import { HostGroups } from "./host-groups.tsx";
 import { LanguageSettings } from "./language.tsx";
 import { Pricing } from "./rates.tsx";
+import { SourceInspections } from "./source-inspections.tsx";
 
-type SettingsTab = "rates" | "host-groups" | "language";
+type SettingsTab = "sources" | "rates" | "host-groups" | "language";
 
 /** Ids only; labels follow the language. */
-const TABS: readonly SettingsTab[] = ["rates", "host-groups", "language"];
+const TABS: readonly SettingsTab[] = ["sources", "rates", "host-groups", "language"];
 
 /**
  * Owns which settings section is showing so `app.tsx` does not gain a tenth
@@ -24,16 +26,18 @@ export function Settings({
   hostGroups,
   memberships,
   sourceHosts,
+  inspections,
   onSaved,
 }: {
   prices: ModelPrice[];
   hostGroups: HostGroup[];
   memberships: HostGroupMembership[];
   sourceHosts: SourceHost[];
+  inspections: UsageSourceInspection[];
   onSaved: () => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<SettingsTab>("rates");
+  const [tab, setTab] = useState<SettingsTab>("sources");
   return (
     <section className="settings">
       {/* Same chip/aria-pressed idiom as Breakdown's Group-by row. */}
@@ -50,6 +54,9 @@ export function Settings({
           </button>
         ))}
       </div>
+      {tab === "sources" && (
+        <SourceInspections inspections={inspections} sourceHosts={sourceHosts} />
+      )}
       {tab === "rates" && <Pricing prices={prices} onSaved={onSaved} />}
       {tab === "host-groups" && (
         <HostGroups
