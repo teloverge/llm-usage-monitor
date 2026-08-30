@@ -163,6 +163,7 @@
     "used": "{{percent}} verbraucht",
     "resets": "wird am {{at}} zurückgesetzt",
     "asOf": "Stand {{at}}",
+    "hosts": "Angemeldet auf {{hosts}}",
     "window": {
       "session": "Sitzungsfenster",
       "weekly": "Wochenfenster",
