@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { decodeUsageRecord } from "../src/legacy.ts";
+import { decodeUsageRecord, harnessForSource } from "../src/legacy.ts";
 
 const legacy = {
   id: "codex:session-a:turn-1",
@@ -32,6 +32,9 @@ describe("Legacy Usage Record decoding", () => {
   it("registers grok-build-local as the Grok Build harness", () => {
     const record = decodeUsageRecord({ ...legacy, source: "grok-build-local", provider: "xai" });
     assert.equal(record.harnessId, "grok-build");
+  });
+  it("registers opencode-local as the OpenCode harness", () => {
+    assert.equal(harnessForSource("opencode-local"), "opencode");
   });
 
   it("maps an unknown reasoning level to unreported rather than a bucket", () => {

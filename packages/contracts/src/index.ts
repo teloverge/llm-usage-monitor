@@ -250,6 +250,27 @@ export interface SourceHostObservation {
   firstSeenAt: string;
   lastSeenAt: string;
 }
+
+export const usageSourceInspectionStatusSchema = z.enum([
+  "available",
+  "unavailable",
+  "unreachable",
+  "failed",
+]);
+export const usageSourceInspectionSchema = z
+  .object({
+    sourceHostId: z.string().min(1).max(200),
+    managedHostId: z.string().min(1).max(200),
+    usageSourceId: z.string().min(1).max(200),
+    harnessId: z.string().min(1).max(200),
+    status: usageSourceInspectionStatusSchema,
+    records: z.number().int().nonnegative(),
+    inspectedAt: z.string().datetime(),
+    detail: z.string().min(1).max(500).optional(),
+  })
+  .strict();
+export type UsageSourceInspectionStatus = z.infer<typeof usageSourceInspectionStatusSchema>;
+export type UsageSourceInspection = z.infer<typeof usageSourceInspectionSchema>;
 export interface HostGroup {
   id: string;
   name: string;
@@ -396,6 +417,12 @@ export const dashboardActionSchema = z.discriminatedUnion("type", [
   z
     .object({
       version: z.literal(1),
+      type: z.literal("refresh-sources"),
+    })
+    .strict(),
+  z
+    .object({
+      version: z.literal(1),
       type: z.literal("import-codex"),
       codexHome: z.string().max(2_000).optional(),
     })
@@ -452,6 +479,7 @@ export interface DashboardActionOutcome {
   ok: boolean;
   code: string;
   affectedRecords?: number;
+  inspections?: UsageSourceInspection[];
 }
 
 // `exports` in package.json points only at this file (no subpath exports), so

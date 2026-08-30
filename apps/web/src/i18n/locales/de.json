@@ -35,9 +35,27 @@
   "settings": {
     "sections": "Einstellungsbereiche",
     "tabs": {
+      "sources": "Quellen",
       "rates": "Modelltarife",
       "host-groups": "Host-Gruppen",
       "language": "Sprache"
+    },
+    "sources": {
+      "heading": "Verwaltete Quellen",
+      "hint": "Letzte Prüfung der in COMPUTE.md aufgeführten Hosts. Fehlende Quellen stoppen die übrige Aktualisierung nicht.",
+      "caption": "Prüfergebnisse für verwaltete Hosts und Nutzungsquellen",
+      "host": "Host",
+      "source": "Quelle",
+      "status": "Status",
+      "records": "Datensätze",
+      "inspected": "Geprüft",
+      "empty": "Es wurde noch keine Quellenprüfung ausgeführt.",
+      "state": {
+        "available": "Verfügbar",
+        "unavailable": "Nicht installiert",
+        "unreachable": "Host nicht erreichbar",
+        "failed": "Lesen fehlgeschlagen"
+      }
     },
     "rates": {
       "heading": "Modelltarife",

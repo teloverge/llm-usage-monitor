@@ -41,8 +41,16 @@ A computer whose local provider metadata produces Usage Records. It has a stable
 _Avoid_: Usage Monitor Server, machine name, IP identity
 
 **Source Host Agent**:
-A per-user collector for a secondary Source Host that normalizes local provider metadata, buffers it, and eventually sends it outbound to the Usage Monitor Server.
+A collector that normalizes provider metadata on a Source Host. The Usage Monitor Server can run its bundled form over an existing SSH connection without installing a daemon.
 _Avoid_: server-lite, remote server, fleet server
+
+**Usage Source Inspection**:
+The latest result of checking one Usage Source on one managed Source Host. It distinguishes available, unavailable, unreachable, and failed collection states.
+_Avoid_: zero usage, provider health, account status
+
+**Managed Compute Registry**:
+The private `COMPUTE.md` inventory that names Source Hosts and their SSH commands for operator-triggered inspection.
+_Avoid_: credential store, host discovery service
 
 **Host Group**:
 A user-defined, effective-dated grouping of Source Hosts used for stable historical Usage Analysis.

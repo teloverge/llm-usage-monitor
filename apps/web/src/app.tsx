@@ -7,6 +7,7 @@ import type {
   SourceHost,
   UsageFilters,
   UsageHistoryRecord,
+  UsageSourceInspection,
 } from "@llm-usage-monitor/contracts";
 import { useTranslation } from "react-i18next";
 import { SearchChip, SelectChip } from "./components/chip.tsx";
@@ -42,6 +43,7 @@ export function App() {
   const [sourceHosts, setSourceHosts] = useState<SourceHost[]>([]);
   const [hostGroups, setHostGroups] = useState<HostGroup[]>([]);
   const [memberships, setMemberships] = useState<HostGroupMembership[]>([]);
+  const [inspections, setInspections] = useState<UsageSourceInspection[]>([]);
   const [stale, setStale] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -76,6 +78,7 @@ export function App() {
       setSourceHosts(catalog.sourceHosts);
       setHostGroups(catalog.hostGroups);
       setMemberships(catalog.memberships);
+      setInspections(catalog.inspections);
     } catch (reason) {
       if (id === requestId.current) {
         setError(reason instanceof Error ? reason.message : String(reason));
@@ -92,13 +95,7 @@ export function App() {
   const refreshSources = async () => {
     setBusy(true);
     try {
-      // Sequential, and neither is allowed to cancel the other: a machine with
-      // only one harness installed still has the other's import succeed trivially
-      // with zero records, so a hard failure here is a real fault worth surfacing
-      // rather than an expected "not installed" case.
-      await executeAction({ version: 1, type: "import-codex" });
-      await executeAction({ version: 1, type: "import-claude" });
-      await executeAction({ version: 1, type: "import-grok" });
+      await executeAction({ version: 1, type: "refresh-sources" });
       await refresh();
     } catch (reason) {
       // Without this the import failure is an unhandled rejection: refresh() never
@@ -237,6 +234,7 @@ export function App() {
             hostGroups={hostGroups}
             memberships={memberships}
             sourceHosts={sourceHosts}
+            inspections={inspections}
             hostLabel={hostLabel}
             onSaved={refresh}
             onDrillDown={drillDown}
@@ -259,6 +257,7 @@ function ViewSlot({
   hostGroups,
   memberships,
   sourceHosts,
+  inspections,
   hostLabel,
   onSaved,
   onDrillDown,
@@ -273,6 +272,7 @@ function ViewSlot({
   hostGroups: HostGroup[];
   memberships: HostGroupMembership[];
   sourceHosts: SourceHost[];
+  inspections: UsageSourceInspection[];
   hostLabel: (sourceHostId: string) => string;
   onSaved: () => Promise<void>;
   onDrillDown: (dimension: DrillDownDimension) => void;
@@ -286,6 +286,7 @@ function ViewSlot({
         hostGroups={hostGroups}
         memberships={memberships}
         sourceHosts={sourceHosts}
+        inspections={inspections}
         onSaved={onSaved}
       />
     );

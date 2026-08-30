@@ -35,9 +35,27 @@
   "settings": {
     "sections": "设置栏目",
     "tabs": {
+      "sources": "数据源",
       "rates": "模型费率",
       "host-groups": "主机组",
       "language": "语言"
+    },
+    "sources": {
+      "heading": "托管数据源",
+      "hint": "最近一次检查 COMPUTE.md 中列出的主机。缺少某个数据源不会中断其他刷新。",
+      "caption": "托管主机和用量数据源检查结果",
+      "host": "主机",
+      "source": "数据源",
+      "status": "状态",
+      "records": "记录",
+      "inspected": "检查时间",
+      "empty": "尚未运行数据源检查。",
+      "state": {
+        "available": "可用",
+        "unavailable": "未安装",
+        "unreachable": "主机不可达",
+        "failed": "读取失败"
+      }
     },
     "rates": {
       "heading": "模型费率",

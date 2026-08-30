@@ -15,6 +15,8 @@
     "build:extension": "bun run --filter 'llm-usage-monitor' build",
     "check": "bun run format:check && bun run lint && bun run typecheck && bun run test && bun run build",
     "dev": "bun run --filter '@llm-usage-monitor/web' build && bun run --filter '@llm-usage-monitor/server' dev",
+    "standalone": "bun run build:web && bun run build:server && bun run build:agent && node apps/server/dist/cli.mjs start --tailnet --open --refresh",
+    "standalone:refresh": "node apps/server/dist/cli.mjs refresh",
     "package:extension": "bun run build && bun run --filter 'llm-usage-monitor' package",
     "format": "oxfmt . --write",
     "format:check": "oxfmt . --check",

@@ -861,6 +861,43 @@ footer {
   color: var(--muted);
   font-size: 10px;
 }
+.source-inspection-table {
+  border: 0;
+  border-radius: 0;
+}
+.source-inspection-table th,
+.source-inspection-table td {
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.source-inspection-table td.n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.source-inspection-table td small {
+  display: block;
+  max-width: 48ch;
+  margin-top: 3px;
+  color: var(--muted);
+}
+.source-status {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.source-status.available {
+  border-color: color-mix(in srgb, var(--status-good) 50%, var(--line));
+  color: var(--status-good);
+}
+.source-status.failed,
+.source-status.unreachable {
+  border-color: color-mix(in srgb, var(--status-critical) 50%, var(--line));
+  color: var(--status-critical);
+}
 .host-group-list {
   margin: 0;
   padding: 0;

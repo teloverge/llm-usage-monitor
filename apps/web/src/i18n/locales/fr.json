@@ -35,9 +35,27 @@
   "settings": {
     "sections": "Sections des paramètres",
     "tabs": {
+      "sources": "Sources",
       "rates": "Tarifs des modèles",
       "host-groups": "Groupes d'hôtes",
       "language": "Langue"
+    },
+    "sources": {
+      "heading": "Sources gérées",
+      "hint": "Dernière inspection des hôtes listés dans COMPUTE.md. Une source absente n'empêche pas les autres d'être actualisées.",
+      "caption": "Résultats d'inspection des hôtes et des sources d'utilisation",
+      "host": "Hôte",
+      "source": "Source",
+      "status": "État",
+      "records": "Enregistrements",
+      "inspected": "Inspecté",
+      "empty": "Aucune inspection de source n'a encore été exécutée.",
+      "state": {
+        "available": "Disponible",
+        "unavailable": "Non installée",
+        "unreachable": "Hôte inaccessible",
+        "failed": "Échec de lecture"
+      }
     },
     "rates": {
       "heading": "Tarifs des modèles",

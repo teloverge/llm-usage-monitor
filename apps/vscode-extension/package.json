@@ -67,7 +67,7 @@
       },
       {
         "command": "llmUsageMonitor.importCodexHistory",
-        "title": "LLM Usage Monitor: Refresh Codex History"
+        "title": "LLM Usage Monitor: Refresh Managed Sources"
       }
     ],
     "configuration": {
@@ -82,6 +82,11 @@
           "type": "string",
           "default": "node",
           "description": "Node.js 24+ executable used to start the shared Usage Monitor Server."
+        },
+        "llmUsageMonitor.computeFile": {
+          "type": "string",
+          "default": "",
+          "description": "Optional path to a managed-host COMPUTE.md registry."
         },
         "llmUsageMonitor.autoImport": {
           "type": "boolean",

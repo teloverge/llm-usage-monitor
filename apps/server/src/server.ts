@@ -18,6 +18,7 @@ import { CodexSessionProvider } from "./codex-importer.ts";
 import { codexCredentialSighting } from "./codex-credential.ts";
 import { GrokSessionProvider } from "./grok-importer.ts";
 import { grokCredentialSighting } from "./grok-credential.ts";
+import { refreshManagedSources } from "./fleet-inspection.ts";
 import { mergeDefaultPrices } from "./default-prices.ts";
 import { resolveLocalSourceHost } from "./local-source-host.ts";
 import { runProviderImport } from "./run-import.ts";
@@ -38,6 +39,10 @@ export async function startUsageMonitorServer(options: {
   webDirectory: string;
   port?: number;
   runtimeId?: string;
+  computeFile?: string;
+  agentPath?: string;
+  listenHost?: string;
+  advertisedHost?: string;
 }) {
   await fs.mkdir(options.dataDirectory, { recursive: true });
   const ledger = new UsageLedger(join(options.dataDirectory, "usage-ledger.sqlite"));
@@ -71,6 +76,14 @@ export async function startUsageMonitorServer(options: {
     );
   const actions = createDashboardActions({
     localSourceHostId: local.host.id,
+    refreshSources: () =>
+      refreshManagedSources({
+        computeFile: options.computeFile ?? join(process.cwd(), ".armadai", "COMPUTE.md"),
+        agentPath:
+          options.agentPath ?? join(process.cwd(), "apps", "source-host-agent", "dist", "cli.mjs"),
+        localSourceHostId: local.host.id,
+        ledger,
+      }),
     importCodex: (codexHome) =>
       runImport(importer, codexHome, (home, observedAt) =>
         codexCredentialSighting(home, local.host.id, observedAt),
@@ -96,7 +109,9 @@ export async function startUsageMonitorServer(options: {
   });
   const routeKey = randomBytes(32).toString("base64url");
   const routeBase = `/${routeKey}/`;
-  let origin = "http://127.0.0.1";
+  const listenHost = options.listenHost ?? "127.0.0.1";
+  const advertisedHost = options.advertisedHost ?? listenHost;
+  let origin = httpOrigin(advertisedHost, options.port ?? 80);
   const server = createServer((request, response) =>
     route(request, response).catch(() => sendJson(response, 500, { error: "request-failed" })),
   );
@@ -149,6 +164,7 @@ export async function startUsageMonitorServer(options: {
         hostGroups: ledger.hostGroups(),
         memberships: ledger.memberships(),
         credentials: ledger.credentialObservations(),
+        inspections: ledger.usageSourceInspections(),
       });
     if (request.method === "POST" && resource === "api/actions") {
       if (request.headers.origin !== origin)
@@ -170,7 +186,7 @@ export async function startUsageMonitorServer(options: {
 
   await new Promise<void>((resolveStart, reject) => {
     server.once("error", reject);
-    server.listen(options.port ?? 0, "127.0.0.1", () => {
+    server.listen(options.port ?? 0, listenHost, () => {
       server.removeListener("error", reject);
       resolveStart();
     });
@@ -178,7 +194,7 @@ export async function startUsageMonitorServer(options: {
   const address = server.address();
   if (!address || typeof address === "string")
     throw new Error("Usage Monitor Server did not bind a TCP port.");
-  origin = `http://127.0.0.1:${address.port}`;
+  origin = httpOrigin(advertisedHost, address.port);
   const discovery: DiscoveryRecord = {
     pid: process.pid,
     origin,
@@ -197,6 +213,13 @@ export async function startUsageMonitorServer(options: {
       await fs.rm(join(options.dataDirectory, "server.json"), { force: true });
     })());
   return { discovery, ledger, close };
+}
+
+function httpOrigin(host: string, port: number): string {
+  const trimmed = host.trim();
+  if (!trimmed) throw new Error("The advertised host cannot be empty.");
+  const urlHost = trimmed.includes(":") && !trimmed.startsWith("[") ? `[${trimmed}]` : trimmed;
+  return new URL(`http://${urlHost}:${port}`).origin;
 }
 
 export async function readDiscovery(dataDirectory: string): Promise<DiscoveryRecord | null> {

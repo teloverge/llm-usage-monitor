@@ -52,6 +52,26 @@ describe("Usage Monitor Server", () => {
     });
     assert.equal(response.status, 403);
   });
+  it("can bind one interface while advertising a reachable standalone hostname", async () => {
+    const root = await mkdtemp(join(tmpdir(), "usage-monitor-server-"));
+    const web = join(root, "web");
+    await mkdir(web);
+    await writeFile(join(web, "index.html"), "<!doctype html><title>test</title>");
+    const running = await startUsageMonitorServer({
+      dataDirectory: join(root, "data"),
+      webDirectory: web,
+      listenHost: "0.0.0.0",
+      advertisedHost: "localhost",
+    });
+    cleanup.push(async () => {
+      await running.close();
+      await rm(root, { recursive: true, force: true });
+    });
+
+    assert.ok(running.discovery.origin.startsWith("http://localhost:"));
+    const response = await fetch(running.discovery.healthUrl);
+    assert.equal(response.status, 200);
+  });
   it("accepts a same-origin graceful shutdown request", async () => {
     const root = await mkdtemp(join(tmpdir(), "usage-monitor-server-"));
     const web = join(root, "web");

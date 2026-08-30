@@ -10,6 +10,7 @@ describe("Harness labels", () => {
     assert.equal(harnessLabel("codex", UNKNOWN), "Codex");
     assert.equal(harnessLabel("claude-code", UNKNOWN), "Claude Code");
     assert.equal(harnessLabel("grok-build", UNKNOWN), "Grok Build");
+    assert.equal(harnessLabel("opencode", UNKNOWN), "OpenCode");
   });
 
   // Product names are never translated, so the injected wording must not reach
@@ -30,6 +31,7 @@ describe("Harness labels", () => {
   it("flags anything it cannot name so callers can style it apart", () => {
     assert.equal(isUnknownHarness("codex"), false);
     assert.equal(isUnknownHarness("claude-code"), false);
+    assert.equal(isUnknownHarness("opencode"), false);
     assert.equal(isUnknownHarness("unknown"), true);
     assert.equal(isUnknownHarness("windsurf"), true);
   });
@@ -40,6 +42,7 @@ describe("Usage source labels", () => {
     assert.equal(usageSourceLabel("codex-local"), "Codex");
     assert.equal(usageSourceLabel("claude-code-local"), "Claude Code");
     assert.equal(usageSourceLabel("grok-build-local"), "Grok Build");
+    assert.equal(usageSourceLabel("opencode-local"), "OpenCode");
   });
 
   // `harnessForSource` maps every unregistered source to the same "unknown"

@@ -9,6 +9,7 @@ import type {
   SourceHostObservation,
   UsageQuotaSnapshot,
   UsageRecord,
+  UsageSourceInspection,
 } from "@llm-usage-monitor/contracts";
 import {
   credentialObservationSchema,
@@ -17,6 +18,7 @@ import {
   modelPriceSchema,
   usageQuotaSnapshotSchema,
   usageRecordSchema,
+  usageSourceInspectionSchema,
 } from "@llm-usage-monitor/contracts";
 
 export class UsageLedger {
@@ -234,6 +236,35 @@ export class UsageLedger {
       }));
   }
 
+  replaceUsageSourceInspections(inspections: UsageSourceInspection[]): void {
+    const validated = inspections.map((inspection) =>
+      usageSourceInspectionSchema.parse(inspection),
+    );
+    this.transaction(() => {
+      this.database.exec("DELETE FROM usage_source_inspections");
+      const insert = this.database.prepare(
+        `INSERT INTO usage_source_inspections
+         (source_host_id, usage_source_id, inspected_at, payload) VALUES (?, ?, ?, ?)`,
+      );
+      for (const inspection of validated)
+        insert.run(
+          inspection.sourceHostId,
+          inspection.usageSourceId,
+          inspection.inspectedAt,
+          JSON.stringify(inspection),
+        );
+    });
+  }
+
+  usageSourceInspections(): UsageSourceInspection[] {
+    return this.database
+      .prepare(
+        "SELECT payload FROM usage_source_inspections ORDER BY source_host_id, usage_source_id",
+      )
+      .all()
+      .map((row) => usageSourceInspectionSchema.parse(JSON.parse(String(row.payload))));
+  }
+
   sourceHostObservations(sourceHostId: string): SourceHostObservation[] {
     return this.database
       .prepare(
@@ -393,6 +424,7 @@ export class UsageLedger {
       CREATE TABLE IF NOT EXISTS provider_import_state (provider_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS applied_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS usage_quota_snapshots (usage_source_id TEXT NOT NULL, source_host_id TEXT NOT NULL, observed_at TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(usage_source_id, source_host_id));
+      CREATE TABLE IF NOT EXISTS usage_source_inspections (source_host_id TEXT NOT NULL, usage_source_id TEXT NOT NULL, inspected_at TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(source_host_id, usage_source_id));
       CREATE TABLE IF NOT EXISTS credential_observations (usage_source_id TEXT NOT NULL, source_host_id TEXT NOT NULL, mode TEXT NOT NULL, fingerprint TEXT NOT NULL, payload TEXT NOT NULL, effective_from TEXT NOT NULL, observed_at TEXT NOT NULL, PRIMARY KEY (usage_source_id, source_host_id, mode, fingerprint, effective_from));
     `);
   }
