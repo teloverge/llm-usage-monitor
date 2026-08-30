@@ -32,7 +32,7 @@ export function Overview({
   return (
     <div className="cockpit">
       <div className="cockpit-main">
-        <Headline data={data} />
+        <Headline data={data} hostLabel={hostLabel} />
         <StatStrip totals={data.totals} />
         <Zone>{t("overview.drivers")}</Zone>
         <div className="drivers">

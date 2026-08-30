@@ -150,6 +150,54 @@ describe("Usage Analysis", () => {
     // Keyed by raw host id now; the view resolves it to a display name.
     assert.equal(view.bySourceHost[0]?.key, "host:a");
   });
+  it("splits each timeline bucket by source host, summing back to the bucket", () => {
+    const view = analyzeUsage({
+      records: [
+        record("2026-07-23T10:00:00Z"),
+        record("2026-07-23T10:30:00Z", undefined, undefined, {
+          id: "b1",
+          sourceHostId: "host:b",
+        }),
+        // host:b alone in the second bucket — host:a must produce no row there.
+        record("2026-07-23T11:00:00Z", undefined, undefined, {
+          id: "b2",
+          sourceHostId: "host:b",
+        }),
+      ],
+      prices: [
+        {
+          provider: "openai",
+          model: "gpt-test",
+          input: 2,
+          cachedInput: 0.5,
+          output: 10,
+          source: "test",
+          effectiveDate: "2026-01-01",
+        },
+      ],
+      memberships: [],
+      filters: { timeframe: "last24" },
+      now: new Date("2026-07-23T12:00:00Z"),
+    });
+    assert.deepEqual(
+      view.timelineBySourceHost.map(({ bucket, sourceHostId, estimatedCost }) => ({
+        bucket,
+        sourceHostId,
+        estimatedCost,
+      })),
+      [
+        { bucket: "2026-07-23T10:00:00.000Z", sourceHostId: "host:a", estimatedCost: 2.25 },
+        { bucket: "2026-07-23T10:00:00.000Z", sourceHostId: "host:b", estimatedCost: 2.25 },
+        { bucket: "2026-07-23T11:00:00.000Z", sourceHostId: "host:b", estimatedCost: 2.25 },
+      ],
+    );
+    for (const point of view.timeline) {
+      const split = view.timelineBySourceHost
+        .filter((row) => row.bucket === point.bucket)
+        .reduce((sum, row) => sum + row.estimatedCost, 0);
+      assert.equal(split, point.estimatedCost);
+    }
+  });
   it("rolls reasoning levels and recorded modes into one base model", () => {
     const records = [
       record("2026-07-23T10:00:00Z", "high"),

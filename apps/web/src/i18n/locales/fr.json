@@ -30,6 +30,7 @@
     "cost": "Coût (USD)",
     "tokens": "Tokens",
     "seriesCost": "Coût estimé",
+    "otherHosts": "Autres hôtes",
     "empty": "Aucune activité sur cette période"
   },
   "settings": {
