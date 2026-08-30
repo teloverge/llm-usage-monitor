@@ -54,13 +54,15 @@ export function Overview({
         </Panel>
         <Panel label={t("overview.planLimits")}>
           {/*
-            Keyed by usageSourceId, not harnessId — one row per account per host.
-            `usageSourceLabel` derives its names from the same table `harnessLabel`
-            uses, so the two panels cannot disagree about what "Codex" is called.
+            Keyed by usageSourceId, not harnessId — one row per account, however
+            many hosts are signed in to it. `usageSourceLabel` derives its names
+            from the same table `harnessLabel` uses, so the two panels cannot
+            disagree about what "Codex" is called.
           */}
           <QuotaMeters
             snapshots={data.quotaSnapshots}
             harnessLabel={usageSourceLabel}
+            hostLabel={hostLabel}
             credentials={data.credentials}
           />
         </Panel>

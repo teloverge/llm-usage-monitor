@@ -163,6 +163,7 @@
     "used": "{{percent}} used",
     "resets": "resets {{at}}",
     "asOf": "as of {{at}}",
+    "hosts": "Signed in on {{hosts}}",
     "window": {
       "session": "Session window",
       "weekly": "Weekly window",

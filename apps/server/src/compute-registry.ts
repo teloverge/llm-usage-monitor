@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import { basename } from "node:path";
 import {
+  credentialSightingSchema,
   usageQuotaSnapshotSchema,
   usageRecordSchema,
   usageSourceInspectionSchema,
@@ -179,7 +180,7 @@ export async function inspectRemoteHost(options: {
   });
 }
 
-function validateMachineInspection(
+export function validateMachineInspection(
   input: unknown,
   managedHostId: string,
   sourceHostId: string,
@@ -234,7 +235,17 @@ function validateMachineInspection(
     )
       throw new Error("record identity mismatch");
     if (inspection.records !== records.length) throw new Error("record count mismatch");
-    return { inspection, records, quotaSnapshots, state: {} };
+    // Optional, so an agent bundled before sightings were part of the result
+    // still validates; its sources simply remain unattributed.
+    const credential =
+      source.credential == null ? null : credentialSightingSchema.parse(source.credential);
+    if (
+      credential &&
+      (credential.sourceHostId !== sourceHostId ||
+        credential.usageSourceId !== inspection.usageSourceId)
+    )
+      throw new Error("credential identity mismatch");
+    return { inspection, records, quotaSnapshots, state: {}, credential };
   });
   const sourceIds = new Set(sources.map((source) => source.inspection.usageSourceId));
   if (

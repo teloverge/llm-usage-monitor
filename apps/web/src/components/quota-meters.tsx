@@ -1,8 +1,14 @@
 import { useTranslation } from "react-i18next";
 import type { CredentialObservation, UsageQuotaSnapshot } from "@llm-usage-monitor/contracts";
 import { STATUS } from "../theme/palette.ts";
-import { countsAgainstPlan, credentialModeKey, latestCredential } from "../model/credential.ts";
-import { formatDateTime, formatWholePercent, type QuotaStatus } from "../model/format.ts";
+import { countsAgainstPlan, credentialModeKey } from "../model/credential.ts";
+import {
+  formatDateTime,
+  formatList,
+  formatWholePercent,
+  type QuotaStatus,
+} from "../model/format.ts";
+import { quotaAccounts } from "../model/quota-account.ts";
 import { QUOTA_GLYPH, quotaMeterView } from "../model/quota-meter.ts";
 import { quotaWindowLabel } from "../model/quota-window.ts";
 
@@ -16,23 +22,20 @@ const FILL: Record<QuotaStatus, string> = {
 export function QuotaMeters({
   snapshots,
   harnessLabel,
+  hostLabel,
   credentials,
 }: {
   snapshots: UsageQuotaSnapshot[];
   harnessLabel: (usageSourceId: string) => string;
+  hostLabel: (sourceHostId: string) => string;
   credentials: CredentialObservation[];
 }) {
   const { t } = useTranslation();
   if (!snapshots.length) return <p className="empty-state">{t("common.notReported")}</p>;
   return (
     <div className="quota-groups">
-      {snapshots.map((snapshot) => {
+      {quotaAccounts(snapshots, credentials).map(({ snapshot, credential, sourceHostIds }) => {
         const observedAt = formatDateTime(snapshot.observedAt);
-        const credential = latestCredential(
-          credentials,
-          snapshot.usageSourceId,
-          snapshot.sourceHostId,
-        );
         return (
           <div className="quota-group" key={`${snapshot.usageSourceId}/${snapshot.sourceHostId}`}>
             <p className="quota-source">
@@ -49,6 +52,16 @@ export function QuotaMeters({
                 <span className="quota-observed">{t("quota.asOf", { at: observedAt })}</span>
               )}
             </p>
+            {/*
+              Named only when the meter stands for more than one host. A single
+              host is the ordinary case and naming it would say nothing the
+              Hosts panel does not.
+            */}
+            {sourceHostIds.length > 1 && (
+              <p className="quota-hosts">
+                {t("quota.hosts", { hosts: formatList(sourceHostIds.map(hostLabel)) })}
+              </p>
+            )}
             {credential && (
               <p className="quota-credential">
                 <span className={countsAgainstPlan(credential.mode) ? "" : "off-plan"}>

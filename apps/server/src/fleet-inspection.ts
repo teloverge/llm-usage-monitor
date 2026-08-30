@@ -8,8 +8,6 @@ import type {
   UsageRecord,
   UsageSourceInspection,
 } from "@llm-usage-monitor/contracts";
-import { claudeCredentialSighting } from "./claude-credential.ts";
-import { readClaudeConfig } from "./claude-quota.ts";
 import {
   inspectRemoteHost,
   isLocalComputeHost,
@@ -17,8 +15,6 @@ import {
   RemoteInspectionError,
   type ManagedComputeHost,
 } from "./compute-registry.ts";
-import { codexCredentialSighting } from "./codex-credential.ts";
-import { grokCredentialSighting } from "./grok-credential.ts";
 import { inspectMachine, MONITORED_SOURCES, type MachineInspection } from "./machine-inspection.ts";
 
 export interface FleetInspectionLedger {
@@ -101,14 +97,9 @@ export async function refreshManagedSources(options: {
       } catch (error) {
         console.warn(`quota snapshot refused for ${source.inspection.usageSourceId}:`, error);
       }
-      if (local && source.home) {
+      if (source.credential) {
         try {
-          const sighting = await localCredentialSighting(
-            source.inspection.usageSourceId,
-            source.home,
-            options.localSourceHostId,
-          );
-          if (sighting) options.ledger.recordCredentialObservation(sighting);
+          options.ledger.recordCredentialObservation(source.credential);
         } catch (error) {
           console.warn(
             `credential observation failed for ${source.inspection.usageSourceId}:`,
@@ -120,26 +111,6 @@ export async function refreshManagedSources(options: {
   }
   options.ledger.replaceUsageSourceInspections(inspections);
   return { affectedRecords, inspections };
-}
-
-async function localCredentialSighting(
-  usageSourceId: string,
-  home: string,
-  sourceHostId: string,
-): Promise<CredentialSighting | null> {
-  const observedAt = new Date().toISOString();
-  if (usageSourceId === "codex-local")
-    return codexCredentialSighting(home, sourceHostId, observedAt);
-  if (usageSourceId === "claude-code-local")
-    return claudeCredentialSighting(
-      await readClaudeConfig(home),
-      process.env,
-      sourceHostId,
-      observedAt,
-    );
-  if (usageSourceId === "grok-build-local")
-    return grokCredentialSighting(home, sourceHostId, observedAt);
-  return null;
 }
 
 function importKey(sourceHostId: string, usageSourceId: string): string {

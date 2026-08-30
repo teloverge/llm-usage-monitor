@@ -163,6 +163,7 @@
     "used": "{{percent}} usado",
     "resets": "se restablece {{at}}",
     "asOf": "a fecha de {{at}}",
+    "hosts": "Con sesión iniciada en {{hosts}}",
     "window": {
       "session": "Ventana de sesión",
       "weekly": "Ventana semanal",

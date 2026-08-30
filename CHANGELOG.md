@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Plan limits show one meter per account rather than one per host. Managed hosts now report the credential their sources are signed in with, and hosts whose credentials carry the same account fingerprint fold into a single meter carrying the newest reading and naming the hosts it covers. Hosts whose credential is unobserved or names no account stay separate.
 - Bind the standalone dashboard to the local host's Tailscale interface while keeping the VS Code server loopback-only.
 - Allow each managed host to declare its Node executable and give Windows inspections a three-minute timeout.
 

@@ -2,14 +2,19 @@ import { promises as fs } from "node:fs";
 import { arch, homedir, hostname, networkInterfaces, platform } from "node:os";
 import { join } from "node:path";
 import type {
+  CredentialSighting,
   SourceHost,
   SourceHostObservation,
   UsageQuotaSnapshot,
   UsageRecord,
   UsageSourceInspection,
 } from "@llm-usage-monitor/contracts";
+import { claudeCredentialSighting } from "./claude-credential.ts";
 import { ClaudeSessionProvider } from "./claude-importer.ts";
+import { readClaudeConfig } from "./claude-quota.ts";
+import { codexCredentialSighting } from "./codex-credential.ts";
 import { CodexSessionProvider } from "./codex-importer.ts";
+import { grokCredentialSighting } from "./grok-credential.ts";
 import { GrokSessionProvider } from "./grok-importer.ts";
 import { OpenCodeSessionProvider, defaultDataDirectories } from "./opencode-importer.ts";
 import type { ImportProvider } from "./run-import.ts";
@@ -27,6 +32,13 @@ export interface ProviderInspectionResult {
   quotaSnapshots: UsageQuotaSnapshot[];
   state: unknown;
   home?: string;
+  /**
+   * Observed on the inspected machine, whichever machine that is. A quota is a
+   * property of an account, and only the fingerprint can say that two hosts
+   * hold the same one; a remote inspection that carried no sighting left every
+   * managed host's meter standing beside the local host's identical reading.
+   */
+  credential?: CredentialSighting | null;
 }
 
 export interface MachineInspection {
@@ -88,6 +100,12 @@ export async function inspectMachine(options: {
           quotaSnapshots: result.quotaSnapshots,
           state: result.state,
           home,
+          credential: await credentialSighting(
+            descriptor.usageSourceId,
+            home,
+            options.sourceHostId,
+            inspectedAt,
+          ),
         };
       } catch {
         return {
@@ -106,6 +124,34 @@ export async function inspectMachine(options: {
     }),
   );
   return { host, observations: machineObservations(host, inspectedAt), sources };
+}
+
+/**
+ * Never throws: the records were already collected, and a credential file this
+ * process cannot read must not turn an available source into a failed one.
+ */
+async function credentialSighting(
+  usageSourceId: string,
+  home: string,
+  sourceHostId: string,
+  observedAt: string,
+): Promise<CredentialSighting | null> {
+  try {
+    if (usageSourceId === "codex-local")
+      return await codexCredentialSighting(home, sourceHostId, observedAt);
+    if (usageSourceId === "claude-code-local")
+      return claudeCredentialSighting(
+        await readClaudeConfig(home),
+        process.env,
+        sourceHostId,
+        observedAt,
+      );
+    if (usageSourceId === "grok-build-local")
+      return await grokCredentialSighting(home, sourceHostId, observedAt);
+  } catch {
+    // Fall through: nothing observed.
+  }
+  return null;
 }
 
 function providers(): ProviderDescriptor[] {

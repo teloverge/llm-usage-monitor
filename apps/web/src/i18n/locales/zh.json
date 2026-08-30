@@ -163,6 +163,7 @@
     "used": "已用 {{percent}}",
     "resets": "{{at}} 重置",
     "asOf": "截至 {{at}}",
+    "hosts": "已在 {{hosts}} 登录",
     "window": {
       "session": "会话窗口",
       "weekly": "每周窗口",

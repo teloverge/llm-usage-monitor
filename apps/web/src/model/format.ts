@@ -50,6 +50,7 @@ const plainCache = new Map<SupportedLocale, Intl.NumberFormat>();
 const compactCache = new Map<SupportedLocale, Intl.NumberFormat>();
 const percentCache = new Map<SupportedLocale, Intl.NumberFormat>();
 const wholePercentCache = new Map<SupportedLocale, Intl.NumberFormat>();
+const listCache = new Map<SupportedLocale, Intl.ListFormat>();
 
 /**
  * The ISO code rather than a symbol, in every locale. This dashboard reports
@@ -95,6 +96,13 @@ const wholePercent = () =>
     wholePercentCache,
     (locale) => new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 0 }),
   );
+
+/** "a, b, and c" in the interface language, conjunction and all. */
+export function formatList(items: string[]): string {
+  return cached(listCache, (locale) => new Intl.ListFormat(locale, { type: "conjunction" })).format(
+    items,
+  );
+}
 
 export function formatMoney(value: number): string {
   return money().format(value);

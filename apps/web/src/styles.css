@@ -406,6 +406,11 @@ footer {
 .quota-observed {
   font-variant-numeric: tabular-nums;
 }
+.quota-hosts {
+  margin: -2px 0 7px;
+  color: var(--muted);
+  font-size: var(--size-meta);
+}
 .quota-window + .quota-window {
   margin-top: 11px;
 }
