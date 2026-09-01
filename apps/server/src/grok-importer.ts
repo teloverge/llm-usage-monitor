@@ -188,7 +188,9 @@ async function homeFingerprint(
   sessionDirectories: Map<string, string>,
 ): Promise<string> {
   const parts: string[] = [await fileFingerprint(logFile)];
-  for (const [sessionId, directory] of [...sessionDirectories.entries()].sort()) {
+  for (const [sessionId, directory] of [...sessionDirectories.entries()].sort(([a], [b]) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  )) {
     parts.push(
       `${sessionId}=${await fileFingerprint(join(directory, "events.jsonl"))},${await fileFingerprint(join(directory, "summary.json"))}`,
     );

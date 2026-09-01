@@ -39,5 +39,5 @@ async function filesUnder(directory) {
     if (entry.isDirectory()) files.push(...(await filesUnder(path)));
     else files.push(path);
   }
-  return files.sort();
+  return files.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }

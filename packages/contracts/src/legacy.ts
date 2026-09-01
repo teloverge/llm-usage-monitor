@@ -25,15 +25,20 @@ export function harnessForSource(usageSourceId: string): string {
  * Upgrades a stored Usage Record to the canonical shape, then validates it.
  * Records written before the identity migration carry `source` but no
  * `usageSourceId`/`harnessId`, and embed Codex-shaped `rateLimits`.
+ *
+ * Only a missing identity field gets a fallback. One that is present with a
+ * non-string value stays as-is so schema validation rejects the record,
+ * rather than being coerced into a "[object Object]" id that would validate.
  */
 export function decodeUsageRecord(value: unknown): UsageRecord {
   const record = { ...(value as Record<string, unknown>) };
-  const usageSourceId = String(record.usageSourceId ?? record.source ?? "unknown");
-  record.usageSourceId = usageSourceId;
-  record.harnessId = String(record.harnessId ?? harnessForSource(usageSourceId));
-  record.source = String(record.source ?? usageSourceId);
+  record.usageSourceId ??= record.source ?? "unknown";
+  const usageSourceId = record.usageSourceId;
+  record.harnessId ??=
+    typeof usageSourceId === "string" ? harnessForSource(usageSourceId) : "unknown";
+  record.source ??= usageSourceId;
   delete record.rateLimits;
-  const reasoning = String(record.reasoningLevel ?? "").trim();
+  const reasoning = typeof record.reasoningLevel === "string" ? record.reasoningLevel.trim() : "";
   if (!reasoning || reasoning.toLocaleLowerCase() === "unknown") delete record.reasoningLevel;
   return usageRecordSchema.parse(record);
 }
