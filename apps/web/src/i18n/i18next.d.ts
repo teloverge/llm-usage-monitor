@@ -1,7 +1,7 @@
 import type en from "./locales/en.json";
 
 /**
- * Binds `t()` to the English resource file, which makes `bun run typecheck` fail
+ * Binds `t()` to the English resource file, which makes `vp run typecheck` fail
  * on a key that does not exist. That is the only automated check standing behind
  * the string-extraction work — the repo has no React test runner — so it is
  * doing real load-bearing work, not just improving autocomplete.

@@ -1,0 +1,54 @@
+name: Feature request
+description: Propose an improvement or new capability. Open this before writing code.
+title: "[Feature]: "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read [CONTRIBUTING.md](https://github.com/teloverge/llm-usage-monitor/blob/main/CONTRIBUTING.md) first.
+        The project is deliberately narrow in scope. Proposals that expand it (new usage sources, new chart types, new integrations) are unlikely to be accepted, but describing the idea here costs nothing and avoids wasted PRs.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I have read CONTRIBUTING.md and understand this may be closed.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that you cannot do today? Describe the situation, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What would you change, and where? Keep it as small as possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways to solve the problem, including "do nothing".
+
+  - type: dropdown
+    id: willing
+    attributes:
+      label: Are you willing to implement this?
+      options:
+        - "Yes, if the approach is agreed first"
+        - "No"
+    validations:
+      required: true
