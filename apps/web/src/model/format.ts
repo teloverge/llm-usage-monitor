@@ -237,6 +237,60 @@ export function formatDateTime(value: string, timeZone?: string): string | null 
   ).format(instant);
 }
 
+type DurationUnit = "day" | "hour" | "minute" | "second";
+const durationCaches = new Map<DurationUnit, Map<SupportedLocale, Intl.NumberFormat>>();
+function durationUnit(unit: DurationUnit): Intl.NumberFormat {
+  let store = durationCaches.get(unit);
+  if (!store) {
+    store = new Map();
+    durationCaches.set(unit, store);
+  }
+  return cached(
+    store,
+    (locale) =>
+      new Intl.NumberFormat(locale, {
+        style: "unit",
+        unit,
+        unitDisplay: "narrow",
+        maximumFractionDigits: 0,
+      }),
+  );
+}
+
+/**
+ * The span between two instants as at most two units — "2d 4h", "1h 12m",
+ * "35m" — in the interface language, so a conversation's row can answer "how
+ * long did this run" without the reader subtracting dates. Under a minute it
+ * counts seconds rather than rounding to "0m". Returns null when either instant
+ * is unparseable or the span is negative, so a caller renders nothing.
+ */
+export function formatDuration(from: string, to: string): string | null {
+  const start = Date.parse(from);
+  const end = Date.parse(to);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+  const totalMinutes = Math.round((end - start) / 60_000);
+  if (totalMinutes < 1)
+    return durationUnit("second").format(Math.max(1, Math.round((end - start) / 1_000)));
+  const days = Math.floor(totalMinutes / 1_440);
+  const hours = Math.floor((totalMinutes % 1_440) / 60);
+  const minutes = totalMinutes % 60;
+  const parts: [DurationUnit, number][] = days
+    ? [
+        ["day", days],
+        ["hour", hours],
+      ]
+    : hours
+      ? [
+          ["hour", hours],
+          ["minute", minutes],
+        ]
+      : [["minute", minutes]];
+  return parts
+    .filter(([, amount], index) => index === 0 || amount > 0)
+    .map(([unit, amount]) => durationUnit(unit).format(amount))
+    .join(" ");
+}
+
 export type QuotaStatus = "good" | "warning" | "critical" | "unreported";
 
 /**

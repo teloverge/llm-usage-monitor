@@ -6,7 +6,7 @@ import { Headline } from "../components/headline.tsx";
 import { Panel, Zone } from "../components/panel.tsx";
 import { QuotaMeters } from "../components/quota-meters.tsx";
 import { RankList } from "../components/rank-list.tsx";
-import { StatStrip } from "../components/stat-strip.tsx";
+import { CostStrip, StatStrip } from "../components/stat-strip.tsx";
 import { TokenMix } from "../components/token-mix.tsx";
 
 export function Overview({
@@ -34,6 +34,7 @@ export function Overview({
       <div className="cockpit-main">
         <Headline data={data} hostLabel={hostLabel} />
         <StatStrip totals={data.totals} />
+        <CostStrip total={data.totals.estimatedCost} breakdown={data.totals.costBreakdown} />
         <Zone>{t("overview.drivers")}</Zone>
         <div className="drivers">
           <Panel label={t("overview.byHarness")}>

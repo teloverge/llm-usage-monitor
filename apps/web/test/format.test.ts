@@ -4,6 +4,7 @@ import {
   formatBucketLabel,
   formatCount,
   formatDateTime,
+  formatDuration,
   formatMoney,
   formatNumberCompact,
   formatPercent,
@@ -310,5 +311,35 @@ describe("Quota thresholds", () => {
 
   it("is unreported when the source did not supply a percentage", () => {
     assert.equal(quotaStatus(undefined), "unreported");
+  });
+});
+
+describe("formatDuration", () => {
+  it("shows at most two units, largest first, in the interface language", () => {
+    inLocale("en", () => {
+      assert.equal(formatDuration("2026-07-23T12:00:00Z", "2026-07-25T16:30:00Z"), "2d 4h");
+      assert.equal(formatDuration("2026-07-23T12:00:00Z", "2026-07-23T13:12:00Z"), "1h 12m");
+      assert.equal(formatDuration("2026-07-23T12:00:00Z", "2026-07-23T12:35:00Z"), "35m");
+    });
+  });
+
+  it("counts seconds under a minute rather than rounding to nothing", () => {
+    inLocale("en", () => {
+      assert.equal(formatDuration("2026-07-23T12:00:00Z", "2026-07-23T12:00:09Z"), "9s");
+      assert.equal(formatDuration("2026-07-23T12:00:00Z", "2026-07-23T12:00:00Z"), "1s");
+    });
+  });
+
+  it("drops a zero trailing unit but never the leading one", () => {
+    inLocale("en", () => {
+      assert.equal(formatDuration("2026-07-23T12:00:00Z", "2026-07-25T12:00:00Z"), "2d");
+    });
+  });
+
+  it("returns null for an unparseable or negative span", () => {
+    inLocale("en", () => {
+      assert.equal(formatDuration("nope", "2026-07-23T12:00:00Z"), null);
+      assert.equal(formatDuration("2026-07-23T12:00:00Z", "2026-07-23T11:00:00Z"), null);
+    });
   });
 });

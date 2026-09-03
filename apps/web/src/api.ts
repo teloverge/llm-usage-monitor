@@ -8,7 +8,7 @@ import type {
   OverviewView,
   SourceHost,
   UsageFilters,
-  UsageHistoryRecord,
+  UsageHistoryView,
   UsageSourceInspection,
 } from "@llm-usage-monitor/contracts";
 
@@ -20,8 +20,8 @@ export async function getOverview(filters: UsageFilters): Promise<OverviewView> 
   );
   return requestJson<OverviewView>(`./api/overview?${query}`);
 }
-export async function getHistory(): Promise<UsageHistoryRecord[]> {
-  return (await requestJson<{ records: UsageHistoryRecord[] }>("./api/history?limit=500")).records;
+export async function getHistory(): Promise<UsageHistoryView> {
+  return requestJson<UsageHistoryView>("./api/history");
 }
 export async function getCatalog(): Promise<{
   prices: ModelPrice[];

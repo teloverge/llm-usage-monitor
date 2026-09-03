@@ -5,6 +5,7 @@ import { createInterface } from "node:readline";
 import type { UsageRecord } from "@llm-usage-monitor/contracts";
 import { claudeQuotaSnapshot, readClaudeConfig } from "./claude-quota.ts";
 import { usageModeFlags } from "./codex-importer.ts";
+import { readT3ConversationTitles } from "./t3-titles.ts";
 
 const CACHE_SCHEMA_VERSION = 1;
 const MAX_FILES = 100_000;
@@ -45,6 +46,11 @@ export class ClaudeSessionProvider {
       configuredHome?.trim() || process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude"),
     );
     const files = (await walkJsonl(join(home, "projects"))).slice(0, MAX_FILES);
+    // Applied over both the parsed and the cached records, and never written
+    // into the cache: the cache keeps the transcript's own ai-title, so a title
+    // regenerated in T3 shows up on the next import, and a thread deleted from
+    // T3 falls back to the ai-title rather than keeping a stale one.
+    const t3Titles = await readT3ConversationTitles("claudeAgent");
     const nextFiles: NonNullable<ImportState["files"]> = {};
     const records: UsageRecord[] = [];
     let parsedFiles = 0;
@@ -65,7 +71,13 @@ export class ClaudeSessionProvider {
         parsedFiles += 1;
       }
       nextFiles[file] = { fingerprint, records: parsed };
-      records.push(...parsed.map((record) => ({ ...record, sourceHostId })));
+      records.push(
+        ...parsed.map((record) => ({
+          ...record,
+          sourceHostId,
+          taskName: t3Titles.get(record.sessionId ?? "") ?? record.taskName,
+        })),
+      );
     }
     const snapshot = claudeQuotaSnapshot(await readClaudeConfig(home), sourceHostId);
     return {

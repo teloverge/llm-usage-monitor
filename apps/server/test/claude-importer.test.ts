@@ -3,7 +3,8 @@ import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { parseClaudeSession } from "../src/claude-importer.ts";
+import { ClaudeSessionProvider, parseClaudeSession } from "../src/claude-importer.ts";
+import { withT3Home, writeT3Home } from "./t3-fixture.ts";
 
 const SESSION = "25f76325-0502-4193-bdf6-3717172e3db1";
 
@@ -104,5 +105,46 @@ describe("Claude importer", () => {
   it("ignores malformed lines instead of failing the whole session", async () => {
     const records = await parseLines([assistant(), "{ not json"]);
     assert.equal(records.length, 1);
+  });
+});
+
+describe("Claude import T3 titles", () => {
+  it("prefers the T3 conversation title over the transcript's ai-title, even from cache", async () => {
+    const root = await fs.mkdtemp(join(tmpdir(), "claude-t3-"));
+    const project = join(root, ".claude", "projects", "-home-user-project");
+    await fs.mkdir(project, { recursive: true });
+    await fs.writeFile(
+      join(project, `${SESSION}.jsonl`),
+      [assistant(), { type: "ai-title", sessionId: SESSION, aiTitle: "App compatibility on Linux" }]
+        .map((line) => JSON.stringify(line))
+        .join("\n"),
+      "utf8",
+    );
+    const t3Home = await writeT3Home(root, [
+      {
+        provider: "claudeAgent",
+        title: "Verify Linux LLM Setup",
+        cursor: JSON.stringify({ threadId: "t3-thread", resume: SESSION, turnCount: 1 }),
+      },
+    ]);
+    await withT3Home(t3Home, async () => {
+      const provider = new ClaudeSessionProvider();
+      const first = await provider.collect("host:a", join(root, ".claude"), {});
+      assert.equal(first.records.length, 1);
+      assert.equal(first.records[0]?.taskName, "Verify Linux LLM Setup");
+      const second = await provider.collect("host:a", join(root, ".claude"), first.state);
+      assert.equal(second.stats.parsedFiles, 0, "expected the second run to be fully cached");
+      assert.equal(second.records[0]?.taskName, "Verify Linux LLM Setup");
+    });
+    // The cache keeps the transcript's own title, so removing T3 falls back to it.
+    await withT3Home(join(root, "no-t3"), async () => {
+      const cached = await new ClaudeSessionProvider().collect(
+        "host:a",
+        join(root, ".claude"),
+        (await new ClaudeSessionProvider().collect("host:a", join(root, ".claude"), {})).state,
+      );
+      assert.equal(cached.records[0]?.taskName, "App compatibility on Linux");
+    });
+    await fs.rm(root, { recursive: true, force: true });
   });
 });

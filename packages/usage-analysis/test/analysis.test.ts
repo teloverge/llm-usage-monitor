@@ -8,6 +8,7 @@ import type {
 import {
   analyzeHistory,
   analyzeUsage,
+  costComponents,
   currentQuota,
   effectiveCredential,
   timeframeRange,
@@ -15,7 +16,7 @@ import {
 
 const record = (
   timestamp: string,
-  reasoningLevel: string | undefined = undefined,
+  reasoningLevel?: string | undefined,
   modeFlags = { ultra: false, fast: false },
   overrides: Partial<UsageRecord> = {},
 ): UsageRecord => ({
@@ -71,14 +72,14 @@ describe("Cache-aware costing", () => {
 
   it("bills reads, writes, and fresh input at their own rates", () => {
     // 100k fresh @15 + 600k read @1.50 + 300k write @18.75 = 1.5 + 0.9 + 5.625
-    const [priced] = analyzeHistory([claude()], [price]);
+    const [priced] = analyzeHistory([claude()], [price]).groups;
     assert.equal(priced?.estimatedCost, 8.025);
   });
 
   it("charges cache writes at the base input rate when the card omits one", () => {
     const { cacheWrite: _cacheWrite, ...noWriteRate } = price;
     // Without the surcharge the 300k write joins the 100k fresh at $15/M.
-    const [priced] = analyzeHistory([claude()], [noWriteRate]);
+    const [priced] = analyzeHistory([claude()], [noWriteRate]).groups;
     assert.equal(priced?.estimatedCost, 6 + 0.9);
   });
 
@@ -93,7 +94,7 @@ describe("Cache-aware costing", () => {
       effectiveDate: "2026-07-26",
     };
     // 500k fresh @10 + 500k cached @1 + 100k output @20 = 5 + 0.5 + 2
-    const [priced] = analyzeHistory([record("2026-07-25T12:00:00.000Z")], [openai]);
+    const [priced] = analyzeHistory([record("2026-07-25T12:00:00.000Z")], [openai]).groups;
     assert.equal(priced?.estimatedCost, 7.5);
   });
 
@@ -101,9 +102,55 @@ describe("Cache-aware costing", () => {
     const [priced] = analyzeHistory(
       [claude({ cachedInputTokens: 900_000, cacheCreationInputTokens: 900_000 })],
       [price],
-    );
+    ).groups;
     // Reads clamp to 900k, writes to the remaining 100k, fresh to nothing.
     assert.equal(priced?.estimatedCost, (900_000 * 1.5 + 100_000 * 18.75) / 1_000_000);
+  });
+
+  it("splits the estimate by rate, with savings stated beside it rather than inside it", () => {
+    const parts = costComponents(claude(), [price]);
+    // 100k fresh @15, 600k read @1.50, 300k write @18.75, no output.
+    assert.deepEqual(parts, {
+      input: 1.5,
+      cacheRead: 0.9,
+      cacheWrite: 5.625,
+      output: 0,
+      // The 600k reads at the $15 base rate would have been $9; they cost $0.90.
+      cacheSavings: 8.1,
+    });
+    const view = analyzeUsage({
+      records: [claude()],
+      prices: [price],
+      memberships: [],
+      quotaSnapshots: [],
+      filters: { timeframe: "all" },
+    });
+    assert.deepEqual(view.totals.costBreakdown, parts);
+    assert.equal(view.totals.estimatedCost, 8.025);
+  });
+
+  it("prices a model however the harness and the rate source spell its version", () => {
+    // Claude Code writes `claude-opus-4-8`; OpenRouter lists `claude-opus-4.8`.
+    const opus = { ...price, model: "claude-opus-4.8" };
+    assert.equal(
+      analyzeHistory([claude({ model: "claude-opus-4-8" })], [opus]).groups[0]?.estimatedCost,
+      8.025,
+    );
+    // Haiku arrives date-stamped; the bare id on the card must still match.
+    const haiku = { ...price, model: "claude-haiku-4-5" };
+    assert.equal(
+      analyzeHistory([claude({ model: "claude-haiku-4-5-20251001" })], [haiku]).groups[0]
+        ?.estimatedCost,
+      8.025,
+    );
+    // But a different version is a different model, never a near-enough match.
+    assert.equal(
+      analyzeHistory(
+        [claude({ model: "claude-fable-5-1" })],
+        [{ ...price, model: "claude-fable-5" }],
+      ).groups[0]?.estimatedCost,
+      null,
+    );
   });
 
   it("keeps cache writes out of the cache-efficiency ratio", () => {
@@ -259,13 +306,13 @@ describe("Usage Analysis", () => {
       filters: { timeframe: "last24" },
       now: new Date("2026-07-23T12:00:00Z"),
     });
-    const history = analyzeHistory(records, prices);
+    const session = analyzeHistory(records, prices).groups[0]?.sessions[0];
     assert.equal(view.bySourceHost[0]?.key, "host:a");
-    assert.equal(history[0]?.sourceHostId, "host:a");
+    assert.deepEqual(session?.sourceHostIds, ["host:a"]);
     // No rendered label may survive on either payload — a string here would be
     // English text no locale could override.
     assert.equal("sourceHostLabel" in view.bySourceHost[0]!, false);
-    assert.equal("sourceHostLabel" in history[0]!, false);
+    assert.equal("sourceHosts" in session!, false);
   });
 });
 

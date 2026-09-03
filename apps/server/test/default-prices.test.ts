@@ -34,6 +34,34 @@ describe("default prices", () => {
     );
   });
 
+  it("adds the Claude models Claude Code reports that the first Claude catalog lacked", () => {
+    const existing: ModelPrice = {
+      provider: "anthropic",
+      model: "claude-opus-5",
+      input: 5,
+      cachedInput: 0.5,
+      cacheWrite: 6.25,
+      output: 25,
+      source: "user",
+      effectiveDate: "2026-07-26",
+    };
+    const merged = mergeDefaultPrices([existing]);
+    assert.deepEqual(
+      merged.find((price) => price.model === "claude-fable-5-1"),
+      {
+        provider: "anthropic",
+        model: "claude-fable-5-1",
+        input: 10,
+        cachedInput: 0.25,
+        cacheWrite: 12.5,
+        output: 50,
+        source: "https://openrouter.ai/api/v1/models",
+        effectiveDate: "2026-09-02",
+      },
+    );
+    assert.equal(merged.find((price) => price.model === "claude-haiku-4-5")?.output, 5);
+  });
+
   it("reaches an existing catalog with a newly supported provider's rates", () => {
     // Without this an install predating Claude support imports Claude records and
     // prices every one of them at zero, because it already has configured prices.

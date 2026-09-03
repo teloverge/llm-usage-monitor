@@ -218,22 +218,86 @@ export const usageRecordSchema = z
     source: z.string().min(1).max(200),
     sessionId: z.string().max(200).optional(),
     turnId: z.string().max(200).optional(),
+    /**
+     * The session that spawned this one, when the harness says so. Codex writes
+     * it into a subagent's rollout; it is what lets History fold an agent's
+     * usage into the conversation that started it. Absent for a root session.
+     */
+    parentSessionId: z.string().max(200).optional(),
+    /** The harness's own name for a spawned agent ("Gibbs"), display copy only. */
+    agentNickname: z.string().max(100).optional(),
   })
   .strict();
 export type UsageRecord = z.infer<typeof usageRecordSchema>;
 export type RateLimits = z.infer<typeof rateLimitsSchema>;
 export type UsageModeFlags = z.infer<typeof usageModeFlagsSchema>;
 /**
- * Carries `sourceHostId` rather than a rendered label. The label is display
- * copy: a host whose hostname is a MAC address falls back to positional wording
- * that is translated, and the analysis layer has no idea what language the
- * reader is using. Resolving the id against the catalog is the consumer's job —
- * the same split `byHarness` already uses, where the row key is the raw harness
- * id and the view renders it.
+ * One harness session inside a History conversation. Carries raw ids — `sourceHostIds`,
+ * `harnesses`, a `null` reasoning level for "not reported" — rather than rendered
+ * labels. The label is display copy: a host whose hostname is a MAC address falls
+ * back to positional wording that is translated, and the analysis layer has no
+ * idea what language the reader is using. Resolving ids against the catalog is
+ * the consumer's job — the same split `byHarness` already uses, where the row key
+ * is the raw harness id and the view renders it.
  */
-export type UsageHistoryRecord = UsageRecord & {
+export interface UsageHistorySession {
+  key: string;
+  /** The spawning session's key, or `null` for a session the user started. */
+  parentSessionId: string | null;
+  agentNickname: string | null;
+  /** Spawn depth within its group: 0 for a root, 1 for its agents, and so on. */
+  depth: number;
+  firstActiveAt: string;
+  lastActiveAt: string;
+  records: number;
+  totalTokens: number;
   estimatedCost: number | null;
-};
+  /** Null when no record in the session was priced. */
+  costBreakdown: UsageCostBreakdown | null;
+  sourceHostIds: string[];
+  /** `model · provider`, in the order each pair last appeared. */
+  models: string[];
+  /** `null` where a record reported no reasoning level. */
+  reasoningLevels: (string | null)[];
+  /** Harness ids, in the order they last appeared. */
+  harnesses: string[];
+  modeFlags: UsageModeFlags;
+}
+
+/** A conversation: every session whose records share a task name, newest first. */
+export interface UsageHistoryGroup {
+  key: string;
+  /** The newest record's task name, trimmed; empty when no record carried one. */
+  taskName: string;
+  /**
+   * Root sessions first, each followed by the agents it spawned, depth-first.
+   * The group totals below include every one of them; `agents` is the share
+   * spent by spawned sessions alone.
+   */
+  sessions: UsageHistorySession[];
+  agents: { sessions: number; totalTokens: number; estimatedCost: number | null };
+  /** Oldest and newest record timestamps across every session, agents included. */
+  firstActiveAt: string;
+  lastActiveAt: string;
+  records: number;
+  totalTokens: number;
+  estimatedCost: number | null;
+  /** Null when no record in the conversation was priced. */
+  costBreakdown: UsageCostBreakdown | null;
+}
+
+/**
+ * The History view is grouped on the server, not shipped as records: a Fleet's
+ * ledger runs to tens of thousands of records and tens of megabytes as JSON,
+ * where its conversations number in the hundreds. Sending every record so the
+ * browser could group them is what once forced a record cap on this endpoint —
+ * and that cap is why older conversations silently vanished from History.
+ */
+export interface UsageHistoryView {
+  groups: UsageHistoryGroup[];
+  /** Records across every group, so the summary line can still count them. */
+  records: number;
+}
 
 export interface SourceHost {
   id: string;
@@ -299,8 +363,23 @@ export interface ModelPrice {
 
 export const timeframeSchema = z.enum(["today", "last24", "7", "30", "90", "all", "custom"]);
 export type Timeframe = z.infer<typeof timeframeSchema>;
+/**
+ * An API-equivalent estimate split by the rate it was billed at. The four
+ * shares sum to the estimate; `cacheSavings` is what the cache reads would
+ * have cost at the base input rate minus what they did cost, and is not part
+ * of the sum. All figures are dollars.
+ */
+export interface UsageCostBreakdown {
+  /** Fresh input at the base rate: neither read from nor written to the cache. */
+  input: number;
+  cacheRead: number;
+  cacheWrite: number;
+  output: number;
+  cacheSavings: number;
+}
 export interface UsageTotals {
   estimatedCost: number;
+  costBreakdown: UsageCostBreakdown;
   pricedRecords: number;
   records: number;
   tasks: number;
