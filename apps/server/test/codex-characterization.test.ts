@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, it } from "node:test";
+import { afterEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   CodexSessionProvider,
   parseSession,
   quotaSnapshotFromRateLimits,
 } from "../src/codex-importer.ts";
+import { withT3Home, writeT3Home } from "./t3-fixture.ts";
 
 const fixtures = fileURLToPath(new URL("./fixtures/codex/", import.meta.url));
 const session = join(
@@ -262,5 +265,102 @@ describe("Codex import quota snapshots", () => {
     );
     assert.deepEqual(result.quotaSnapshots, []);
     assert.deepEqual(result.records, []);
+  });
+});
+
+/**
+ * The session index names the 07-20 fixture "portable-usage-host". When T3
+ * drove that session, the title the user sees is T3's, so it has to win over
+ * the index — on the parsed path and on the cached path alike.
+ */
+describe("Codex import T3 titles", () => {
+  const cleanup: string[] = [];
+  afterEach(async () => {
+    for (const directory of cleanup.splice(0))
+      await rm(directory, { recursive: true, force: true });
+  });
+
+  it("prefers the T3 conversation title over the session index, even from cache", async () => {
+    const root = await mkdtemp(join(tmpdir(), "codex-t3-"));
+    cleanup.push(root);
+    const t3Home = await writeT3Home(root, [
+      {
+        provider: "codex",
+        title: "Portable usage host",
+        cursor: JSON.stringify({ threadId: "11111111-2222-3333-4444-555555555555" }),
+      },
+    ]);
+    await withT3Home(t3Home, async () => {
+      const provider = new CodexSessionProvider();
+      const first = await provider.collect("host:a", fixtures, {});
+      const titled = first.records.filter(
+        (record) => record.sessionId === "11111111-2222-3333-4444-555555555555",
+      );
+      assert.ok(titled.length > 0);
+      assert.ok(titled.every((record) => record.taskName === "Portable usage host"));
+      const second = await provider.collect("host:a", fixtures, first.state);
+      assert.equal(second.stats.parsedFiles, 0, "expected the second run to be fully cached");
+      assert.ok(
+        second.records
+          .filter((record) => record.sessionId === "11111111-2222-3333-4444-555555555555")
+          .every((record) => record.taskName === "Portable usage host"),
+      );
+    });
+  });
+});
+
+/**
+ * A subagent's rollout is a fork of its parent's — see fixtures/codex-fork/README.
+ * Before this, the parser named the file after the LAST session_meta (the
+ * replayed parent's), emitted the replayed turns under the parent's own turn ids
+ * with the fork's snapshot figures, and lost the agent as a session entirely.
+ */
+describe("Codex subagent forks", () => {
+  const forkHome = fileURLToPath(new URL("./fixtures/codex-fork/", import.meta.url));
+  const parentId = "01900000-0000-7000-8000-000000000001";
+  const agentId = "01900000-0100-7000-8000-000000000002";
+  const agentFile = join(
+    forkHome,
+    "sessions/2026/08",
+    `rollout-2026-08-01T10-06-00-${agentId}.jsonl`,
+  );
+
+  it("keeps the agent's own session id and parent link, not the replayed parent's", async () => {
+    const { records } = await parseSession(agentFile, new Map());
+    assert.equal(records.length, 1);
+    assert.equal(records[0]?.sessionId, agentId);
+    assert.equal(records[0]?.parentSessionId, parentId);
+    assert.equal(records[0]?.agentNickname, "Gibbs");
+    assert.equal(records[0]?.id, `codex:${agentId}:01900000-0200-7000-8000-0000000000b1`);
+  });
+
+  it("skips replayed turns but measures the first own turn against the replay's last total", async () => {
+    const { records } = await parseSession(agentFile, new Map());
+    // 3,100 cumulative after the replay's 2,400: the agent spent 700, not 3,100.
+    assert.equal(records[0]?.totalTokens, 700);
+    assert.equal(records[0]?.inputTokens, 600);
+    assert.equal(records[0]?.cachedInputTokens, 300);
+    assert.equal(records[0]?.outputTokens, 100);
+    assert.equal(records[0]?.reasoningLevel, "medium");
+  });
+
+  it("names the agent after the root conversation and never emits a parent turn twice", async () => {
+    const result = await new CodexSessionProvider().collect("host:a", forkHome, {});
+    const ids = result.records.map((record) => record.id);
+    assert.equal(new Set(ids).size, ids.length, "a record id was produced by two files");
+    const parentRecords = result.records.filter((record) => record.sessionId === parentId);
+    const agentRecords = result.records.filter((record) => record.sessionId === agentId);
+    assert.equal(parentRecords.length, 2);
+    assert.equal(agentRecords.length, 1);
+    // The parent's finished figure for its second turn, not the fork's snapshot.
+    assert.equal(parentRecords.find((record) => record.id.endsWith("a2"))?.totalTokens, 2400);
+    assert.equal(agentRecords[0]?.taskName, "Fork parent task");
+    // The inherited name is applied on the cached path too.
+    const cached = await new CodexSessionProvider().collect("host:a", forkHome, result.state);
+    assert.equal(cached.stats.parsedFiles, 0);
+    assert.equal(
+      cached.records.find((record) => record.sessionId === agentId)?.taskName,
+      "Fork parent task",
+    );
   });
 });

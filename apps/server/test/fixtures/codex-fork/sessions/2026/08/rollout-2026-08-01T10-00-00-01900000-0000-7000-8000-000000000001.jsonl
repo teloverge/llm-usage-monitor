@@ -1,0 +1,5 @@
+{"type": "session_meta", "timestamp": "2026-08-01T10:00:00.000Z", "payload": {"id": "01900000-0000-7000-8000-000000000001", "model_provider": "openai", "source": "vscode", "timestamp": "2026-08-01T10:00:00.000Z"}}
+{"type": "turn_context", "timestamp": "2026-08-01T10:00:05.000Z", "payload": {"turn_id": "01900000-0001-7000-8000-0000000000a1", "model": "gpt-5-codex", "effort": "high"}}
+{"type": "event_msg", "timestamp": "2026-08-01T10:00:30.000Z", "payload": {"type": "token_count", "info": {"total_token_usage": {"input_tokens": 1000, "cached_input_tokens": 400, "output_tokens": 200, "reasoning_output_tokens": 100, "total_tokens": 1200}, "model_context_window": 400000}}}
+{"type": "turn_context", "timestamp": "2026-08-01T10:05:00.000Z", "payload": {"turn_id": "01900000-0002-7000-8000-0000000000a2", "model": "gpt-5-codex", "effort": "high"}}
+{"type": "event_msg", "timestamp": "2026-08-01T10:05:40.000Z", "payload": {"type": "token_count", "info": {"total_token_usage": {"input_tokens": 3000, "cached_input_tokens": 1500, "output_tokens": 600, "reasoning_output_tokens": 250, "total_tokens": 3600}, "model_context_window": 400000}}}

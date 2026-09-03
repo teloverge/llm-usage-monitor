@@ -151,12 +151,8 @@ export async function startUsageMonitorServer(options: {
         }),
       );
     }
-    if (request.method === "GET" && resource === "api/history") {
-      const limit = Math.min(500, Math.max(1, Number(url.searchParams.get("limit")) || 200));
-      return sendJson(response, 200, {
-        records: analyzeHistory(ledger.records().slice(0, limit), ledger.prices()),
-      });
-    }
+    if (request.method === "GET" && resource === "api/history")
+      return sendJson(response, 200, analyzeHistory(ledger.records(), ledger.prices()));
     if (request.method === "GET" && resource === "api/catalog")
       return sendJson(response, 200, {
         prices: ledger.prices(),

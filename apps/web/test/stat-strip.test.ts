@@ -5,6 +5,7 @@ import { cacheStat } from "../src/model/stat-strip.ts";
 
 const totals = (overrides: Partial<UsageTotals>): UsageTotals => ({
   estimatedCost: 0,
+  costBreakdown: { input: 0, cacheRead: 0, cacheWrite: 0, output: 0, cacheSavings: 0 },
   pricedRecords: 0,
   records: 0,
   tasks: 0,

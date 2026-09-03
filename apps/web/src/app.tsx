@@ -6,7 +6,7 @@ import type {
   OverviewView,
   SourceHost,
   UsageFilters,
-  UsageHistoryRecord,
+  UsageHistoryView,
   UsageSourceInspection,
 } from "@llm-usage-monitor/contracts";
 import { useTranslation } from "react-i18next";
@@ -38,7 +38,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filters, setFilters] = useState<UsageFilters>({ timeframe: "30" });
   const [overview, setOverview] = useState<OverviewView | null>(null);
-  const [history, setHistory] = useState<UsageHistoryRecord[]>([]);
+  const [history, setHistory] = useState<UsageHistoryView | null>(null);
   const [prices, setPrices] = useState<ModelPrice[]>([]);
   const [sourceHosts, setSourceHosts] = useState<SourceHost[]>([]);
   const [hostGroups, setHostGroups] = useState<HostGroup[]>([]);
@@ -267,7 +267,7 @@ function ViewSlot({
   view: View;
   settingsOpen: boolean;
   overview: OverviewView | null;
-  history: UsageHistoryRecord[];
+  history: UsageHistoryView | null;
   prices: ModelPrice[];
   hostGroups: HostGroup[];
   memberships: HostGroupMembership[];
@@ -303,5 +303,5 @@ function ViewSlot({
         onDimensionChange={onBreakdownDimensionChange}
       />
     ) : null;
-  return <History records={history} hostLabel={hostLabel} />;
+  return history ? <History data={history} hostLabel={hostLabel} /> : null;
 }

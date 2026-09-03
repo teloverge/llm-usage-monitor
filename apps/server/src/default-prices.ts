@@ -36,13 +36,19 @@ const OPENAI_DEFAULT_PRICES: ModelPrice[] = [
  * whichever direction the session happened to lean.
  */
 const ANTHROPIC_DEFAULT_PRICES: ModelPrice[] = [
-  ["claude-opus-5", 5, 0.5, 6.25, 25],
-  ["claude-opus-5-fast", 10, 1, 12.5, 50],
-  ["claude-sonnet-5", 2, 0.2, 2.5, 10],
-  ["claude-opus-4.8", 5, 0.5, 6.25, 25],
-  ["claude-opus-4.8-fast", 10, 1, 12.5, 50],
-  ["claude-fable-5", 10, 1, 12.5, 50],
-].map(([model, input, cachedInput, cacheWrite, output]) => ({
+  ["claude-opus-5", 5, 0.5, 6.25, 25, "2026-07-26"],
+  ["claude-opus-5-fast", 10, 1, 12.5, 50, "2026-07-26"],
+  ["claude-sonnet-5", 2, 0.2, 2.5, 10, "2026-07-26"],
+  ["claude-opus-4.8", 5, 0.5, 6.25, 25, "2026-07-26"],
+  ["claude-opus-4.8-fast", 10, 1, 12.5, 50, "2026-07-26"],
+  ["claude-fable-5", 10, 1, 12.5, 50, "2026-07-26"],
+  // Claude Fable 5.1 reads cache at a quarter of Fable 5's rate; the other
+  // three rates are unchanged. Claude Code reports it as `claude-fable-5-1`.
+  ["claude-fable-5-1", 10, 0.25, 12.5, 50, "2026-09-02"],
+  // Claude Code date-stamps this one (`claude-haiku-4-5-20251001`); the
+  // analysis layer drops the stamp before matching, so the bare id suffices.
+  ["claude-haiku-4-5", 1, 0.1, 1.25, 5, "2026-09-02"],
+].map(([model, input, cachedInput, cacheWrite, output, effectiveDate]) => ({
   provider: "anthropic",
   model: String(model),
   input: Number(input),
@@ -50,7 +56,7 @@ const ANTHROPIC_DEFAULT_PRICES: ModelPrice[] = [
   cacheWrite: Number(cacheWrite),
   output: Number(output),
   source: "https://openrouter.ai/api/v1/models",
-  effectiveDate: "2026-07-26",
+  effectiveDate: String(effectiveDate),
 }));
 
 /**

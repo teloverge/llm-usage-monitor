@@ -34,6 +34,33 @@ const usage = (id: string): UsageRecord => ({
 });
 
 describe("Usage Ledger", () => {
+  it("replaces a session's records as a set, keeping sessions the run no longer sees", () => {
+    const ledger = create();
+    const inSession = (id: string, sessionId: string, sourceHostId = "host:a") => ({
+      ...usage(id),
+      sourceHostId,
+      sessionId,
+    });
+    ledger.commitProviderImport(
+      "test-local",
+      [
+        inSession("s1:turn-1", "s1"),
+        inSession("s1:turn-2", "s1"),
+        inSession("s2:turn-1", "s2"),
+        inSession("other-host:turn-1", "s1", "host:b"),
+      ],
+      {},
+    );
+    // The parser now stands behind only one of s1's records; s2's file is gone.
+    ledger.commitProviderImport("test-local", [inSession("s1:turn-1", "s1")], {});
+    assert.deepEqual(
+      ledger
+        .records()
+        .map((record) => record.id)
+        .sort(),
+      ["other-host:turn-1", "s1:turn-1", "s2:turn-1"],
+    );
+  });
   it("replaces the consolidated managed-source inspection snapshot", () => {
     const ledger = new UsageLedger();
     ledger.replaceUsageSourceInspections([

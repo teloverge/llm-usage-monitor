@@ -149,7 +149,13 @@
     "cachedInput": "Entrada en caché",
     "cacheCoverage": "de {{tokens}} tokens que informan",
     "tasks": "Tareas",
-    "models": "Modelos"
+    "models": "Modelos",
+    "costTotal": "Costo estimado",
+    "costInput": "Entrada sin caché",
+    "costCacheRead": "Lecturas de caché",
+    "costCacheWrite": "Escrituras de caché",
+    "costOutput": "Salida",
+    "costCacheSavings": "Ahorro por caché"
   },
   "tokenMix": {
     "composition": "Composición de tokens",
@@ -201,11 +207,18 @@
   "history": {
     "empty": "Ningún historial de uso coincide con los filtros.",
     "summary": "{{tasks}} tareas · {{sessions}} sesiones · {{records}} registros",
-    "groupSessions": "{{sessions}} sesiones · {{tokens}}",
     "lastActive": "Última actividad",
     "harness": "Entorno",
     "model": "Modelo",
     "reasoning": "Razonamiento",
-    "host": "Host"
+    "host": "Host",
+    "agent": "Agente",
+    "conversation": "Conversación",
+    "sessions": "Sesiones",
+    "sessionCount": "{{sessions}} sesiones",
+    "sessionAndAgentCount": "{{sessions}} sesiones · {{agents}} agentes",
+    "started": "Inicio",
+    "duration": "Duración",
+    "agentsSummary": "{{agents}} agentes gastaron {{tokens}} · {{cost}}"
   }
 }

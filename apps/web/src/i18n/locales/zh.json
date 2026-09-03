@@ -149,7 +149,13 @@
     "cachedInput": "缓存输入",
     "cacheCoverage": "在 {{tokens}} 个报告的 Token 中",
     "tasks": "任务",
-    "models": "模型"
+    "models": "模型",
+    "costTotal": "估算成本",
+    "costInput": "未缓存输入",
+    "costCacheRead": "缓存读取",
+    "costCacheWrite": "缓存写入",
+    "costOutput": "输出",
+    "costCacheSavings": "缓存节省"
   },
   "tokenMix": {
     "composition": "Token 组成",
@@ -201,11 +207,18 @@
   "history": {
     "empty": "没有符合筛选条件的使用历史。",
     "summary": "{{tasks}} 个任务 · {{sessions}} 个会话 · {{records}} 条记录",
-    "groupSessions": "{{sessions}} 个会话 · {{tokens}}",
     "lastActive": "最近活动",
     "harness": "环境",
     "model": "模型",
     "reasoning": "推理",
-    "host": "主机"
+    "host": "主机",
+    "agent": "代理",
+    "conversation": "对话",
+    "sessions": "会话",
+    "sessionCount": "{{sessions}} 个会话",
+    "sessionAndAgentCount": "{{sessions}} 个会话 · {{agents}} 个代理",
+    "started": "开始",
+    "duration": "时长",
+    "agentsSummary": "{{agents}} 个代理消耗 {{tokens}} · {{cost}}"
   }
 }

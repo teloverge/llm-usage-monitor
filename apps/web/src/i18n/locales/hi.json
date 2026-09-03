@@ -149,7 +149,13 @@
     "cachedInput": "कैश्ड इनपुट",
     "cacheCoverage": "{{tokens}} रिपोर्टिंग टोकन में से",
     "tasks": "कार्य",
-    "models": "मॉडल"
+    "models": "मॉडल",
+    "costTotal": "अनुमानित लागत",
+    "costInput": "बिना कैश इनपुट",
+    "costCacheRead": "कैश रीड",
+    "costCacheWrite": "कैश राइट",
+    "costOutput": "आउटपुट",
+    "costCacheSavings": "कैश बचत"
   },
   "tokenMix": {
     "composition": "टोकन संरचना",
@@ -201,11 +207,18 @@
   "history": {
     "empty": "फ़िल्टर से कोई उपयोग इतिहास मेल नहीं खाता।",
     "summary": "{{tasks}} कार्य · {{sessions}} सत्र · {{records}} रिकॉर्ड",
-    "groupSessions": "{{sessions}} सत्र · {{tokens}}",
     "lastActive": "अंतिम गतिविधि",
     "harness": "परिवेश",
     "model": "मॉडल",
     "reasoning": "रीज़निंग",
-    "host": "होस्ट"
+    "host": "होस्ट",
+    "agent": "एजेंट",
+    "conversation": "बातचीत",
+    "sessions": "सत्र",
+    "sessionCount": "{{sessions}} सत्र",
+    "sessionAndAgentCount": "{{sessions}} सत्र · {{agents}} एजेंट",
+    "started": "शुरू",
+    "duration": "अवधि",
+    "agentsSummary": "{{agents}} एजेंट ने {{tokens}} खर्च किए · {{cost}}"
   }
 }

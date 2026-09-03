@@ -4,10 +4,13 @@ import { basename, dirname, join, resolve, sep } from "node:path";
 import { createInterface } from "node:readline";
 import type { RateLimits, UsageQuotaSnapshot, UsageRecord } from "@llm-usage-monitor/contracts";
 import { windowKind, windowLabel } from "./quota-window-label.ts";
+import { readT3ConversationTitles } from "./t3-titles.ts";
 
-// Bumped 4 -> 5 for Task 17: entries cached under v4 have no `rateLimits`, so
-// every file must be re-parsed once to pick up its quota evidence.
-const CACHE_SCHEMA_VERSION = 5;
+// Bumped 5 -> 7 for subagent forks and re-emitted turn contexts: entries cached
+// under v5 attribute a fork's replayed turns to the parent and its own turns to
+// the wrong session, and under v6 still split a compacted turn in two, so every
+// file must be re-parsed once.
+const CACHE_SCHEMA_VERSION = 7;
 const MAX_FILES = 100_000;
 
 type ParsedRecord = Omit<UsageRecord, "sourceHostId">;
@@ -37,7 +40,15 @@ export class CodexSessionProvider {
     const home = expandHome(
       configuredHome?.trim() || process.env.CODEX_HOME || join(homedir(), ".codex"),
     );
-    const taskNames = await readTaskIndex(join(home, "session_index.jsonl"));
+    // T3's title wins over Codex's own index entry: the index often holds a
+    // placeholder like "Clarify task", while the T3 title is the one the user
+    // sees in their thread list. Merged here so both the parse and the cached
+    // path below apply it, and a title regenerated in T3 replaces the old one
+    // on the next import without re-parsing the session.
+    const taskNames = new Map([
+      ...(await readTaskIndex(join(home, "session_index.jsonl"))),
+      ...(await readT3ConversationTitles("codex")),
+    ]);
     const files = [
       ...(await walkJsonl(join(home, "sessions"))),
       ...(await walkJsonl(join(home, "archived_sessions"))),
@@ -86,7 +97,7 @@ export class CodexSessionProvider {
       latestObservedAt || new Date().toISOString(),
     );
     return {
-      records,
+      records: inheritRootTaskNames(records),
       quotaSnapshots: snapshot ? [snapshot] : [],
       state: {
         schemaVersion: CACHE_SCHEMA_VERSION,
@@ -107,8 +118,7 @@ export async function parseSession(
     input: createReadStream(file, { encoding: "utf8" }),
     crlfDelay: Infinity,
   });
-  let sessionId = sessionIdFromFilename(file);
-  let provider = "openai";
+  let meta: SessionMeta | null = null;
   let sessionTimestamp: string | null = null;
   let currentTurn: Turn | null = null;
   let latestRateLimits: RateLimits | null = null;
@@ -123,13 +133,32 @@ export async function parseSession(
     }
     const payload = event?.payload ?? {};
     if (event.type === "session_meta") {
-      sessionId = String(payload.id || sessionId);
-      provider = normalizeProvider(payload.model_provider);
-      sessionTimestamp = payload.timestamp || event.timestamp || sessionTimestamp;
+      // Only the FIRST session_meta names this file's session. A subagent
+      // rollout is a fork: it replays the parent's history — the parent's own
+      // session_meta line included — ahead of its own turns. Taking the last
+      // line seen, as this parser once did, attributed every fork to its parent.
+      if (!meta) {
+        meta = sessionMetaShape(payload, sessionIdFromFilename(file));
+        sessionTimestamp = payload.timestamp || event.timestamp || sessionTimestamp;
+      }
     } else if (event.type === "turn_context") {
       const reasoningLevel = payload.effort ? String(payload.effort) : undefined;
+      const turnId = String(payload.turn_id || `turn-${turns.length + 1}`);
+      // Codex re-emits a turn's context mid-turn — after a context compaction or
+      // a settings change — with the same turn id. That is a continuation, not a
+      // new turn: opening a second Turn under the same id made the record for
+      // the first half vanish behind the second's on upsert, and the counter
+      // deltas measured against each other under-counted what remained.
+      const open = continuedTurn(turns, turnId);
+      if (open) {
+        open.model = String(payload.model || open.model);
+        if (reasoningLevel) open.reasoningLevel = reasoningLevel;
+        currentTurn = open;
+        continue;
+      }
       currentTurn = {
-        turnId: String(payload.turn_id || `turn-${turns.length + 1}`),
+        turnId,
+        replayed: meta?.forked === true && startedBefore(turnId, meta.id),
         model: String(payload.model || "unknown"),
         reasoningLevel,
         modeFlags: usageModeFlags(payload, reasoningLevel ?? ""),
@@ -151,14 +180,28 @@ export async function parseSession(
       }
     }
   }
+  const sessionId = meta?.id ?? sessionIdFromFilename(file);
+  const provider = meta?.provider ?? "openai";
+  // A fallback for an agent is short-lived: `collect` replaces it with the root
+  // conversation's name once every file is read. It only survives when the
+  // parent's rollout is gone.
   const taskName =
     taskNames.get(sessionId) ||
-    `Codex session ${basename(dirname(file))} · ${sessionId.slice(0, 8)}`;
+    (meta?.parentSessionId
+      ? `Codex agent ${meta.agentNickname || sessionId.slice(0, 8)}`
+      : `Codex session ${basename(dirname(file))} · ${sessionId.slice(0, 8)}`);
   let previous = tokenShape({});
   const records = turns.flatMap((turn) => {
     if (!turn.total) return [];
     const delta = subtractTokenShapes(turn.total, previous);
     previous = turn.total;
+    // A replayed turn still advances `previous`: the fork's cumulative counter
+    // continues from where the replay left off, so the agent's first own delta
+    // is only right when measured against the last replayed total. It is just
+    // never emitted — the parent's rollout is the authority on the parent's
+    // turns, and the replay's copy of the spawning turn is a mid-turn snapshot
+    // that would overwrite the parent's finished figure under the same id.
+    if (turn.replayed) return [];
     if (delta.totalTokens <= 0 && delta.inputTokens <= 0 && delta.outputTokens <= 0) return [];
     return [
       {
@@ -180,6 +223,8 @@ export async function parseSession(
         source: "codex-local",
         sessionId,
         turnId: turn.turnId,
+        ...(meta?.parentSessionId ? { parentSessionId: meta.parentSessionId } : {}),
+        ...(meta?.agentNickname ? { agentNickname: meta.agentNickname } : {}),
       },
     ];
   });
@@ -196,8 +241,17 @@ type Tokens = {
   reasoningOutputTokens: number;
   totalTokens: number;
 };
+type SessionMeta = {
+  id: string;
+  provider: string;
+  forked: boolean;
+  parentSessionId: string | undefined;
+  agentNickname: string | undefined;
+};
 type Turn = {
   turnId: string;
+  /** Copied from the parent by a fork; counted toward `previous`, never emitted. */
+  replayed: boolean;
   model: string;
   reasoningLevel: string | undefined;
   modeFlags: { ultra: boolean; fast: boolean };
@@ -319,6 +373,81 @@ function rateLimitShape(value: any): RateLimits {
       : null,
   };
 }
+/** The turn still open when a context line repeats its id, or null if it is new. */
+function continuedTurn(turns: Turn[], turnId: string): Turn | null {
+  const last = turns.at(-1);
+  return last && last.turnId === turnId ? last : null;
+}
+
+function sessionMetaShape(payload: any, fallbackId: string): SessionMeta {
+  const spawn = payload?.source?.subagent?.thread_spawn;
+  const other = payload?.source?.subagent?.other;
+  const parentSessionId = text(payload?.parent_thread_id || spawn?.parent_thread_id) || undefined;
+  const agentNickname =
+    text(payload?.agent_nickname || spawn?.agent_nickname || other).slice(0, 100) || undefined;
+  return {
+    id: String(payload?.id || fallbackId),
+    provider: normalizeProvider(payload?.model_provider),
+    forked: Boolean(payload?.forked_from_id || parentSessionId),
+    parentSessionId,
+    agentNickname,
+  };
+}
+
+/**
+ * Whether a turn began before the session it appears in was created. Codex ids
+ * are UUIDv7, whose leading 48 bits are a millisecond clock, so plain string
+ * order is creation order: a fork's replayed turns all predate the fork's own
+ * id, and the turns it starts itself all follow it. Ids of any other shape are
+ * never treated as replayed — over-counting a turn is the failure this parser
+ * always had, while dropping a real one would be new.
+ */
+function startedBefore(turnId: string, sessionId: string): boolean {
+  const left = turnId.toLocaleLowerCase();
+  const right = sessionId.toLocaleLowerCase();
+  return UUID_V7.test(left) && UUID_V7.test(right) && left < right;
+}
+const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * Names every agent's records after the root of its spawn chain, so a
+ * conversation's agents sit under its title everywhere task names are grouped —
+ * History, the by-task breakdown — rather than as separate untitled tasks. Runs
+ * over the whole collection, cached files included, so a title that changes on
+ * the root (T3 regenerating it, say) reaches the agents on the next import.
+ * A chain whose parent rollout is missing stops at the last session it can
+ * see, and that session's own name stands.
+ */
+export function inheritRootTaskNames<T extends ParsedRecord>(records: T[]): T[] {
+  const parents = new Map<string, string>();
+  const names = new Map<string, { name: string; at: string }>();
+  for (const record of records) {
+    if (!record.sessionId) continue;
+    if (record.parentSessionId) parents.set(record.sessionId, record.parentSessionId);
+    const known = names.get(record.sessionId);
+    if (!known || record.timestamp > known.at)
+      names.set(record.sessionId, { name: record.taskName, at: record.timestamp });
+  }
+  const rootOf = new Map<string, string>();
+  const root = (sessionId: string): string => {
+    const cached = rootOf.get(sessionId);
+    if (cached) return cached;
+    let current = sessionId;
+    for (let hops = 0; hops < 32; hops += 1) {
+      const parent = parents.get(current);
+      if (!parent || parent === current || !names.has(parent)) break;
+      current = parent;
+    }
+    rootOf.set(sessionId, current);
+    return current;
+  };
+  return records.map((record) => {
+    if (!record.sessionId || !record.parentSessionId) return record;
+    const name = names.get(root(record.sessionId))?.name;
+    return name && name !== record.taskName ? { ...record, taskName: name } : record;
+  });
+}
+
 async function readTaskIndex(file: string): Promise<Map<string, string>> {
   const names = new Map<string, string>();
   try {

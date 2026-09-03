@@ -149,7 +149,13 @@
     "cachedInput": "キャッシュ済み入力",
     "cacheCoverage": "報告している {{tokens}} トークンのうち",
     "tasks": "タスク",
-    "models": "モデル"
+    "models": "モデル",
+    "costTotal": "推定コスト",
+    "costInput": "キャッシュなし入力",
+    "costCacheRead": "キャッシュ読み取り",
+    "costCacheWrite": "キャッシュ書き込み",
+    "costOutput": "出力",
+    "costCacheSavings": "キャッシュ節約額"
   },
   "tokenMix": {
     "composition": "トークンの構成",
@@ -201,11 +207,18 @@
   "history": {
     "empty": "フィルターに一致する使用履歴はありません。",
     "summary": "タスク {{tasks}} 件 · セッション {{sessions}} 件 · レコード {{records}} 件",
-    "groupSessions": "セッション {{sessions}} 件 · {{tokens}}",
     "lastActive": "最終アクティブ",
     "harness": "環境",
     "model": "モデル",
     "reasoning": "推論",
-    "host": "ホスト"
+    "host": "ホスト",
+    "agent": "エージェント",
+    "conversation": "会話",
+    "sessions": "セッション",
+    "sessionCount": "セッション {{sessions}}",
+    "sessionAndAgentCount": "セッション {{sessions}} · エージェント {{agents}}",
+    "started": "開始",
+    "duration": "所要時間",
+    "agentsSummary": "エージェント {{agents}} が {{tokens}} を使用 · {{cost}}"
   }
 }

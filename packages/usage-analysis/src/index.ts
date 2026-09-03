@@ -5,8 +5,11 @@ import type {
   ModelPrice,
   OverviewView,
   RankedUsage,
+  UsageCostBreakdown,
   UsageFilters,
-  UsageHistoryRecord,
+  UsageHistoryGroup,
+  UsageHistorySession,
+  UsageHistoryView,
   UsageModeFlags,
   UsageQuotaSnapshot,
   UsageRecord,
@@ -51,10 +54,7 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
     now,
     credentials,
   );
-  const priced = selected.map((record) => ({
-    record,
-    estimatedCost: calculateCost(record, input.prices),
-  }));
+  const priced = selected.map((record) => pricedRecord(record, input.prices));
   const groupNames = new Map((input.hostGroups ?? []).map((group) => [group.id, group.name]));
   const groupFor = (record: UsageRecord) => {
     const groupId = effectiveGroup(input.memberships, record.sourceHostId, record.timestamp);
@@ -165,59 +165,252 @@ export function timeframeRange(filters: UsageFilters, now: Date): [number, numbe
 }
 
 export function calculateCost(record: UsageRecord, prices: ModelPrice[]): number | null {
-  const price = prices.find(
-    (item) =>
-      normalize(item.provider) === normalize(record.provider) &&
-      normalize(item.model) === normalize(record.model),
-  );
-  if (!price) return null;
-  // Input is partitioned into three shares that bill at different rates: fresh,
-  // read from cache, and written to cache. Reads and writes are clamped in
-  // sequence and fresh takes what survives, so the shares sum to `inputTokens`
-  // exactly even if a source reports subsets that overstate their total. Order
-  // decides only which share absorbs a malformed overage; reads win because a
-  // read is the figure sources report most reliably.
-  //
-  // A source that reports no caching at all is costed as if nothing were cached,
-  // so every share collapses into `fresh` and all input bills at the full rate.
-  // That is a deliberate assumption, not an oversight: it errs toward over- rather
-  // than under-stating a figure the user reads as spend, and the alternative —
-  // refusing to price the record — would hide real usage entirely. Ratios get the
-  // opposite treatment: cacheEfficiency EXCLUDES non-reporting records rather than
-  // counting them as zero, because a ratio can honestly say "not measured" where a
-  // total cannot.
-  const cacheRead = Math.min(record.inputTokens, record.cachedInputTokens ?? 0);
-  const cacheWrite = Math.min(record.inputTokens - cacheRead, record.cacheCreationInputTokens ?? 0);
-  const fresh = record.inputTokens - cacheRead - cacheWrite;
-  return (
-    (fresh * price.input +
-      cacheRead * price.cachedInput +
-      // Falls back to the base input rate rather than to zero: an unpriced cache
-      // write is one the rate card does not surcharge, not one that is free.
-      cacheWrite * (price.cacheWrite ?? price.input) +
-      record.outputTokens * price.output) /
-    1_000_000
-  );
+  const parts = costComponents(record, prices);
+  return parts === null ? null : parts.input + parts.cacheRead + parts.cacheWrite + parts.output;
 }
 
 /**
- * Prices each record and passes `sourceHostId` straight through. It deliberately
- * does NOT resolve a host label: naming an unnamed host requires translated
- * wording, and this layer runs on the server with no idea of the reader's
- * language. `apps/web/src/model/source-host.ts` owns that decision.
+ * The estimate split by rate, or null when no card matches the record's model.
+ *
+ * Input is partitioned into three shares that bill at different rates: fresh,
+ * read from cache, and written to cache. Reads and writes are clamped in
+ * sequence and fresh takes what survives, so the shares sum to `inputTokens`
+ * exactly even if a source reports subsets that overstate their total. Order
+ * decides only which share absorbs a malformed overage; reads win because a
+ * read is the figure sources report most reliably.
+ *
+ * A source that reports no caching at all is costed as if nothing were cached,
+ * so every share collapses into `fresh` and all input bills at the full rate.
+ * That is a deliberate assumption, not an oversight: it errs toward over- rather
+ * than under-stating a figure the user reads as spend, and the alternative —
+ * refusing to price the record — would hide real usage entirely. Ratios get the
+ * opposite treatment: cacheEfficiency EXCLUDES non-reporting records rather than
+ * counting them as zero, because a ratio can honestly say "not measured" where a
+ * total cannot.
  */
-export function analyzeHistory(records: UsageRecord[], prices: ModelPrice[]): UsageHistoryRecord[] {
-  return records.map((record) => ({
-    ...record,
-    estimatedCost: calculateCost(record, prices),
-  }));
+export function costComponents(
+  record: UsageRecord,
+  prices: ModelPrice[],
+): UsageCostBreakdown | null {
+  const price = prices.find(
+    (item) =>
+      normalize(item.provider) === normalize(record.provider) &&
+      normalizeModel(item.model) === normalizeModel(record.model),
+  );
+  if (!price) return null;
+  const cacheRead = Math.min(record.inputTokens, record.cachedInputTokens ?? 0);
+  const cacheWrite = Math.min(record.inputTokens - cacheRead, record.cacheCreationInputTokens ?? 0);
+  const fresh = record.inputTokens - cacheRead - cacheWrite;
+  return {
+    input: (fresh * price.input) / 1_000_000,
+    cacheRead: (cacheRead * price.cachedInput) / 1_000_000,
+    // Falls back to the base input rate rather than to zero: an unpriced cache
+    // write is one the rate card does not surcharge, not one that is free.
+    cacheWrite: (cacheWrite * (price.cacheWrite ?? price.input)) / 1_000_000,
+    output: (record.outputTokens * price.output) / 1_000_000,
+    cacheSavings: (cacheRead * Math.max(0, price.input - price.cachedInput)) / 1_000_000,
+  };
 }
 
-type PricedRecord = { record: UsageRecord; estimatedCost: number | null };
+function pricedRecord(record: UsageRecord, prices: ModelPrice[]): PricedRecord {
+  const breakdown = costComponents(record, prices);
+  return {
+    record,
+    breakdown,
+    estimatedCost:
+      breakdown === null
+        ? null
+        : breakdown.input + breakdown.cacheRead + breakdown.cacheWrite + breakdown.output,
+  };
+}
+
+const EMPTY_BREAKDOWN: UsageCostBreakdown = {
+  input: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+  output: 0,
+  cacheSavings: 0,
+};
+
+function addBreakdown(sum: UsageCostBreakdown, part: UsageCostBreakdown): UsageCostBreakdown {
+  return {
+    input: sum.input + part.input,
+    cacheRead: sum.cacheRead + part.cacheRead,
+    cacheWrite: sum.cacheWrite + part.cacheWrite,
+    output: sum.output + part.output,
+    cacheSavings: sum.cacheSavings + part.cacheSavings,
+  };
+}
+
+/**
+ * Model ids are matched loosely enough to survive the ways harnesses and rate
+ * sources spell the same model: Claude Code reports `claude-opus-4-8` where
+ * OpenRouter lists `claude-opus-4.8`, and Haiku arrives date-stamped as
+ * `claude-haiku-4-5-20251001`. Version dots become dashes and a trailing
+ * eight-digit date is dropped, so one card prices every spelling.
+ */
+function normalizeModel(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/-\d{8}$/, "")
+    .replace(/(\d)\.(?=\d)/g, "$1-");
+}
+
+/**
+ * Groups every record into conversations — by normalized task name, then by
+ * session within each — and prices them. Nothing is capped or filtered here:
+ * History is the ledger's full table of contents, and the grouping is what keeps
+ * it small enough to send whole (see `UsageHistoryView`).
+ *
+ * It deliberately does NOT resolve a host label or "not reported" wording:
+ * naming an unnamed host requires translated copy, and this layer runs on the
+ * server with no idea of the reader's language. Ids pass straight through and
+ * `apps/web/src/model/source-host.ts` owns that decision.
+ */
+export function analyzeHistory(records: UsageRecord[], prices: ModelPrice[]): UsageHistoryView {
+  const grouped = new Map<string, PricedRecord[]>();
+  for (const record of records) {
+    const key = normalizeTaskName(record.taskName);
+    // push, not spread — see the note in group(): rebuilding the array per item
+    // makes this O(n²) once a bucket gets large.
+    const item = pricedRecord(record, prices);
+    const bucket = grouped.get(key);
+    if (bucket) bucket.push(item);
+    else grouped.set(key, [item]);
+  }
+  const groups: UsageHistoryGroup[] = [...grouped]
+    .map(([key, items]) => {
+      const sorted = newestFirst(items);
+      const sessions = groupSessions(sorted);
+      const agents = sessions.filter((session) => session.parentSessionId !== null);
+      const pricedAgents = agents.filter((session) => session.estimatedCost !== null);
+      return {
+        key,
+        taskName: sorted[0]?.record.taskName.trim() ?? "",
+        sessions,
+        agents: {
+          sessions: agents.length,
+          totalTokens: agents.reduce((sum, session) => sum + session.totalTokens, 0),
+          estimatedCost: pricedAgents.length
+            ? pricedAgents.reduce((sum, session) => sum + (session.estimatedCost ?? 0), 0)
+            : null,
+        },
+        firstActiveAt: sorted.at(-1)?.record.timestamp ?? "",
+        lastActiveAt: sorted[0]?.record.timestamp ?? "",
+        records: sorted.length,
+        totalTokens: sorted.reduce((sum, { record }) => sum + record.totalTokens, 0),
+        estimatedCost: sumEstimate(sorted),
+        costBreakdown: sumBreakdown(sorted),
+      };
+    })
+    .sort((left, right) => Date.parse(right.lastActiveAt) - Date.parse(left.lastActiveAt));
+  return { groups, records: records.length };
+}
+
+function groupSessions(items: PricedRecord[]): UsageHistorySession[] {
+  const sessions = new Map<string, PricedRecord[]>();
+  for (const item of items) {
+    const key = item.record.sessionId?.trim() || item.record.id;
+    const bucket = sessions.get(key);
+    if (bucket) bucket.push(item);
+    else sessions.set(key, [item]);
+  }
+  const flat = [...sessions]
+    .map(([key, sessionItems]): UsageHistorySession => {
+      const sorted = newestFirst(sessionItems);
+      const newest = sorted[0]?.record;
+      return {
+        key,
+        parentSessionId: newest?.parentSessionId ?? null,
+        agentNickname: newest?.agentNickname ?? null,
+        depth: 0,
+        firstActiveAt: sorted.at(-1)?.record.timestamp ?? "",
+        lastActiveAt: newest?.timestamp ?? "",
+        records: sorted.length,
+        totalTokens: sorted.reduce((sum, { record }) => sum + record.totalTokens, 0),
+        estimatedCost: sumEstimate(sorted),
+        costBreakdown: sumBreakdown(sorted),
+        sourceHostIds: unique(sorted.map(({ record }) => record.sourceHostId)),
+        models: unique(sorted.map(({ record }) => `${record.model} · ${record.provider}`)),
+        reasoningLevels: unique(sorted.map(({ record }) => record.reasoningLevel ?? null)),
+        harnesses: unique(sorted.map(({ record }) => record.harnessId)),
+        modeFlags: {
+          ultra: sorted.some(({ record }) => record.modeFlags.ultra),
+          fast: sorted.some(({ record }) => record.modeFlags.fast),
+        },
+      };
+    })
+    .sort((left, right) => Date.parse(right.lastActiveAt) - Date.parse(left.lastActiveAt));
+  return orderByLineage(flat);
+}
+
+/**
+ * Roots newest first, each followed depth-first by the agents it spawned, with
+ * `depth` filled in. A session whose parent is not in the group — the parent's
+ * rollout is gone, or it was grouped elsewhere — stands as a root, still
+ * flagged as an agent by its `parentSessionId`. A cycle, which no harness
+ * should write, degrades to listing rather than looping.
+ */
+function orderByLineage(sessions: UsageHistorySession[]): UsageHistorySession[] {
+  const keys = new Set(sessions.map((session) => session.key));
+  const children = new Map<string, UsageHistorySession[]>();
+  const roots: UsageHistorySession[] = [];
+  for (const session of sessions) {
+    const parent = session.parentSessionId;
+    if (parent && parent !== session.key && keys.has(parent)) {
+      const siblings = children.get(parent);
+      if (siblings) siblings.push(session);
+      else children.set(parent, [session]);
+    } else roots.push(session);
+  }
+  const ordered: UsageHistorySession[] = [];
+  const seen = new Set<string>();
+  const visit = (session: UsageHistorySession, depth: number) => {
+    if (seen.has(session.key)) return;
+    seen.add(session.key);
+    ordered.push({ ...session, depth });
+    for (const child of children.get(session.key) ?? []) visit(child, depth + 1);
+  };
+  for (const root of roots) visit(root, 0);
+  for (const session of sessions) visit(session, 0);
+  return ordered;
+}
+
+function newestFirst(items: PricedRecord[]): PricedRecord[] {
+  return [...items].sort(
+    (left, right) => Date.parse(right.record.timestamp) - Date.parse(left.record.timestamp),
+  );
+}
+
+function normalizeTaskName(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+function sumBreakdown(items: PricedRecord[]): UsageCostBreakdown | null {
+  const priced = items.flatMap((item) => (item.breakdown ? [item.breakdown] : []));
+  return priced.length ? priced.reduce(addBreakdown, EMPTY_BREAKDOWN) : null;
+}
+
+function sumEstimate(items: PricedRecord[]): number | null {
+  const priced = items.filter((item) => item.estimatedCost !== null);
+  return priced.length ? priced.reduce((sum, item) => sum + (item.estimatedCost ?? 0), 0) : null;
+}
+
+function unique<T>(values: T[]): T[] {
+  return [...new Set(values)];
+}
+
+type PricedRecord = {
+  record: UsageRecord;
+  estimatedCost: number | null;
+  breakdown: UsageCostBreakdown | null;
+};
 function summarize(items: PricedRecord[]): UsageTotals {
   const totals = items.reduce(
-    (sum, { record, estimatedCost }) => ({
+    (sum, { record, estimatedCost, breakdown }) => ({
       estimatedCost: sum.estimatedCost + (estimatedCost ?? 0),
+      costBreakdown: breakdown ? addBreakdown(sum.costBreakdown, breakdown) : sum.costBreakdown,
       pricedRecords: sum.pricedRecords + (estimatedCost === null ? 0 : 1),
       records: sum.records + 1,
       inputTokens: sum.inputTokens + record.inputTokens,
@@ -235,6 +428,7 @@ function summarize(items: PricedRecord[]): UsageTotals {
     }),
     {
       estimatedCost: 0,
+      costBreakdown: EMPTY_BREAKDOWN,
       pricedRecords: 0,
       records: 0,
       inputTokens: 0,

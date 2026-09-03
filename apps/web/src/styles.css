@@ -582,6 +582,18 @@ footer {
   font-weight: 650;
   letter-spacing: -0.02em;
 }
+/* Six cost shares beside each other, at the same cadence as the token strip. */
+.strip.cost {
+  grid-template-columns: repeat(6, 1fr);
+}
+/* The same strip inside a History conversation: no panel chrome, smaller figures. */
+.history-costs {
+  padding: 8px 12px 8px 36px;
+  border-bottom: 1px solid var(--grid);
+}
+.history-costs .stat {
+  font-size: var(--size-body);
+}
 
 .breakdown,
 .history {
@@ -705,19 +717,48 @@ footer {
 }
 
 /*
- * History reuses `.rollup` but fills the Breakdown's bar column with text, and
- * its last-active cell is a medium date plus a short time ("Jul 26, 2026, 1:15 AM")
- * that the Breakdown's 96px token column would clip. Same five cells, sized for
- * what History actually puts in them.
+ * History reuses `.rollup` for its open/close behaviour but not its columns: a
+ * conversation's row is title, session count, started, last active, duration,
+ * tokens, cost — seven cells after the marker, where the Breakdown has four.
+ * The same tracks are declared on `.history-head` so the header lines up.
+ *
+ * Last track holds `formatMoney`. See the identical comment on `.rank-list li`
+ * above: the width is sized for the longest possible `formatMoney` output
+ * (`USD 999,999.99` / `999.999,99 USD`, ~14 characters, no break opportunity),
+ * not the current one — re-measure before shrinking it. The two date tracks
+ * hold a medium date plus a short time ("Jul 26, 2026, 1:15 AM").
  */
+.history-head,
 .history .rollup > summary {
-  /*
-   * Last track holds `formatMoney`. See the identical comment on `.rank-list
-   * li` above: the width is sized for the longest possible `formatMoney`
-   * output (`USD 999,999.99` / `999.999,99 USD`, ~14 characters, no break
-   * opportunity), not the current one — re-measure before shrinking it.
-   */
-  grid-template-columns: 12px minmax(0, 1fr) 150px 140px 100px;
+  grid-template-columns: 12px minmax(0, 1fr) 150px 160px 160px 72px 80px 100px;
+}
+.history-head {
+  display: grid;
+  gap: 12px;
+  align-items: center;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--size-meta);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.history-meta,
+.history-when,
+.history-span {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-agents {
+  margin: 0;
+  padding: 7px 12px 7px 36px;
+  border-bottom: 1px solid var(--grid);
+  color: var(--muted);
+  font-size: var(--size-meta);
 }
 
 /*
@@ -776,6 +817,17 @@ footer {
     gap: 9px;
   }
   .strip > div:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .strip.cost {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .strip.cost > div:nth-child(odd) {
+    border-left: 1px solid var(--line);
+    padding-left: 12px;
+  }
+  .strip.cost > div:nth-child(3n + 1) {
     border-left: 0;
     padding-left: 0;
   }
@@ -978,4 +1030,31 @@ footer {
 .host-group-actions {
   display: flex;
   gap: 6px;
+}
+
+/* A spawned agent's row in History: the marker sits before the harness badge. */
+.history-agent {
+  margin-right: 0.5rem;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+/*
+ * Narrow History: keep title, last active, and cost on one line and drop the
+ * rest. Dates and duration are the first things worth losing at this width,
+ * and the session table beneath still carries them.
+ */
+@media (max-width: 900px) {
+  .history-head,
+  .history .rollup > summary {
+    grid-template-columns: 12px minmax(0, 1fr) 150px 100px;
+    gap: 8px;
+  }
+  .history-meta,
+  .history-span,
+  .history .rollup > summary .rollup-tokens,
+  .history-head .rollup-tokens,
+  .history-when:first-of-type {
+    display: none;
+  }
 }

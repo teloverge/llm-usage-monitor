@@ -402,6 +402,7 @@ export class UsageLedger {
         ON CONFLICT(id) DO UPDATE SET source_host_id=excluded.source_host_id, recorded_at=excluded.recorded_at, payload=excluded.payload`);
       for (const record of validated)
         insert.run(record.id, record.sourceHostId, record.timestamp, JSON.stringify(record));
+      this.retireSupersededRecords(validated);
       this.database
         .prepare(
           "INSERT INTO provider_import_state (provider_id, payload) VALUES (?, ?) ON CONFLICT(provider_id) DO UPDATE SET payload=excluded.payload",
@@ -411,11 +412,48 @@ export class UsageLedger {
     });
   }
 
+  /**
+   * A session's records are replaced as a set, not merely added to. Every
+   * import re-reads a session's whole file, so a record the ledger holds for
+   * that session which this run did not produce is one the parser no longer
+   * stands behind — an id that a corrected parser now attributes elsewhere, say.
+   * Left in place it would be counted twice: once under its old id and once
+   * under its new one.
+   *
+   * Only sessions PRESENT in the run are touched. A session the run does not
+   * mention at all is one whose file is gone — Claude Code deletes transcripts
+   * after thirty days — and the ledger exists precisely to outlive that.
+   */
+  private retireSupersededRecords(records: UsageRecord[]): void {
+    const sessionsByHost = new Map<string, Set<string>>();
+    for (const record of records) {
+      if (!record.sessionId) continue;
+      const sessions = sessionsByHost.get(record.sourceHostId) ?? new Set<string>();
+      sessions.add(record.sessionId);
+      sessionsByHost.set(record.sourceHostId, sessions);
+    }
+    if (!sessionsByHost.size) return;
+    this.database.exec(
+      "CREATE TEMP TABLE IF NOT EXISTS run_records (id TEXT PRIMARY KEY); DELETE FROM run_records;",
+    );
+    const keep = this.database.prepare("INSERT OR IGNORE INTO run_records (id) VALUES (?)");
+    for (const record of records) keep.run(record.id);
+    const retire = this.database.prepare(
+      `DELETE FROM usage_records
+       WHERE source_host_id = ? AND json_extract(payload, '$.sessionId') = ?
+         AND id NOT IN (SELECT id FROM run_records)`,
+    );
+    for (const [sourceHostId, sessions] of sessionsByHost)
+      for (const sessionId of sessions) retire.run(sourceHostId, sessionId);
+    this.database.exec("DROP TABLE run_records");
+  }
+
   private migrate(): void {
     this.database.exec(`
       CREATE TABLE IF NOT EXISTS usage_records (id TEXT PRIMARY KEY, source_host_id TEXT NOT NULL, recorded_at TEXT NOT NULL, payload TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS usage_records_time ON usage_records(recorded_at);
       CREATE INDEX IF NOT EXISTS usage_records_host_time ON usage_records(source_host_id, recorded_at);
+      CREATE INDEX IF NOT EXISTS usage_records_host_session ON usage_records(source_host_id, json_extract(payload, '$.sessionId'));
       CREATE TABLE IF NOT EXISTS source_hosts (id TEXT PRIMARY KEY, hostname TEXT, platform TEXT NOT NULL, architecture TEXT NOT NULL, first_seen_at TEXT NOT NULL, last_seen_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS source_host_observations (source_host_id TEXT NOT NULL REFERENCES source_hosts(id), kind TEXT NOT NULL CHECK(kind IN ('hostname','ip-address')), value TEXT NOT NULL, first_seen_at TEXT NOT NULL, last_seen_at TEXT NOT NULL, PRIMARY KEY(source_host_id, kind, value));
       CREATE TABLE IF NOT EXISTS host_groups (id TEXT PRIMARY KEY, name TEXT NOT NULL);

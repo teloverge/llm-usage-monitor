@@ -149,7 +149,13 @@
     "cachedInput": "Ввод из кэша",
     "cacheCoverage": "из {{tokens}} токенов с отчётом",
     "tasks": "Задачи",
-    "models": "Модели"
+    "models": "Модели",
+    "costTotal": "Оценка затрат",
+    "costInput": "Ввод без кеша",
+    "costCacheRead": "Чтение кеша",
+    "costCacheWrite": "Запись кеша",
+    "costOutput": "Вывод",
+    "costCacheSavings": "Экономия на кеше"
   },
   "tokenMix": {
     "composition": "Структура токенов",
@@ -201,11 +207,18 @@
   "history": {
     "empty": "Нет истории использования, соответствующей фильтрам.",
     "summary": "Задач: {{tasks}} · Сессий: {{sessions}} · Записей: {{records}}",
-    "groupSessions": "Сессий: {{sessions}} · {{tokens}}",
     "lastActive": "Последняя активность",
     "harness": "Среда",
     "model": "Модель",
     "reasoning": "Рассуждение",
-    "host": "Хост"
+    "host": "Хост",
+    "agent": "Агент",
+    "conversation": "Разговор",
+    "sessions": "Сессии",
+    "sessionCount": "Сессий: {{sessions}}",
+    "sessionAndAgentCount": "Сессий: {{sessions}} · агентов: {{agents}}",
+    "started": "Начало",
+    "duration": "Длительность",
+    "agentsSummary": "Агентов: {{agents}}, потрачено {{tokens}} · {{cost}}"
   }
 }
