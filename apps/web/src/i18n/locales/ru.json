@@ -219,6 +219,23 @@
     "sessionAndAgentCount": "Сессий: {{sessions}} · агентов: {{agents}}",
     "started": "Начало",
     "duration": "Длительность",
-    "agentsSummary": "Агентов: {{agents}}, потрачено {{tokens}} · {{cost}}"
+    "agentsSummary": "Агентов: {{agents}}, потрачено {{tokens}} · {{cost}}",
+    "columns": {
+      "ascending": "Сортировать {{column}} по возрастанию",
+      "descending": "Сортировать {{column}} по убыванию",
+      "none": "Восстановить исходный порядок",
+      "filter": "Фильтр: {{column}}",
+      "showing": "{{count}} из {{total}} строк",
+      "reset": "Сбросить сортировку и фильтры",
+      "contains": "Содержит",
+      "minutes": "Минуты",
+      "from": "С",
+      "to": "По включительно",
+      "min": "Минимум",
+      "max": "Максимум",
+      "clear": "Очистить фильтр",
+      "close": "Закрыть",
+      "empty": "Нет строк, соответствующих фильтрам столбцов."
+    }
   }
 }

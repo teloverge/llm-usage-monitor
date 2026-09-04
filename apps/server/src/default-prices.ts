@@ -83,6 +83,18 @@ export const DEFAULT_PRICES: ModelPrice[] = [
   ...XAI_DEFAULT_PRICES,
   {
     provider: "openai",
+    model: "gpt-6-astra",
+    input: 10,
+    cachedInput: 1,
+    cacheWrite: 12.5,
+    output: 50,
+    // Standard token rates. The current catalog cannot express OpenRouter's
+    // higher rates for prompts starting at 272,000 tokens.
+    source: "https://openrouter.ai/api/v1/models",
+    effectiveDate: "2026-09-04",
+  },
+  {
+    provider: "openai",
     model: "codex-auto-review",
     input: 2.5,
     cachedInput: 0.25,
@@ -107,6 +119,7 @@ function isAdditiveDefault(price: ModelPrice): boolean {
   return (
     price.provider === "anthropic" ||
     price.provider === "xai" ||
+    (price.provider === "openai" && price.model === "gpt-6-astra") ||
     price.model === "codex-auto-review"
   );
 }

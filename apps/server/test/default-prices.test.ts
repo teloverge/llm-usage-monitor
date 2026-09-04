@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ModelPrice } from "@llm-usage-monitor/contracts";
+import type { ModelPrice, UsageRecord } from "@llm-usage-monitor/contracts";
+import { analyzeHistory } from "@llm-usage-monitor/usage-analysis";
 import { mergeDefaultPrices } from "../src/default-prices.ts";
 
 describe("default prices", () => {
@@ -153,5 +154,68 @@ describe("default prices", () => {
       merged.some((price) => price.model === "gpt-5"),
       false,
     );
+  });
+});
+
+describe("GPT-6 Astra pricing", () => {
+  const existing: ModelPrice = {
+    provider: "openai",
+    model: "gpt-5.4",
+    input: 2.5,
+    cachedInput: 0.25,
+    output: 15,
+    source: "user",
+    effectiveDate: "2026-07-10",
+  };
+  const astra: UsageRecord = {
+    id: "astra:1",
+    usageSourceId: "codex-local",
+    harnessId: "codex",
+    sourceHostId: "host:test",
+    sessionId: "session:astra",
+    timestamp: "2026-09-04T12:00:00Z",
+    taskName: "Astra task",
+    provider: "openai",
+    model: "gpt-6-astra",
+    modeFlags: { ultra: false, fast: false },
+    inputTokens: 1500,
+    cachedInputTokens: 1000,
+    cacheCreationInputTokens: 100,
+    outputTokens: 100,
+    totalTokens: 1600,
+    lastTokenUsage: null,
+    source: "test",
+  };
+
+  it("prices Astra history on fresh and existing installs at OpenRouter's standard rates", () => {
+    for (const configured of [[], [existing]]) {
+      const prices = mergeDefaultPrices(configured);
+      const group = analyzeHistory([astra], prices).groups[0];
+      assert.equal(group?.estimatedCost, 0.01125);
+      assert.equal(group?.sessions[0]?.estimatedCost, 0.01125);
+      assert.deepEqual(
+        prices.find((price) => price.model === "gpt-6-astra"),
+        {
+          provider: "openai",
+          model: "gpt-6-astra",
+          input: 10,
+          cachedInput: 1,
+          cacheWrite: 12.5,
+          output: 50,
+          source: "https://openrouter.ai/api/v1/models",
+          effectiveDate: "2026-09-04",
+        },
+      );
+    }
+  });
+
+  it("preserves custom Astra rates and does not duplicate them on restart", () => {
+    const custom: ModelPrice = { ...existing, model: "gpt-6-astra", input: 99 };
+    const prices = mergeDefaultPrices([custom]);
+    assert.deepEqual(
+      prices.filter((price) => price.model === "gpt-6-astra"),
+      [custom],
+    );
+    assert.deepEqual(mergeDefaultPrices(prices), prices);
   });
 });
