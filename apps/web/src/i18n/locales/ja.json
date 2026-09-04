@@ -219,6 +219,23 @@
     "sessionAndAgentCount": "セッション {{sessions}} · エージェント {{agents}}",
     "started": "開始",
     "duration": "所要時間",
-    "agentsSummary": "エージェント {{agents}} が {{tokens}} を使用 · {{cost}}"
+    "agentsSummary": "エージェント {{agents}} が {{tokens}} を使用 · {{cost}}",
+    "columns": {
+      "ascending": "{{column}}を昇順で並べ替え",
+      "descending": "{{column}}を降順で並べ替え",
+      "none": "既定の順序に戻す",
+      "filter": "{{column}}を絞り込む",
+      "showing": "{{total}}行中{{count}}行",
+      "reset": "並べ替えとフィルターをリセット",
+      "contains": "含む文字列",
+      "minutes": "分",
+      "from": "開始日",
+      "to": "終了日を含む",
+      "min": "最小値",
+      "max": "最大値",
+      "clear": "フィルターをクリア",
+      "close": "閉じる",
+      "empty": "列フィルターに一致する行はありません。"
+    }
   }
 }

@@ -219,6 +219,23 @@
     "sessionAndAgentCount": "{{sessions}} sesiones · {{agents}} agentes",
     "started": "Inicio",
     "duration": "Duración",
-    "agentsSummary": "{{agents}} agentes gastaron {{tokens}} · {{cost}}"
+    "agentsSummary": "{{agents}} agentes gastaron {{tokens}} · {{cost}}",
+    "columns": {
+      "ascending": "Ordenar {{column}} de forma ascendente",
+      "descending": "Ordenar {{column}} de forma descendente",
+      "none": "Restaurar el orden predeterminado",
+      "filter": "Filtrar {{column}}",
+      "showing": "{{count}} de {{total}} filas",
+      "reset": "Restablecer orden y filtros",
+      "contains": "Contiene",
+      "minutes": "Minutos",
+      "from": "Desde",
+      "to": "Hasta inclusive",
+      "min": "Mínimo",
+      "max": "Máximo",
+      "clear": "Borrar filtro",
+      "close": "Cerrar",
+      "empty": "Ninguna fila coincide con los filtros de columna."
+    }
   }
 }

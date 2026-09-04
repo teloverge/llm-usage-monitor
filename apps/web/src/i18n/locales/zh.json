@@ -219,6 +219,23 @@
     "sessionAndAgentCount": "{{sessions}} 个会话 · {{agents}} 个代理",
     "started": "开始",
     "duration": "时长",
-    "agentsSummary": "{{agents}} 个代理消耗 {{tokens}} · {{cost}}"
+    "agentsSummary": "{{agents}} 个代理消耗 {{tokens}} · {{cost}}",
+    "columns": {
+      "ascending": "按{{column}}升序排序",
+      "descending": "按{{column}}降序排序",
+      "none": "恢复默认顺序",
+      "filter": "筛选{{column}}",
+      "showing": "共{{total}}行，显示{{count}}行",
+      "reset": "重置排序和筛选",
+      "contains": "包含",
+      "minutes": "分钟",
+      "from": "起始日期",
+      "to": "截止日期（含）",
+      "min": "最小值",
+      "max": "最大值",
+      "clear": "清除筛选",
+      "close": "关闭",
+      "empty": "没有符合列筛选条件的行。"
+    }
   }
 }

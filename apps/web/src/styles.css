@@ -730,7 +730,7 @@ footer {
  */
 .history-head,
 .history .rollup > summary {
-  grid-template-columns: 12px minmax(0, 1fr) 150px 160px 160px 72px 80px 100px;
+  grid-template-columns: 12px minmax(190px, 1fr) 150px 160px 160px 108px 100px 112px;
 }
 .history-head {
   display: grid;
@@ -1039,22 +1039,68 @@ footer {
   white-space: nowrap;
 }
 
-/*
- * Narrow History: keep title, last active, and cost on one line and drop the
- * rest. Dates and duration are the first things worth losing at this width,
- * and the session table beneath still carries them.
- */
-@media (max-width: 900px) {
-  .history-head,
-  .history .rollup > summary {
-    grid-template-columns: 12px minmax(0, 1fr) 150px 100px;
-    gap: 8px;
-  }
-  .history-meta,
-  .history-span,
-  .history .rollup > summary .rollup-tokens,
-  .history-head .rollup-tokens,
-  .history-when:first-of-type {
-    display: none;
-  }
+/* Keep every History column available on narrow screens. */
+.history-scroll,
+.history-session-scroll {
+  overflow-x: auto;
+}
+.history-table {
+  min-width: 1212px;
+}
+.history-column-heading {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+.history-column-heading button {
+  padding: 5px 2px;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.history-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-align: left;
+}
+.history-sort span {
+  opacity: 0.5;
+}
+.history-column-heading .active,
+.history-column-heading button:hover {
+  color: var(--ink-strong);
+  background: var(--accent-fill);
+}
+.history-sort.active span {
+  opacity: 1;
+  color: var(--accent);
+}
+.history-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+}
+.history-column-filter,
+.history-table-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  font-size: var(--size-meta);
+  color: var(--muted);
+  background: var(--sunken);
+  border-bottom: 1px solid var(--line);
+}
+.history-column-filter label {
+  min-width: 140px;
+}
+.history-column-filter strong {
+  color: var(--ink-strong);
+}
+.history-table-status button {
+  margin-left: auto;
 }

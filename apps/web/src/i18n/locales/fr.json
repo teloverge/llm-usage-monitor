@@ -219,6 +219,23 @@
     "sessionAndAgentCount": "{{sessions}} sessions · {{agents}} agents",
     "started": "Début",
     "duration": "Durée",
-    "agentsSummary": "{{agents}} agents ont consommé {{tokens}} · {{cost}}"
+    "agentsSummary": "{{agents}} agents ont consommé {{tokens}} · {{cost}}",
+    "columns": {
+      "ascending": "Trier {{column}} par ordre croissant",
+      "descending": "Trier {{column}} par ordre décroissant",
+      "none": "Rétablir l’ordre par défaut",
+      "filter": "Filtrer {{column}}",
+      "showing": "{{count}} lignes sur {{total}}",
+      "reset": "Réinitialiser le tri et les filtres",
+      "contains": "Contient",
+      "minutes": "Minutes",
+      "from": "Du",
+      "to": "Jusqu’au inclus",
+      "min": "Minimum",
+      "max": "Maximum",
+      "clear": "Effacer le filtre",
+      "close": "Fermer",
+      "empty": "Aucune ligne ne correspond aux filtres de colonne."
+    }
   }
 }

@@ -5,6 +5,8 @@ import type {
   UsageHistorySession,
   UsageHistoryView,
 } from "@llm-usage-monitor/contracts";
+import { useHistoryColumns } from "../components/history-columns.tsx";
+import { durationMinutes, type HistoryColumn } from "../model/history-table.ts";
 import { Zone } from "../components/panel.tsx";
 import { CostStrip } from "../components/stat-strip.tsx";
 import {
@@ -35,15 +37,45 @@ export function History({
   hostLabel: (sourceHostId: string) => string;
 }) {
   const { t } = useTranslation();
-  const groups = data.groups;
+  const columns: HistoryColumn<UsageHistoryGroup>[] = [
+    {
+      id: "conversation",
+      label: t("history.conversation"),
+      kind: "text",
+      value: (group) => group.taskName || t("common.untitledTask"),
+    },
+    {
+      id: "sessions",
+      label: t("history.sessions"),
+      kind: "number",
+      value: (group) => group.sessions.length,
+    },
+    {
+      id: "started",
+      label: t("history.started"),
+      kind: "date",
+      value: (group) => Date.parse(group.firstActiveAt),
+    },
+    {
+      id: "lastActive",
+      label: t("history.lastActive"),
+      kind: "date",
+      value: (group) => Date.parse(group.lastActiveAt),
+    },
+    { id: "duration", label: t("history.duration"), kind: "duration", value: durationMinutes },
+    { id: "tokens", label: t("table.tokens"), kind: "number", value: (group) => group.totalTokens },
+    { id: "cost", label: t("table.cost"), kind: "cost", value: (group) => group.estimatedCost },
+  ];
+  const table = useHistoryColumns(data.groups, columns);
+  const groups = table.rows;
   // Same reason as the Breakdown rollup: `open` on a `<details>` makes React the
   // authority on the attribute, so without state behind it a collapsed group can
   // be reopened by the next render.
   const [openKeys, setOpenKeys] = useState<ReadonlySet<string>>(new Set());
   const [seeded, setSeeded] = useState(false);
-  if (!seeded && groups[0]) {
+  if (!seeded && data.groups[0]) {
     setSeeded(true);
-    setOpenKeys(new Set([groups[0].key]));
+    setOpenKeys(new Set([data.groups[0].key]));
   }
   const setOpen = (key: string, open: boolean) =>
     setOpenKeys((current) => {
@@ -54,65 +86,67 @@ export function History({
       return next;
     });
   const sessions = groups.reduce((sum, group) => sum + group.sessions.length, 0);
-  if (!groups.length) return <p className="empty-state">{t("history.empty")}</p>;
+  if (!data.groups.length) return <p className="empty-state">{t("history.empty")}</p>;
   return (
     <section className="history">
       <Zone>
         {t("history.summary", {
           tasks: formatCount(groups.length),
           sessions: formatCount(sessions),
-          records: formatCount(data.records),
+          records: formatCount(groups.reduce((sum, group) => sum + group.records, 0)),
         })}
       </Zone>
-      <div className="panel breakdown-body">
-        <div className="history-head" aria-hidden="true">
-          <span />
-          <span className="rank-name">{t("history.conversation")}</span>
-          <span className="history-meta">{t("history.sessions")}</span>
-          <span className="history-when">{t("history.started")}</span>
-          <span className="history-when">{t("history.lastActive")}</span>
-          <span className="history-span">{t("history.duration")}</span>
-          <span className="rollup-tokens">{t("table.tokens")}</span>
-          <span className="rank-value">{t("table.cost")}</span>
+      {table.controls}
+      <div className="history-scroll">
+        <div className="panel breakdown-body history-table">
+          <div className="history-head">
+            <span />
+            {columns.map((column) => (
+              <div key={column.id}>{table.heading(column)}</div>
+            ))}
+          </div>
+          {!groups.length && <p className="empty-state">{t("history.columns.empty")}</p>}
+          {groups.map((group) => (
+            <details
+              className="rollup"
+              key={group.key}
+              open={openKeys.has(group.key)}
+              onToggle={(event) => setOpen(group.key, event.currentTarget.open)}
+            >
+              <summary>
+                <span className="rank-name" title={group.taskName || t("common.untitledTask")}>
+                  {group.taskName || t("common.untitledTask")}
+                </span>
+                <span className="history-meta">
+                  {group.agents.sessions
+                    ? t("history.sessionAndAgentCount", {
+                        sessions: formatCount(group.sessions.length),
+                        agents: formatCount(group.agents.sessions),
+                      })
+                    : t("history.sessionCount", { sessions: formatCount(group.sessions.length) })}
+                </span>
+                <span className="history-when">{formatDateTime(group.firstActiveAt)}</span>
+                <span className="history-when">{formatDateTime(group.lastActiveAt)}</span>
+                <span className="history-span">
+                  {formatDuration(group.firstActiveAt, group.lastActiveAt)}
+                </span>
+                <span className="rollup-tokens">{formatTokens(group.totalTokens)}</span>
+                <span className="rank-value">
+                  {cost(group.estimatedCost, t("common.unpriced"))}
+                </span>
+              </summary>
+              {group.costBreakdown && group.estimatedCost !== null && (
+                <CostStrip
+                  total={group.estimatedCost}
+                  breakdown={group.costBreakdown}
+                  className="strip cost history-costs"
+                />
+              )}
+              <AgentsSummary group={group} />
+              <SessionTable sessions={group.sessions} hostLabel={hostLabel} />
+            </details>
+          ))}
         </div>
-        {groups.map((group) => (
-          <details
-            className="rollup"
-            key={group.key}
-            open={openKeys.has(group.key)}
-            onToggle={(event) => setOpen(group.key, event.currentTarget.open)}
-          >
-            <summary>
-              <span className="rank-name" title={group.taskName || t("common.untitledTask")}>
-                {group.taskName || t("common.untitledTask")}
-              </span>
-              <span className="history-meta">
-                {group.agents.sessions
-                  ? t("history.sessionAndAgentCount", {
-                      sessions: formatCount(group.sessions.length),
-                      agents: formatCount(group.agents.sessions),
-                    })
-                  : t("history.sessionCount", { sessions: formatCount(group.sessions.length) })}
-              </span>
-              <span className="history-when">{formatDateTime(group.firstActiveAt)}</span>
-              <span className="history-when">{formatDateTime(group.lastActiveAt)}</span>
-              <span className="history-span">
-                {formatDuration(group.firstActiveAt, group.lastActiveAt)}
-              </span>
-              <span className="rollup-tokens">{formatTokens(group.totalTokens)}</span>
-              <span className="rank-value">{cost(group.estimatedCost, t("common.unpriced"))}</span>
-            </summary>
-            {group.costBreakdown && group.estimatedCost !== null && (
-              <CostStrip
-                total={group.estimatedCost}
-                breakdown={group.costBreakdown}
-                className="strip cost history-costs"
-              />
-            )}
-            <AgentsSummary group={group} />
-            <SessionTable sessions={group.sessions} hostLabel={hostLabel} />
-          </details>
-        ))}
       </div>
     </section>
   );
@@ -144,72 +178,144 @@ function SessionTable({
   hostLabel: (sourceHostId: string) => string;
 }) {
   const { t } = useTranslation();
+  const columns: HistoryColumn<UsageHistorySession>[] = [
+    {
+      id: "harness",
+      label: t("history.harness"),
+      kind: "text",
+      value: (session) =>
+        session.harnesses
+          .map((harness) => harnessLabel(harness, t("common.unknownHarness")))
+          .join(", "),
+    },
+    {
+      id: "started",
+      label: t("history.started"),
+      kind: "date",
+      value: (session) => Date.parse(session.firstActiveAt),
+    },
+    {
+      id: "lastActive",
+      label: t("history.lastActive"),
+      kind: "date",
+      value: (session) => Date.parse(session.lastActiveAt),
+    },
+    { id: "duration", label: t("history.duration"), kind: "duration", value: durationMinutes },
+    {
+      id: "model",
+      label: t("history.model"),
+      kind: "text",
+      value: (session) => session.models.join(", "),
+    },
+    {
+      id: "reasoning",
+      label: t("history.reasoning"),
+      kind: "text",
+      value: (session) =>
+        session.reasoningLevels.map((level) => level ?? t("common.notReported")).join(", "),
+    },
+    {
+      id: "host",
+      label: t("history.host"),
+      kind: "text",
+      value: (session) => session.sourceHostIds.map(hostLabel).join(", "),
+    },
+    {
+      id: "records",
+      label: t("table.records"),
+      kind: "number",
+      value: (session) => session.records,
+    },
+    {
+      id: "tokens",
+      label: t("table.tokens"),
+      kind: "number",
+      value: (session) => session.totalTokens,
+    },
+    { id: "cost", label: t("table.cost"), kind: "cost", value: (session) => session.estimatedCost },
+  ];
+  const table = useHistoryColumns(sessions, columns);
   return (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th>{t("history.harness")}</th>
-          <th>{t("history.started")}</th>
-          <th>{t("history.lastActive")}</th>
-          <th>{t("history.duration")}</th>
-          <th>{t("history.model")}</th>
-          <th>{t("history.reasoning")}</th>
-          <th>{t("history.host")}</th>
-          <th className="n">{t("table.records")}</th>
-          <th className="n">{t("table.tokens")}</th>
-          <th className="n">{t("table.cost")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {sessions.map((session) => (
-          <tr key={session.key}>
-            <td
-              style={
-                session.depth ? { paddingLeft: `${session.depth * 1.25 + 0.75}rem` } : undefined
-              }
-            >
-              {session.parentSessionId !== null && (
-                <span className="history-agent">
-                  ↳ {t("history.agent")}
-                  {session.agentNickname ? ` · ${session.agentNickname}` : ""}
-                </span>
-              )}
-              {session.harnesses.map((harness) => (
-                <span className="harness" key={harness}>
-                  {/*
+    <>
+      {table.controls}
+      <div className="history-session-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th
+                  key={column.id}
+                  scope="col"
+                  aria-sort={table.sort?.id === column.id ? table.sort.direction : "none"}
+                >
+                  {table.heading(column)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {!table.rows.length && (
+              <tr>
+                <td colSpan={columns.length} className="empty-state">
+                  {t("history.columns.empty")}
+                </td>
+              </tr>
+            )}
+            {table.rows.map((session) => (
+              <tr key={session.key}>
+                <td
+                  style={
+                    !table.sort && !table.filtered && session.depth
+                      ? { paddingLeft: `${session.depth * 1.25 + 0.75}rem` }
+                      : undefined
+                  }
+                >
+                  {session.parentSessionId !== null && (
+                    <span className="history-agent">
+                      ↳ {t("history.agent")}
+                      {session.agentNickname ? ` · ${session.agentNickname}` : ""}
+                    </span>
+                  )}
+                  {session.harnesses.map((harness) => (
+                    <span className="harness" key={harness}>
+                      {/*
                     The dot is decorative: `harnessLabel` beside it is what names
                     the harness, and it renders the "unknown" sentinel as a state
                     rather than as a raw token.
                   */}
-                  <i
-                    className="dot"
-                    aria-hidden="true"
-                    style={{ background: harnessColor(harness) }}
-                  />
-                  {harnessLabel(harness, t("common.unknownHarness"))}
-                </span>
-              ))}
-            </td>
-            <td>{formatDateTime(session.firstActiveAt)}</td>
-            <td>{formatDateTime(session.lastActiveAt)}</td>
-            <td>{formatDuration(session.firstActiveAt, session.lastActiveAt)}</td>
-            <td>{session.models.join(", ")}</td>
-            {/*
+                      <i
+                        className="dot"
+                        aria-hidden="true"
+                        style={{ background: harnessColor(harness) }}
+                      />
+                      {harnessLabel(harness, t("common.unknownHarness"))}
+                    </span>
+                  ))}
+                </td>
+                <td>{formatDateTime(session.firstActiveAt)}</td>
+                <td>{formatDateTime(session.lastActiveAt)}</td>
+                <td>{formatDuration(session.firstActiveAt, session.lastActiveAt)}</td>
+                <td>{session.models.join(", ")}</td>
+                {/*
               `common.notReported` is the SAME string the stat strip and quota
               meters use for a metric a source did not supply — not a second key
               for the same concept, and never "unknown", which would read as a
               reasoning level literally named that.
             */}
-            <td>
-              {session.reasoningLevels.map((level) => level ?? t("common.notReported")).join(", ")}
-            </td>
-            <td>{session.sourceHostIds.map(hostLabel).join(", ")}</td>
-            <td className="n">{formatCount(session.records)}</td>
-            <td className="n">{formatTokens(session.totalTokens)}</td>
-            <td className="n">{cost(session.estimatedCost, t("common.unpriced"))}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+                <td>
+                  {session.reasoningLevels
+                    .map((level) => level ?? t("common.notReported"))
+                    .join(", ")}
+                </td>
+                <td>{session.sourceHostIds.map(hostLabel).join(", ")}</td>
+                <td className="n">{formatCount(session.records)}</td>
+                <td className="n">{formatTokens(session.totalTokens)}</td>
+                <td className="n">{cost(session.estimatedCost, t("common.unpriced"))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

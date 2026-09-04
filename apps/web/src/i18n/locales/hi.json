@@ -219,6 +219,23 @@
     "sessionAndAgentCount": "{{sessions}} सत्र · {{agents}} एजेंट",
     "started": "शुरू",
     "duration": "अवधि",
-    "agentsSummary": "{{agents}} एजेंट ने {{tokens}} खर्च किए · {{cost}}"
+    "agentsSummary": "{{agents}} एजेंट ने {{tokens}} खर्च किए · {{cost}}",
+    "columns": {
+      "ascending": "{{column}} को आरोही क्रम में लगाएँ",
+      "descending": "{{column}} को अवरोही क्रम में लगाएँ",
+      "none": "डिफ़ॉल्ट क्रम बहाल करें",
+      "filter": "{{column}} फ़िल्टर करें",
+      "showing": "{{total}} में से {{count}} पंक्तियाँ",
+      "reset": "क्रम और फ़िल्टर रीसेट करें",
+      "contains": "शामिल है",
+      "minutes": "मिनट",
+      "from": "से",
+      "to": "तक, शामिल",
+      "min": "न्यूनतम",
+      "max": "अधिकतम",
+      "clear": "फ़िल्टर हटाएँ",
+      "close": "बंद करें",
+      "empty": "कोई पंक्ति कॉलम फ़िल्टर से मेल नहीं खाती।"
+    }
   }
 }
