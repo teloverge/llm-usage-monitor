@@ -1101,6 +1101,10 @@ footer {
 .history-column-filter strong {
   color: var(--ink-strong);
 }
+.history-time-hint {
+  flex-basis: 100%;
+  order: 1;
+}
 .history-table-status button {
   margin-left: auto;
 }

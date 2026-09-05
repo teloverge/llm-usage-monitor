@@ -123,4 +123,22 @@ describe("grokCredentialSighting", () => {
     assert.equal(await grokCredentialSighting(await homeWith([1, 2]), "host:a", OBSERVED), null);
     assert.equal(await grokCredentialSighting(await homeWith({}), "host:a", OBSERVED), null);
   });
+
+  it("rejects auth modes that are not strings", async () => {
+    for (const auth_mode of [{}, ["oidc"], true, 42]) {
+      const home = await homeWith({ account: entry({ auth_mode }) });
+      assert.equal(await grokCredentialSighting(home, "host:a", OBSERVED), null);
+    }
+  });
+
+  it("does not let malformed creation times outrank a dated account", async () => {
+    for (const create_time of [{}, ["9999-01-01T00:00:00.000Z"], true]) {
+      const home = await homeWith({
+        dated: entry(),
+        malformed: entry({ create_time, user_id: "other-account" }),
+      });
+      const sighting = await grokCredentialSighting(home, "host:a", OBSERVED);
+      assert.equal(sighting?.fingerprint, credentialFingerprint(USER));
+    }
+  });
 });

@@ -38,7 +38,11 @@ export async function grokCredentialSighting(
       Boolean(value) && typeof value === "object" && !Array.isArray(value),
   );
   const current = entries
-    .sort((a, b) => String(a.create_time ?? "").localeCompare(String(b.create_time ?? "")))
+    .sort((a, b) => {
+      const aTime = typeof a.create_time === "string" ? a.create_time : "";
+      const bTime = typeof b.create_time === "string" ? b.create_time : "";
+      return aTime.localeCompare(bTime);
+    })
     .at(-1);
   const mode = current && grokMode(current.auth_mode);
   if (!current || !mode) return null;
@@ -60,9 +64,8 @@ export async function grokCredentialSighting(
  * we saw but cannot classify, which is exactly what "unknown" states.
  */
 function grokMode(value: unknown): CredentialMode | null {
-  const mode = String(value ?? "")
-    .trim()
-    .toLocaleLowerCase();
+  if (typeof value !== "string") return null;
+  const mode = value.trim().toLocaleLowerCase();
   if (!mode) return null;
   if (mode === "oidc" || mode === "web_login" || mode === "grok") return "subscription";
   if (mode === "api_key" || mode === "api-key" || mode === "apikey") return "api-key";

@@ -225,8 +225,8 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 /** ISO instant in UTC, or undefined. Offsets and epoch millis both normalize. */
 function instant(value: unknown): string | undefined {
-  if (value === null || value === undefined) return undefined;
-  const at = new Date(typeof value === "number" ? value : String(value));
+  if (typeof value !== "number" && typeof value !== "string") return undefined;
+  const at = new Date(value);
   if (Number.isNaN(at.getTime())) return undefined;
   const iso = at.toISOString();
   // Years outside 0000-9999 widen to a signed six-digit form ("+058537-09-27T…")

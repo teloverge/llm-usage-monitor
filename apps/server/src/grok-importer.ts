@@ -379,5 +379,5 @@ function integer(value: unknown): number {
 }
 
 function text(value: unknown): string {
-  return value === null || value === undefined ? "" : String(value).slice(0, 500);
+  return typeof value === "string" ? value.slice(0, 500) : "";
 }

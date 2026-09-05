@@ -124,6 +124,33 @@ export function useHistoryColumns<Row>(rows: readonly Row[], columns: HistoryCol
                   onChange={(event) => update("max", event.target.value)}
                 />
               </label>
+              {active.kind === "date" && (
+                <>
+                  <label>
+                    {t("history.columns.timeFrom")}
+                    <input
+                      type="time"
+                      step="60"
+                      value={filter.timeFrom ?? ""}
+                      onChange={(event) => update("timeFrom", event.target.value)}
+                      aria-describedby={`${filterId}-time-hint`}
+                    />
+                  </label>
+                  <label>
+                    {t("history.columns.timeTo")}
+                    <input
+                      type="time"
+                      step="60"
+                      value={filter.timeTo ?? ""}
+                      onChange={(event) => update("timeTo", event.target.value)}
+                      aria-describedby={`${filterId}-time-hint`}
+                    />
+                  </label>
+                  <span className="history-time-hint" id={`${filterId}-time-hint`}>
+                    {t("history.columns.timeHint")}
+                  </span>
+                </>
+              )}
             </>
           )}
           <button type="button" onClick={() => setFilters({ ...filters, [active.id]: {} })}>

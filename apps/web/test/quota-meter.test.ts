@@ -62,8 +62,6 @@ describe("Quota meter view", () => {
 });
 
 describe("Quota status glyphs", () => {
-  const points = (value: string) => [...value].map((char) => char.codePointAt(0));
-
   // Colour is not a discriminator for a viewer who confuses red and orange, so
   // the two states that demand attention must differ by shape as well.
   it("gives warning and critical different glyphs", () => {
@@ -77,15 +75,13 @@ describe("Quota status glyphs", () => {
     assert.equal(QUOTA_GLYPH.unreported, "");
   });
 
-  // Asserted as code points, not rendered strings: U+FE0E is invisible, so a
-  // string comparison would pass against a version that had lost it and
-  // silently reverted to emoji colouring.
+  // Unicode escapes make the invisible text presentation selector explicit.
   it("pins warning to U+26A0 in text presentation", () => {
-    assert.deepEqual(points(QUOTA_GLYPH.warning), [0x26a0, 0xfe0e]);
+    assert.equal(QUOTA_GLYPH.warning, "\u26a0\ufe0e");
   });
 
   it("pins critical to U+2716 in text presentation", () => {
-    assert.deepEqual(points(QUOTA_GLYPH.critical), [0x2716, 0xfe0e]);
+    assert.equal(QUOTA_GLYPH.critical, "\u2716\ufe0e");
   });
 });
 

@@ -11,6 +11,8 @@ export interface ColumnFilter {
   text?: string;
   min?: string;
   max?: string;
+  timeFrom?: string;
+  timeTo?: string;
 }
 
 export interface ColumnSort {
@@ -19,7 +21,9 @@ export interface ColumnSort {
 }
 
 export function hasColumnFilter(filter: ColumnFilter = {}): boolean {
-  return Boolean(filter.text?.trim() || filter.min || filter.max);
+  return Boolean(
+    filter.text?.trim() || filter.min || filter.max || filter.timeFrom || filter.timeTo,
+  );
 }
 
 export function durationMinutes(row: {
@@ -56,13 +60,23 @@ export function historyRows<Row>(
       text: filters[column.id]?.text?.trim().toLocaleLowerCase(locale) ?? "",
       min: bound(filters[column.id]?.min, column.kind, false),
       max: bound(filters[column.id]?.max, column.kind, true),
+      timeFrom: column.kind === "date" ? timeMinutes(filters[column.id]?.timeFrom) : null,
+      timeTo: column.kind === "date" ? timeMinutes(filters[column.id]?.timeTo) : null,
     }));
   const result = rows.filter((row) =>
-    active.every(({ column, text, min, max }) => {
+    active.every(({ column, text, min, max, timeFrom, timeTo }) => {
       const value = column.value(row);
       if (typeof value === "string") return value.toLocaleLowerCase(locale).includes(text);
       if (value === null || !Number.isFinite(value)) return false;
-      return (min === null || value >= min) && (max === null || value <= max);
+      if ((min !== null && value < min) || (max !== null && value > max)) return false;
+      if (timeFrom === null && timeTo === null) return true;
+      const date = new Date(value);
+      // Match the displayed local minute, including all seconds in the end minute.
+      const minutes = date.getHours() * 60 + date.getMinutes();
+      if (timeFrom !== null && timeTo !== null && timeFrom > timeTo) {
+        return minutes >= timeFrom || minutes <= timeTo;
+      }
+      return (timeFrom === null || minutes >= timeFrom) && (timeTo === null || minutes <= timeTo);
     }),
   );
   const column = columns.find((candidate) => candidate.id === sort?.id);
@@ -81,4 +95,9 @@ export function historyRows<Row>(
         : collator.compare(String(a), String(b));
     return sort.direction === "ascending" ? order : -order;
   });
+}
+
+function timeMinutes(value: string | undefined): number | null {
+  if (!value || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
+  return Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
 }

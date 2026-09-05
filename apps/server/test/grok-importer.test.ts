@@ -238,6 +238,20 @@ describe("Grok importer", () => {
     assert.equal(records[0]!.taskName, "Grok session 019fc3c2");
   });
 
+  it("treats malformed summary text as missing metadata", async () => {
+    const home = await writeHome({
+      unified: [inferenceLine("2026-08-02T18:36:02.784Z")],
+      sessions: [{ summary: { current_model_id: ["grok-4.5"], generated_title: {} } }],
+    });
+    try {
+      const { records } = await collect(home);
+      assert.equal(records[0]?.model, "unknown");
+      assert.equal(records[0]?.taskName, "Grok session 019fc3c2");
+    } finally {
+      await fs.rm(home, { recursive: true, force: true });
+    }
+  });
+
   it("counts a replayed inference line once", async () => {
     const home = await writeHome({
       unified: [
