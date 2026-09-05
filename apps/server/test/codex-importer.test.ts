@@ -6,6 +6,49 @@ import { describe, it } from "node:test";
 import { parseSession, subtractTokenShapes, usageModeFlags } from "../src/codex-importer.ts";
 
 describe("Codex importer", () => {
+  it("treats malformed provider and agent metadata as missing", async () => {
+    const directory = await fs.mkdtemp(join(tmpdir(), "codex-importer-"));
+    try {
+      const file = join(directory, "session.jsonl");
+      await fs.writeFile(
+        file,
+        [
+          {
+            type: "session_meta",
+            payload: {
+              id: "session",
+              model_provider: {},
+              agent_nickname: {},
+              parent_thread_id: [],
+            },
+          },
+          {
+            type: "turn_context",
+            timestamp: "2026-08-22T01:01:00.000Z",
+            payload: { turn_id: "turn", model: "gpt-test" },
+          },
+          {
+            type: "event_msg",
+            timestamp: "2026-08-22T01:02:00.000Z",
+            payload: {
+              type: "token_count",
+              info: { total_token_usage: { input_tokens: 10, output_tokens: 2, total_tokens: 12 } },
+            },
+          },
+        ]
+          .map((line) => JSON.stringify(line))
+          .join("\n"),
+      );
+      const { records } = await parseSession(file, new Map());
+      assert.equal(records.length, 1);
+      assert.equal(records[0]?.provider, "openai");
+      assert.equal(records[0]?.agentNickname, undefined);
+      assert.equal(records[0]?.parentSessionId, undefined);
+    } finally {
+      await fs.rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it("subtracts cumulative counters without negative reset deltas", () =>
     assert.equal(
       subtractTokenShapes(

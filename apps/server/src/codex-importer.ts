@@ -495,7 +495,7 @@ function expandHome(value: string): string {
   return resolve(value);
 }
 function normalizeProvider(value: unknown): string {
-  const provider = String(value || "openai").toLocaleLowerCase();
+  const provider = (typeof value === "string" && value ? value : "openai").toLocaleLowerCase();
   return provider === "codex" || provider === "openai-api" ? "openai" : provider;
 }
 function integer(value: unknown): number {
@@ -505,5 +505,5 @@ function number(value: unknown): number {
   return Math.max(0, Number(value) || 0);
 }
 function text(value: unknown): string {
-  return value === null || value === undefined ? "" : String(value).slice(0, 200);
+  return typeof value === "string" ? value.slice(0, 200) : "";
 }

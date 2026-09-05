@@ -149,6 +149,24 @@ describe("claudeQuotaSnapshot", () => {
     assert.equal(snapshot?.windows[1]?.label, "Weekly window");
   });
 
+  it("rejects structured timestamps instead of coercing them into dates", () => {
+    for (const value of [[FIVE_HOUR_RESET], {}, true]) {
+      const snapshot = claudeQuotaSnapshot(
+        config({ limits: [{ kind: "session", percent: 2, resets_at: value }] }),
+        "host:a",
+      );
+      assert.equal(snapshot?.windows.length, 1);
+      assert.equal(snapshot?.windows[0]?.resetsAt, undefined);
+      assert.equal(
+        claudeQuotaSnapshot(
+          { cachedUsageUtilization: { fetchedAtMs: value, utilization: { limits: [] } } },
+          "host:a",
+        ),
+        null,
+      );
+    }
+  });
+
   it("omits the length when nothing corroborates it", () => {
     const snapshot = claudeQuotaSnapshot(config(), "host:a");
     const scoped = snapshot?.windows[2];

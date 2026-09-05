@@ -16,7 +16,7 @@ import {
 
 const record = (
   timestamp: string,
-  reasoningLevel?: string | undefined,
+  reasoningLevel?: string,
   modeFlags = { ultra: false, fast: false },
   overrides: Partial<UsageRecord> = {},
 ): UsageRecord => ({
@@ -422,7 +422,10 @@ describe("Harness ranking", () => {
     // Filtering by harnessId "codex" must pick up BOTH providers that harness
     // used, and must exclude "codex-fork" despite it sharing provider "openai".
     assert.equal(byHarness.totals.records, 2);
-    assert.deepEqual(byHarness.byModel.map((row) => row.model).sort(), ["claude-test", "gpt-test"]);
+    assert.deepEqual(
+      byHarness.byModel.map((row) => row.model).sort((a, b) => (a ?? "").localeCompare(b ?? "")),
+      ["claude-test", "gpt-test"],
+    );
 
     const byProvider = analyzeUsage({
       records,
@@ -897,12 +900,12 @@ describe("credential attribution", () => {
   it("splits usage across the credential and the unattributed bucket", () => {
     assert.deepEqual(
       analyze()
-        .byCredential.map((row) => [row.key, row.records])
-        .sort(),
+        .byCredential.sort((a, b) => a.key.localeCompare(b.key))
+        .map((row) => [row.key, row.records]),
       [
         ["subscription:9a1b2c3d4e5f", 1],
         ["unattributed", 1],
-      ].sort(),
+      ],
     );
   });
 

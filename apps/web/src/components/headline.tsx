@@ -224,7 +224,9 @@ export function Headline({
               />
               <Tooltip
                 formatter={(value) => exactFormat(Number(value))}
-                labelFormatter={(label) => formatBucketLabel(String(label))}
+                labelFormatter={(label) =>
+                  typeof label === "string" ? formatBucketLabel(label) : null
+                }
                 contentStyle={{
                   background: PAGE_SURFACE,
                   border: `1px solid ${CHART_INK.grid}`,

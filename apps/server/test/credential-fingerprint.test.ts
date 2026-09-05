@@ -24,7 +24,11 @@ describe("credentialFingerprint", () => {
 
   it("reports no fingerprint when the source names no account", () => {
     for (const value of [undefined, null, "", "   ", 42, {}]) {
-      assert.equal(credentialFingerprint(value), "", `should be empty for ${String(value)}`);
+      assert.equal(
+        credentialFingerprint(value),
+        "",
+        `should be empty for ${JSON.stringify(value)}`,
+      );
     }
   });
 
