@@ -4,10 +4,13 @@ import type { CredentialObservation } from "@llm-usage-monitor/contracts";
 import {
   countsAgainstPlan,
   credentialLabel,
+  credentialLabeler,
   credentialModeKey,
   credentialOptions,
+  fingerprintTag,
   latestCredential,
   parseCredentialId,
+  planLabel,
 } from "../src/model/credential.ts";
 
 /**
@@ -15,6 +18,9 @@ import {
  * a label is built from without pinning copy that lives in the locale files.
  */
 const t = (key: string) => key;
+
+/** Stands in for `usageSourceLabel`, so the source name is visible in assertions. */
+const source = (usageSourceId: string) => `<${usageSourceId}>`;
 
 const observation = (over: Partial<CredentialObservation> = {}): CredentialObservation => ({
   usageSourceId: "codex-local",
@@ -113,6 +119,143 @@ describe("credentialLabel", () => {
   });
 });
 
+describe("planLabel", () => {
+  it("drops a product prefix and capitalises the words", () => {
+    assert.equal(planLabel("claude_max_20x"), "Max 20x");
+    assert.equal(planLabel("pro"), "Pro");
+  });
+
+  it("keeps a single word even when it is a product name", () => {
+    assert.equal(planLabel("claude"), "Claude");
+  });
+
+  it("leaves words that already carry capitals as written", () => {
+    assert.equal(planLabel("SuperGrok Heavy"), "SuperGrok Heavy");
+    assert.equal(planLabel("Free"), "Free");
+  });
+});
+
+describe("fingerprintTag", () => {
+  it("is the last four characters of the fingerprint", () => {
+    assert.equal(fingerprintTag("ddf56ff57053"), "…7053");
+  });
+
+  it("is empty when the source named no account", () => {
+    assert.equal(fingerprintTag(""), "");
+  });
+});
+
+describe("credentialLabeler", () => {
+  it("names a credential by its source, plan, and fingerprint tag", () => {
+    const label = credentialLabeler([observation({ plan: "claude_max_20x" })], t, source);
+    assert.equal(label("subscription:9a1b2c3d4e5f"), "<codex-local> · Max 20x · …4e5f");
+  });
+
+  it("borrows the plan from a quota snapshot on a host where the credential is current", () => {
+    const label = credentialLabeler([observation()], t, source, [
+      {
+        usageSourceId: "codex-local",
+        sourceHostId: "host:a",
+        plan: "pro",
+        observedAt: "2026-07-20T00:00:00.000Z",
+        windows: [],
+      },
+    ]);
+    assert.equal(label("subscription:9a1b2c3d4e5f"), "<codex-local> · Pro · …4e5f");
+  });
+
+  it("does not lend a snapshot's plan to an account the host has moved off", () => {
+    const label = credentialLabeler(
+      [
+        observation({ fingerprint: "aaaaaaaa1111" }),
+        observation({ fingerprint: "bbbbbbbb2222", effectiveFrom: "2026-07-20T00:00:00.000Z" }),
+      ],
+      t,
+      source,
+      [
+        {
+          usageSourceId: "codex-local",
+          sourceHostId: "host:a",
+          plan: "plus",
+          observedAt: "2026-07-25T00:00:00.000Z",
+          windows: [],
+        },
+      ],
+    );
+    assert.equal(label("subscription:bbbbbbbb2222"), "<codex-local> · Plus · …2222");
+    assert.equal(
+      label("subscription:aaaaaaaa1111"),
+      "<codex-local> · credential.mode.subscription · …1111",
+    );
+  });
+
+  it("falls back to the mode when no plan was reported", () => {
+    const label = credentialLabeler([observation({ mode: "api-key" })], t, source);
+    assert.equal(label("api-key:9a1b2c3d4e5f"), "<codex-local> · credential.mode.apiKey · …4e5f");
+  });
+
+  it("omits the tag when the source named no account", () => {
+    const label = credentialLabeler([observation({ mode: "api-key", fingerprint: "" })], t, source);
+    assert.equal(label("api-key:"), "<codex-local> · credential.mode.apiKey");
+  });
+
+  it("takes the plan from the newest observation", () => {
+    const label = credentialLabeler(
+      [
+        observation({ plan: "plus", observedAt: "2026-07-01T00:00:00.000Z" }),
+        observation({ plan: "pro", observedAt: "2026-07-20T00:00:00.000Z" }),
+      ],
+      t,
+      source,
+    );
+    assert.equal(label("subscription:9a1b2c3d4e5f"), "<codex-local> · Pro · …4e5f");
+  });
+
+  it("tells two subscriptions on the same plan apart by their tags", () => {
+    const label = credentialLabeler(
+      [
+        observation({ fingerprint: "aaaaaaaa1111", plan: "pro" }),
+        observation({ fingerprint: "bbbbbbbb2222", plan: "pro" }),
+      ],
+      t,
+      source,
+    );
+    assert.equal(label("subscription:aaaaaaaa1111"), "<codex-local> · Pro · …1111");
+    assert.equal(label("subscription:bbbbbbbb2222"), "<codex-local> · Pro · …2222");
+  });
+
+  it("widens to the full fingerprint when two tags collide", () => {
+    const label = credentialLabeler(
+      [
+        observation({ fingerprint: "aaaaaaaa1111", plan: "pro" }),
+        observation({ fingerprint: "bbbbbbbb1111", plan: "pro" }),
+      ],
+      t,
+      source,
+    );
+    assert.equal(label("subscription:aaaaaaaa1111"), "<codex-local> · Pro · aaaaaaaa1111");
+    assert.equal(label("subscription:bbbbbbbb1111"), "<codex-local> · Pro · bbbbbbbb1111");
+  });
+
+  it("lists every source signed in with one credential", () => {
+    const label = credentialLabeler(
+      [observation(), observation({ usageSourceId: "opencode-local" })],
+      t,
+      source,
+    );
+    assert.equal(
+      label("subscription:9a1b2c3d4e5f"),
+      "<codex-local> / <opencode-local> · credential.mode.subscription · …4e5f",
+    );
+  });
+
+  it("falls back to mode and fingerprint for a credential nothing describes", () => {
+    const label = credentialLabeler([], t, source);
+    assert.equal(label("api-key:a1b2c3d4e5f6"), "credential.mode.apiKey · a1b2c3d4e5f6");
+    assert.equal(label("unattributed"), "credential.unattributed");
+  });
+});
+
 describe("credentialOptions", () => {
   /**
    * The regression this function exists to prevent: the options once came from
@@ -127,6 +270,7 @@ describe("credentialOptions", () => {
         observation({ mode: "api-key", fingerprint: "bbbbbbbbbbbb" }),
       ],
       t,
+      source,
     );
     assert.deepEqual(
       options.map((option) => option.value),
@@ -135,7 +279,7 @@ describe("credentialOptions", () => {
   });
 
   it("always offers the unattributed bucket, which no observation backs", () => {
-    const values = credentialOptions([], t).map((option) => option.value);
+    const values = credentialOptions([], t, source).map((option) => option.value);
     assert.deepEqual(values, ["", "unattributed"]);
   });
 
@@ -143,6 +287,7 @@ describe("credentialOptions", () => {
     const values = credentialOptions(
       [observation({ fingerprint: "aaaaaaaaaaaa" }), observation({ fingerprint: "aaaaaaaaaaaa" })],
       t,
+      source,
     ).map((option) => option.value);
     assert.deepEqual(values, ["", "subscription:aaaaaaaaaaaa", "unattributed"]);
   });

@@ -1,20 +1,18 @@
-import { rankBarWidth } from "./rank-scale.ts";
-
 /**
- * Width percentage for a row's bar, relative to its largest sibling — never to
- * the grand total, so a child bar cannot imply a share of the whole.
+ * The cost a full-width bar stands for across one Breakdown tree: the largest
+ * top-level row.
  *
- * Delegates the division to `rankBarWidth` rather than repeating it: that is
- * where the divide-by-zero guard and the 0–100 clamp already live and are
- * tested. Two copies of "turn a value into a bar width" would be two places for
- * the `NaN%` case to regress.
+ * Every level shares this one scale. Scaling each level against its own largest
+ * sibling drew a child as long as its parent whenever it led its siblings —
+ * "high" at USD 2,900 filled the same track as the USD 5,600 model above it.
+ * On a shared scale a child's bar can never outrun its parent's, and any two
+ * bars in the tree compare directly.
  *
- * The maximum is folded rather than taken with `Math.max(0, ...siblings)`. A
- * Breakdown grouped by task can have thousands of sibling rows, and spreading
- * them passes each as a call argument, which throws RangeError past the engine's
+ * The maximum is folded rather than taken with `Math.max(0, ...values)`. A
+ * Breakdown grouped by task can have thousands of rows, and spreading them
+ * passes each as a call argument, which throws RangeError past the engine's
  * limit.
  */
-export function shareOfParent(value: number, siblings: number[]): number {
-  const maximum = siblings.reduce((largest, sibling) => (sibling > largest ? sibling : largest), 0);
-  return rankBarWidth(value, maximum);
+export function rollupScale(values: number[]): number {
+  return values.reduce((largest, value) => (value > largest ? value : largest), 0);
 }

@@ -46,9 +46,50 @@ export const CHART_INK = {
  */
 export const TOKEN_MIX = {
   fresh: SERIES.blue,
-  cached: SERIES.teal,
   output: SERIES.orange,
 } as const;
 
-/** Stacking order for the token-mix bar. Explicit so it never depends on key order. */
-export const TOKEN_MIX_ORDER = ["fresh", "cached", "output"] as const;
+/**
+ * Stacking order for the token-mix bar. Explicit so it never depends on key
+ * order. Cached input is not a segment — see `tokenMix` in model/token-mix.ts.
+ */
+export const TOKEN_MIX_ORDER = ["fresh", "output"] as const;
+
+/** Every colour a chart needs, for one colour scheme. */
+export interface ChartPalette {
+  surface: string;
+  page: string;
+  series: { teal: string; blue: string; orange: string };
+  status: { good: string; warning: string; critical: string };
+  ink: { grid: string; axis: string; muted: string; track: string };
+}
+
+export const DARK_PALETTE: ChartPalette = {
+  surface: CHART_SURFACE,
+  page: PAGE_SURFACE,
+  series: SERIES,
+  status: STATUS,
+  ink: CHART_INK,
+};
+
+/**
+ * The light-scheme twin of the values above, worn when the reader's system
+ * prefers light. Same hues, stepped darker so they hold contrast on white.
+ *
+ * The series were run through the external palette validator against the light
+ * chart surface (`--mode light --surface "#ffffff"`): all five gates pass, worst
+ * adjacent CVD ΔE 18.9 (protan) and normal-vision ΔE 19.9, every slot ≥ 3:1.
+ * apps/web/test/palette.test.ts re-checks the band and contrast and pins these
+ * values, exactly as it does for the dark set — changing one means re-running
+ * the validator.
+ */
+export const LIGHT_PALETTE: ChartPalette = {
+  surface: "#ffffff",
+  page: "#f4f5f6",
+  series: { teal: "#0b8f6b", blue: "#2f73d1", orange: "#c4501f" },
+  status: { good: "#138a13", warning: "#a86e00", critical: "#c62f2f" },
+  ink: { grid: "#e6e8ea", axis: "#c3c8cc", muted: "#5f6b66", track: "#e6e8ea" },
+};
+
+/** UI only, light scheme: the hero figure and primary buttons. Darker than the dark accent so white text and the white page both hold contrast against it. */
+export const LIGHT_UI_ACCENT = "#0a7d5d";

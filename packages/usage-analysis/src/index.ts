@@ -84,7 +84,16 @@ export function analyzeUsage(input: AnalysisInput): OverviewView {
     // reader's language. The view resolves the id against the host catalog.
     bySourceHost: rank(priced, ({ record }) => record.sourceHostId),
     byHostGroup: rank(priced, ({ record }) => groupFor(record)),
-    byHarness: rank(priced, ({ record }) => record.harnessId),
+    // Each harness row carries its credentials as children, so a harness used
+    // through two subscriptions can be split back out by account. Keyed by
+    // credential id, as `byCredential` is; the view names them.
+    byHarness: rank(priced, ({ record }) => record.harnessId).map((row) => ({
+      ...row,
+      children: rank(
+        priced.filter(({ record }) => record.harnessId === row.key),
+        ({ record }) => credentialKey(credentials, record),
+      ),
+    })),
     byCredential: rank(priced, ({ record }) => credentialKey(credentials, record)),
     credentials,
     quotaSnapshots: currentQuota(input.quotaSnapshots ?? [], now),
@@ -522,10 +531,15 @@ function summarizeModes(items: PricedRecord[]): UsageModeFlags {
     fast: items.some(({ record }) => record.modeFlags.fast),
   };
 }
+/**
+ * Highest effort first. `max` is Claude Code's top effort level and sits above
+ * `xhigh`; left out, it fell to the end of the list, after `low`.
+ */
 function reasoningOrder(value: string): number {
   const order = [
     "ultra",
     "ultrathink",
+    "max",
     "xhigh",
     "high",
     "medium",

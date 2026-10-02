@@ -1,17 +1,20 @@
 import { useState } from "react";
 import type { RankedUsage } from "@llm-usage-monitor/contracts";
 import { formatMoney, formatTokens } from "../model/format.ts";
-import { rankedRowKey } from "../model/rank-scale.ts";
-import { shareOfParent } from "../model/rollup-scale.ts";
+import { rankBarWidth, rankedRowKey } from "../model/rank-scale.ts";
+import { rollupScale } from "../model/rollup-scale.ts";
 
 export function Rollup({
   rows,
   depth = 0,
   defaultOpenFirst = true,
+  scale,
 }: {
   rows: RankedUsage[];
   depth?: number;
   defaultOpenFirst?: boolean;
+  /** The cost of a full bar. Set by the top level and passed down unchanged; see `rollupScale`. */
+  scale?: number;
 }) {
   /**
    * Which rows are open is React state, not just DOM state. Passing `open` to
@@ -32,14 +35,14 @@ export function Rollup({
       else next.delete(key);
       return next;
     });
-  const siblings = rows.map((row) => row.estimatedCost);
+  const full = scale ?? rollupScale(rows.map((row) => row.estimatedCost));
   return (
     <>
       {rows.map((row) => {
         const key = rankedRowKey(row);
         const bar = (
           <span className="rank-track" aria-hidden="true">
-            <i style={{ width: `${shareOfParent(row.estimatedCost, siblings)}%` }} />
+            <i style={{ width: `${rankBarWidth(row.estimatedCost, full)}%` }} />
           </span>
         );
         const metrics = (
@@ -50,7 +53,10 @@ export function Rollup({
         );
         if (!row.children?.length) {
           return (
-            <div className={`rollup-row depth-${depth}`} key={key}>
+            <div
+              className={`rollup-row depth-${depth}${row.estimatedCost === 0 ? " zero" : ""}`}
+              key={key}
+            >
               <span className="rank-name" title={row.key}>
                 {row.key}
               </span>
@@ -73,7 +79,7 @@ export function Rollup({
               {bar}
               {metrics}
             </summary>
-            <Rollup rows={row.children} depth={depth + 1} defaultOpenFirst={false} />
+            <Rollup rows={row.children} depth={depth + 1} defaultOpenFirst={false} scale={full} />
           </details>
         );
       })}

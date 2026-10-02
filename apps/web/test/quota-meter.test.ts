@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { UsageQuotaWindow } from "@llm-usage-monitor/contracts";
-import { QUOTA_GLYPH, quotaMeterView } from "../src/model/quota-meter.ts";
+import { isStaleReading, QUOTA_GLYPH, quotaMeterView } from "../src/model/quota-meter.ts";
 
 const window = (usedPercent?: number): UsageQuotaWindow => ({
   id: "primary",
@@ -91,5 +91,21 @@ describe("Quota meter clamping", () => {
     assert.equal(view.width, 100, "the bar cannot exceed its track");
     assert.equal(view.shown, 137, "but the number still reports the truth");
     assert.equal(view.status, "critical");
+  });
+});
+
+describe("isStaleReading", () => {
+  const now = new Date("2026-10-01T12:00:00.000Z");
+
+  it("is false within a day", () => {
+    assert.equal(isStaleReading("2026-09-30T13:00:00.000Z", now), false);
+  });
+
+  it("is true past a day", () => {
+    assert.equal(isStaleReading("2026-09-26T15:26:00.000Z", now), true);
+  });
+
+  it("is false for an instant it cannot read", () => {
+    assert.equal(isStaleReading("not a date", now), false);
   });
 });

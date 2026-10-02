@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { CredentialObservation, UsageQuotaSnapshot } from "@llm-usage-monitor/contracts";
-import { quotaAccounts } from "../src/model/quota-account.ts";
+import { quotaAccounts, quotaProviders } from "../src/model/quota-account.ts";
 
 const snapshot = (over: Partial<UsageQuotaSnapshot> = {}): UsageQuotaSnapshot => ({
   usageSourceId: "codex-local",
@@ -103,5 +103,33 @@ describe("quotaAccounts", () => {
 
   it("returns nothing for no snapshots", () => {
     assert.deepEqual(quotaAccounts([], [observation()]), []);
+  });
+});
+
+describe("quotaProviders", () => {
+  it("gathers two subscriptions on one source under one provider", () => {
+    const accounts = quotaAccounts(
+      [
+        snapshot({ sourceHostId: "host:a" }),
+        snapshot({ sourceHostId: "host:b" }),
+        snapshot({ usageSourceId: "claude-code-local", sourceHostId: "host:a" }),
+      ],
+      [
+        observation({ sourceHostId: "host:a", fingerprint: "aaaaaaaaaaaa" }),
+        observation({ sourceHostId: "host:b", fingerprint: "bbbbbbbbbbbb" }),
+      ],
+    );
+    const providers = quotaProviders(accounts);
+    assert.deepEqual(
+      providers.map((provider) => [provider.usageSourceId, provider.accounts.length]),
+      [
+        ["codex-local", 2],
+        ["claude-code-local", 1],
+      ],
+    );
+  });
+
+  it("is empty when there are no accounts", () => {
+    assert.deepEqual(quotaProviders([]), []);
   });
 });

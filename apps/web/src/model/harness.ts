@@ -1,5 +1,4 @@
 import { harnessForSource } from "@llm-usage-monitor/contracts";
-import { SERIES } from "../theme/palette.ts";
 
 const HARNESS_LABELS: Record<string, string> = {
   codex: "Codex",
@@ -13,16 +12,19 @@ const HARNESS_LABELS: Record<string, string> = {
  * harness keeps the same swatch wherever it appears. Anything unregistered
  * shares the third slot: the dot is an aid to scanning, not an identifier, and
  * the label beside it is what actually distinguishes the row.
+ *
+ * CSS custom properties rather than hex, so the swatch follows the light and
+ * dark schemes tokens.css defines.
  */
 const HARNESS_COLORS: Record<string, string> = {
-  codex: SERIES.teal,
-  "claude-code": SERIES.blue,
-  "grok-build": SERIES.orange,
-  opencode: SERIES.orange,
+  codex: "var(--series-1)",
+  "claude-code": "var(--series-2)",
+  "grok-build": "var(--series-3)",
+  opencode: "var(--series-3)",
 };
 
 export function harnessColor(harnessId: string): string {
-  return HARNESS_COLORS[harnessId] ?? SERIES.orange;
+  return HARNESS_COLORS[harnessId] ?? "var(--series-3)";
 }
 
 /**

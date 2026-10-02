@@ -4,7 +4,9 @@
     "notReported": "रिपोर्ट नहीं किया गया",
     "unpriced": "बिना दर",
     "sourceHostFallback": "स्रोत होस्ट {{index}}",
-    "untitledTask": "बिना शीर्षक का कार्य"
+    "untitledTask": "बिना शीर्षक का कार्य",
+    "accountCount_one": "{{accounts}} खाता",
+    "accountCount_other": "{{accounts}} खाते"
   },
   "credential": {
     "mode": {
@@ -21,8 +23,10 @@
   "headline": {
     "coverage": {
       "none": "इस अवधि में कोई रिकॉर्ड नहीं",
-      "all": "{{records}} रिकॉर्ड की कीमत आँकी गई",
-      "partial": "{{records}} में से {{priced}} रिकॉर्ड की कीमत आँकी गई"
+      "all_one": "{{records}} रिकॉर्ड की कीमत आँकी गई",
+      "all_other": "{{records}} रिकॉर्ड की कीमत आँकी गई",
+      "partial_one": "{{records}} में से {{priced}} रिकॉर्ड की कीमत आँकी गई",
+      "partial_other": "{{records}} में से {{priced}} रिकॉर्ड की कीमत आँकी गई"
     },
     "title": "काम की API-समतुल्य लागत · {{period}}",
     "disclaimer": "{{coverage}} · आपकी कॉन्फ़िगर की गई API दरों पर अनुमानित, यह बिल नहीं है",
@@ -60,11 +64,12 @@
     },
     "rates": {
       "heading": "मॉडल दरें",
-      "subtitle": "प्रति दस लाख टोकन USD · {{models}} कॉन्फ़िगर किए गए मॉडल",
+      "subtitle_one": "प्रति दस लाख टोकन USD · {{models}} कॉन्फ़िगर किए गए मॉडल",
+      "subtitle_other": "प्रति दस लाख टोकन USD · {{models}} कॉन्फ़िगर किए गए मॉडल",
       "caption": "कॉन्फ़िगर किए गए मॉडल मूल्य, प्रति दस लाख टोकन USD में",
       "saving": "सहेजा जा रहा है…",
       "save": "बदलाव सहेजें",
-      "saved": "मूल्य सहेज लिए गए",
+      "saved": "सहेजा गया",
       "provider": "प्रदाता",
       "model": "मॉडल",
       "input": "इनपुट",
@@ -109,7 +114,7 @@
   "filters": {
     "period": "अवधि",
     "host": "होस्ट",
-    "allHosts": "सभी",
+    "allHosts": "सभी होस्ट",
     "searchTasks": "कार्य फ़िल्टर करें",
     "refresh": "स्रोत रीफ़्रेश करें",
     "refreshing": "रीफ़्रेश हो रहा है…",
@@ -150,20 +155,20 @@
     "cacheCoverage": "{{tokens}} रिपोर्टिंग टोकन में से",
     "tasks": "कार्य",
     "models": "मॉडल",
-    "costTotal": "अनुमानित लागत",
     "costInput": "बिना कैश इनपुट",
     "costCacheRead": "कैश रीड",
     "costCacheWrite": "कैश राइट",
     "costOutput": "आउटपुट",
-    "costCacheSavings": "कैश बचत"
+    "costCacheSavings": "कैश बचत",
+    "costSavingsNote": "कुल में शामिल नहीं"
   },
   "tokenMix": {
     "composition": "टोकन संरचना",
     "empty": "इस अवधि में कोई टोकन नहीं",
     "fresh": "नया इनपुट",
-    "cached": "कैश्ड",
     "output": "आउटपुट",
-    "unreported": "कैश रिपोर्ट नहीं हुआ"
+    "unreported": "कैश रिपोर्ट नहीं हुआ",
+    "excludesCached": "{{tokens}} कैश्ड इनपुट टोकन शामिल नहीं"
   },
   "quota": {
     "used": "{{percent}} उपयोग हुआ",
@@ -179,7 +184,9 @@
       "hours": "{{n}}-घंटे की विंडो",
       "minutes": "{{n}}-मिनट की विंडो",
       "extraUsage": "अतिरिक्त उपयोग"
-    }
+    },
+    "stale": "एक दिन से अधिक समय से अपडेट नहीं",
+    "noWindows": "कोई वर्तमान सीमा विंडो नहीं"
   },
   "rank": {
     "empty": "इस अवधि में कोई उपयोग नहीं",
@@ -188,14 +195,14 @@
   },
   "breakdown": {
     "groupBy": "समूहन आधार",
-    "byHarness": "परिवेश",
+    "byHarness": "परिवेश → क्रेडेंशियल",
     "byModel": "मॉडल → रीज़निंग",
     "byTask": "कार्य → सत्र",
     "bySourceHost": "होस्ट",
     "byHostGroup": "होस्ट समूह",
     "byCredential": "क्रेडेंशियल",
-    "treeView": "⊟ ट्री दृश्य",
-    "tableView": "⊞ तालिका दृश्य",
+    "treeView": "ट्री दृश्य",
+    "tableView": "तालिका दृश्य",
     "empty": "मौजूदा फ़िल्टर से कोई उपयोग मेल नहीं खाता।"
   },
   "table": {
@@ -206,7 +213,10 @@
   },
   "history": {
     "empty": "फ़िल्टर से कोई उपयोग इतिहास मेल नहीं खाता।",
-    "summary": "{{tasks}} कार्य · {{sessions}} सत्र · {{records}} रिकॉर्ड",
+    "taskCount_one": "{{tasks}} कार्य",
+    "taskCount_other": "{{tasks}} कार्य",
+    "recordCount_one": "{{records}} रिकॉर्ड",
+    "recordCount_other": "{{records}} रिकॉर्ड",
     "lastActive": "अंतिम गतिविधि",
     "harness": "परिवेश",
     "model": "मॉडल",
@@ -215,11 +225,14 @@
     "agent": "एजेंट",
     "conversation": "बातचीत",
     "sessions": "सत्र",
-    "sessionCount": "{{sessions}} सत्र",
-    "sessionAndAgentCount": "{{sessions}} सत्र · {{agents}} एजेंट",
+    "sessionCount_one": "{{sessions}} सत्र",
+    "sessionCount_other": "{{sessions}} सत्र",
+    "agentCount_one": "{{agents}} एजेंट",
+    "agentCount_other": "{{agents}} एजेंट",
     "started": "शुरू",
     "duration": "अवधि",
-    "agentsSummary": "{{agents}} एजेंट ने {{tokens}} खर्च किए · {{cost}}",
+    "agentsSummary_one": "{{agents}} एजेंट ने {{tokens}} खर्च किए · {{cost}}",
+    "agentsSummary_other": "{{agents}} एजेंट ने {{tokens}} खर्च किए · {{cost}}",
     "columns": {
       "ascending": "{{column}} को आरोही क्रम में लगाएँ",
       "descending": "{{column}} को अवरोही क्रम में लगाएँ",

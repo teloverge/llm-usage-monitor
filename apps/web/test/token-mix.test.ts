@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { UsageTotals } from "@llm-usage-monitor/contracts";
-import { tokenMixSegments } from "../src/model/token-mix.ts";
+import { tokenMix, type TokenMixSegment } from "../src/model/token-mix.ts";
 
 const totals = (overrides: Partial<UsageTotals>): UsageTotals => ({
   estimatedCost: 0,
@@ -22,12 +22,12 @@ const totals = (overrides: Partial<UsageTotals>): UsageTotals => ({
   ...overrides,
 });
 
-const tokensFor = (segments: ReturnType<typeof tokenMixSegments>, key: string) =>
-  segments.find((segment) => segment.key === key)?.tokens;
+const find = (segments: TokenMixSegment[], key: string) =>
+  segments.find((segment) => segment.key === key);
 
 describe("Token mix segments", () => {
-  it("splits reported input into cached and fresh", () => {
-    const segments = tokenMixSegments(
+  it("splits reported input into fresh, and states cached input apart", () => {
+    const mix = tokenMix(
       totals({
         inputTokens: 1000,
         cachedInputTokens: 400,
@@ -35,17 +35,24 @@ describe("Token mix segments", () => {
         outputTokens: 200,
       }),
     );
-    assert.equal(tokensFor(segments, "fresh"), 600);
-    assert.equal(tokensFor(segments, "cached"), 400);
-    assert.equal(tokensFor(segments, "output"), 200);
-    assert.equal(tokensFor(segments, "unreported"), 0);
+    assert.equal(find(mix.segments, "fresh")?.tokens, 600);
+    assert.equal(find(mix.segments, "output")?.tokens, 200);
+    assert.equal(find(mix.segments, "unreported")?.tokens, 0);
+    assert.equal(mix.cached, 400);
+  });
+
+  it("keeps cached input out of the bar", () => {
+    const mix = tokenMix(
+      totals({ inputTokens: 1000, cachedInputTokens: 900, cacheReportingInputTokens: 1000 }),
+    );
+    assert.equal(find(mix.segments, "cached" as never), undefined);
   });
 
   // The defect this module exists to prevent. Half the input comes from a source
   // that never says whether it cached; calling it "fresh" is a measurement claim
   // the data does not support.
   it("does not count input from a non-reporting source as fresh", () => {
-    const segments = tokenMixSegments(
+    const mix = tokenMix(
       totals({
         inputTokens: 1000,
         cachedInputTokens: 200,
@@ -53,73 +60,54 @@ describe("Token mix segments", () => {
         outputTokens: 0,
       }),
     );
-    assert.equal(tokensFor(segments, "fresh"), 300, "fresh is reported input minus cached");
-    assert.equal(tokensFor(segments, "cached"), 200);
+    assert.equal(find(mix.segments, "fresh")?.tokens, 300, "fresh is reported input minus cached");
+    assert.equal(mix.cached, 200);
     assert.equal(
-      tokensFor(segments, "unreported"),
+      find(mix.segments, "unreported")?.tokens,
       500,
       "the silent source's input stays separate",
     );
   });
 
-  it("reports zero cached tokens as measured, not as unreported", () => {
-    const segments = tokenMixSegments(
-      totals({ inputTokens: 800, cachedInputTokens: 0, cacheReportingInputTokens: 800 }),
-    );
-    assert.equal(tokensFor(segments, "cached"), 0);
-    assert.equal(tokensFor(segments, "unreported"), 0);
-    assert.equal(tokensFor(segments, "fresh"), 800);
-  });
-
   it("never emits a negative segment when totals disagree", () => {
     // cacheReportingInputTokens can never legitimately exceed inputTokens, but a
     // negative width would silently corrupt the whole bar if it ever did.
-    const segments = tokenMixSegments(
+    const mix = tokenMix(
       totals({ inputTokens: 100, cachedInputTokens: 500, cacheReportingInputTokens: 900 }),
     );
-    for (const segment of segments) assert.ok(segment.tokens >= 0, `${segment.key} is negative`);
+    for (const segment of mix.segments) {
+      assert.ok(segment.tokens >= 0, `${segment.key} is negative`);
+    }
   });
 
   it("reports every segment as zero for an empty period", () => {
-    const segments = tokenMixSegments(totals({}));
-    for (const segment of segments) {
+    for (const segment of tokenMix(totals({})).segments) {
       assert.equal(segment.tokens, 0);
       assert.equal(segment.percent, 0);
+      assert.equal(segment.belowOnePercent, false);
     }
   });
 });
 
 describe("Token mix percentages", () => {
-  const sum = (segments: ReturnType<typeof tokenMixSegments>) =>
+  const sum = (segments: TokenMixSegment[]) =>
     segments.reduce((running, segment) => running + segment.percent, 0);
 
   it("adds up to exactly 100 for an even three-way split", () => {
     // 33.33 each: rounding independently gives 33/33/33 = 99.
-    const segments = tokenMixSegments(
+    const mix = tokenMix(
       totals({
         inputTokens: 200,
-        cachedInputTokens: 100,
-        cacheReportingInputTokens: 200,
+        cachedInputTokens: 0,
+        cacheReportingInputTokens: 100,
         outputTokens: 100,
       }),
     );
-    assert.equal(sum(segments), 100);
-  });
-
-  it("adds up to exactly 100 across a spread that rounds badly", () => {
-    const segments = tokenMixSegments(
-      totals({
-        inputTokens: 1000,
-        cachedInputTokens: 333,
-        cacheReportingInputTokens: 667,
-        outputTokens: 333,
-      }),
-    );
-    assert.equal(sum(segments), 100);
+    assert.equal(sum(mix.segments), 100);
   });
 
   it("never inflates an empty segment to a visible share", () => {
-    const segments = tokenMixSegments(
+    const mix = tokenMix(
       totals({
         inputTokens: 300,
         cachedInputTokens: 100,
@@ -127,7 +115,17 @@ describe("Token mix percentages", () => {
         outputTokens: 100,
       }),
     );
-    assert.equal(segments.find((segment) => segment.key === "unreported")?.percent, 0);
-    assert.equal(sum(segments), 100);
+    assert.equal(find(mix.segments, "unreported")?.percent, 0);
+    assert.equal(find(mix.segments, "unreported")?.belowOnePercent, false);
+    assert.equal(sum(mix.segments), 100);
+  });
+
+  it("flags a non-empty segment that rounds to zero", () => {
+    const mix = tokenMix(
+      totals({ inputTokens: 100_000, cacheReportingInputTokens: 100_000, outputTokens: 100 }),
+    );
+    const output = find(mix.segments, "output");
+    assert.equal(output?.percent, 0);
+    assert.equal(output?.belowOnePercent, true);
   });
 });

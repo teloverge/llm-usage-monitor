@@ -4,7 +4,8 @@
     "notReported": "未报告",
     "unpriced": "未定价",
     "sourceHostFallback": "源主机 {{index}}",
-    "untitledTask": "无标题任务"
+    "untitledTask": "无标题任务",
+    "accountCount_other": "{{accounts}} 个账户"
   },
   "credential": {
     "mode": {
@@ -21,8 +22,8 @@
   "headline": {
     "coverage": {
       "none": "此期间没有记录",
-      "all": "{{records}} 条记录已定价",
-      "partial": "{{records}} 条记录中 {{priced}} 条已定价"
+      "all_other": "{{records}} 条记录已定价",
+      "partial_other": "{{records}} 条记录中 {{priced}} 条已定价"
     },
     "title": "工作的 API 等价成本 · {{period}}",
     "disclaimer": "{{coverage}} · 按你配置的 API 费率估算，并非账单",
@@ -60,11 +61,11 @@
     },
     "rates": {
       "heading": "模型费率",
-      "subtitle": "每百万 Token 的 USD · 已配置 {{models}} 个模型",
+      "subtitle_other": "每百万 Token 的 USD · 已配置 {{models}} 个模型",
       "caption": "已配置的模型价格（USD/百万 Token）",
       "saving": "正在保存…",
       "save": "保存更改",
-      "saved": "价格已保存",
+      "saved": "已保存",
       "provider": "提供商",
       "model": "模型",
       "input": "输入",
@@ -109,7 +110,7 @@
   "filters": {
     "period": "期间",
     "host": "主机",
-    "allHosts": "全部",
+    "allHosts": "全部主机",
     "searchTasks": "筛选任务",
     "refresh": "刷新数据源",
     "refreshing": "正在刷新…",
@@ -150,20 +151,20 @@
     "cacheCoverage": "在 {{tokens}} 个报告的 Token 中",
     "tasks": "任务",
     "models": "模型",
-    "costTotal": "估算成本",
     "costInput": "未缓存输入",
     "costCacheRead": "缓存读取",
     "costCacheWrite": "缓存写入",
     "costOutput": "输出",
-    "costCacheSavings": "缓存节省"
+    "costCacheSavings": "缓存节省",
+    "costSavingsNote": "不计入总额"
   },
   "tokenMix": {
     "composition": "Token 组成",
     "empty": "此期间没有 Token",
     "fresh": "新输入",
-    "cached": "已缓存",
     "output": "输出",
-    "unreported": "未报告缓存"
+    "unreported": "未报告缓存",
+    "excludesCached": "不含 {{tokens}} 缓存输入 Token"
   },
   "quota": {
     "used": "已用 {{percent}}",
@@ -179,7 +180,9 @@
       "hours": "{{n}} 小时窗口",
       "minutes": "{{n}} 分钟窗口",
       "extraUsage": "额外用量"
-    }
+    },
+    "stale": "超过一天未更新",
+    "noWindows": "当前没有限额窗口"
   },
   "rank": {
     "empty": "此期间没有用量",
@@ -188,14 +191,14 @@
   },
   "breakdown": {
     "groupBy": "分组方式",
-    "byHarness": "环境",
+    "byHarness": "环境 → 凭据",
     "byModel": "模型 → 推理",
     "byTask": "任务 → 会话",
     "bySourceHost": "主机",
     "byHostGroup": "主机组",
     "byCredential": "凭据",
-    "treeView": "⊟ 树状视图",
-    "tableView": "⊞ 表格视图",
+    "treeView": "树状视图",
+    "tableView": "表格视图",
     "empty": "没有符合当前筛选条件的用量。"
   },
   "table": {
@@ -206,7 +209,8 @@
   },
   "history": {
     "empty": "没有符合筛选条件的使用历史。",
-    "summary": "{{tasks}} 个任务 · {{sessions}} 个会话 · {{records}} 条记录",
+    "taskCount_other": "{{tasks}} 个任务",
+    "recordCount_other": "{{records}} 条记录",
     "lastActive": "最近活动",
     "harness": "环境",
     "model": "模型",
@@ -215,11 +219,11 @@
     "agent": "代理",
     "conversation": "对话",
     "sessions": "会话",
-    "sessionCount": "{{sessions}} 个会话",
-    "sessionAndAgentCount": "{{sessions}} 个会话 · {{agents}} 个代理",
+    "sessionCount_other": "{{sessions}} 个会话",
+    "agentCount_other": "{{agents}} 个代理",
     "started": "开始",
     "duration": "时长",
-    "agentsSummary": "{{agents}} 个代理消耗 {{tokens}} · {{cost}}",
+    "agentsSummary_other": "{{agents}} 个代理消耗 {{tokens}} · {{cost}}",
     "columns": {
       "ascending": "按{{column}}升序排序",
       "descending": "按{{column}}降序排序",

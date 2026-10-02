@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { OverviewView, RankedUsage } from "@llm-usage-monitor/contracts";
+import { TableIcon, TreeIcon } from "../components/icons.tsx";
 import { Rollup } from "../components/rollup.tsx";
-import { credentialLabel } from "../model/credential.ts";
+import { credentialLabeler } from "../model/credential.ts";
 import { formatCount, formatMoney, formatTokens } from "../model/format.ts";
-import { harnessLabel } from "../model/harness.ts";
+import { harnessLabel, usageSourceLabel } from "../model/harness.ts";
 import { rankedRowKey } from "../model/rank-scale.ts";
 
 /**
@@ -46,16 +47,23 @@ export function Breakdown({
   // Relabelled here for the same reason: `unknown` must not read as the name of
   // something the user installed, and an unnamed host needs translated
   // positional wording the analysis layer cannot supply.
+  const credentialName = credentialLabeler(
+    data.credentials,
+    t,
+    usageSourceLabel,
+    data.quotaSnapshots,
+  );
   const rows =
     dimension === "byHarness"
       ? data.byHarness.map((row) => ({
           ...row,
           key: harnessLabel(row.key, t("common.unknownHarness")),
+          children: row.children?.map((child) => ({ ...child, key: credentialName(child.key) })),
         }))
       : dimension === "bySourceHost"
         ? data.bySourceHost.map((row) => ({ ...row, key: hostLabel(row.key) }))
         : dimension === "byCredential"
-          ? data.byCredential.map((row) => ({ ...row, key: credentialLabel(row.key, t) }))
+          ? data.byCredential.map((row) => ({ ...row, key: credentialName(row.key) }))
           : data[dimension];
   return (
     <section className="breakdown">
@@ -84,6 +92,7 @@ export function Breakdown({
           aria-pressed={asTable}
           onClick={() => setAsTable(!asTable)}
         >
+          {asTable ? <TreeIcon /> : <TableIcon />}
           {asTable ? t("breakdown.treeView") : t("breakdown.tableView")}
         </button>
       </div>

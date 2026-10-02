@@ -44,36 +44,43 @@ export function StatStrip({ totals }: { totals: UsageTotals }) {
 /**
  * The estimate split by the rate each share was billed at, as a row of plain
  * values — the same shape as the token strip above it, and deliberately not a
- * chart. `cacheSavings` is what the cache reads would have cost at the base
- * input rate, less what they did cost; it is stated beside the total, not as
- * part of it.
+ * chart.
+ *
+ * The four shares add up to the estimate, which is already the hero figure (or
+ * the row's own cost in History), so the total is not repeated here.
+ * `cacheSavings` is what the cache reads would have cost at the base input
+ * rate, less what they did cost. It is NOT a share of the estimate — it is
+ * routinely larger than it — so it sits apart, after a divider, and says so.
  */
 export function CostStrip({
-  total,
   breakdown,
   className = "panel strip cost",
 }: {
-  total: number;
   breakdown: UsageCostBreakdown;
   className?: string;
 }) {
   const { t } = useTranslation();
-  const stats = [
-    { key: "total", label: t("overview.costTotal"), value: total },
+  const shares = [
     { key: "input", label: t("overview.costInput"), value: breakdown.input },
     { key: "cacheRead", label: t("overview.costCacheRead"), value: breakdown.cacheRead },
     { key: "cacheWrite", label: t("overview.costCacheWrite"), value: breakdown.cacheWrite },
     { key: "output", label: t("overview.costOutput"), value: breakdown.output },
-    { key: "savings", label: t("overview.costCacheSavings"), value: breakdown.cacheSavings },
   ];
   return (
     <section className={className}>
-      {stats.map((stat) => (
+      {shares.map((stat) => (
         <div key={stat.key}>
           <p className="panel-label">{stat.label}</p>
           <p className="stat">{formatMoney(stat.value)}</p>
         </div>
       ))}
+      <div className="cost-savings">
+        <p className="panel-label">
+          {t("overview.costCacheSavings")}
+          <span className="cost-savings-note"> · {t("overview.costSavingsNote")}</span>
+        </p>
+        <p className="stat">{formatMoney(breakdown.cacheSavings)}</p>
+      </div>
     </section>
   );
 }

@@ -274,6 +274,22 @@ describe("Usage Analysis", () => {
     );
     assert.deepEqual(view.byModel[0]?.modeFlags, { ultra: true, fast: true });
   });
+  it("orders reasoning levels by effort, with max above xhigh", () => {
+    const records = ["low", "max", "medium", "xhigh", "high"].map((level, index) =>
+      record(`2026-07-23T0${index}:00:00Z`, level),
+    );
+    const view = analyzeUsage({
+      records,
+      prices: [],
+      memberships: [],
+      filters: { timeframe: "last24" },
+      now: new Date("2026-07-23T12:00:00Z"),
+    });
+    assert.deepEqual(
+      view.byModel[0]?.children?.map((row) => row.reasoningLevel),
+      ["max", "xhigh", "high", "medium", "low"],
+    );
+  });
   /**
    * Naming a host is a DISPLAY decision and no longer happens here: an unnamed
    * host falls back to positional wording that is translated, and this layer
@@ -896,6 +912,15 @@ describe("credential attribution", () => {
       filters: { timeframe: "all", ...filters },
       now: new Date("2026-07-26T00:00:00.000Z"),
     });
+
+  it("splits each harness row by the credentials it was used through", () => {
+    const harness = analyze().byHarness[0];
+    assert.equal(harness?.key, "codex");
+    assert.deepEqual(harness?.children?.map((row) => [row.key, row.records]).sort(), [
+      ["subscription:9a1b2c3d4e5f", 1],
+      ["unattributed", 1],
+    ]);
+  });
 
   it("splits usage across the credential and the unattributed bucket", () => {
     assert.deepEqual(

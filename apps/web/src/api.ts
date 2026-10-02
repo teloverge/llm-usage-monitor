@@ -12,16 +12,19 @@ import type {
   UsageSourceInspection,
 } from "@llm-usage-monitor/contracts";
 
-export async function getOverview(filters: UsageFilters): Promise<OverviewView> {
-  const query = new URLSearchParams(
+function filterQuery(filters: UsageFilters): URLSearchParams {
+  return new URLSearchParams(
     Object.entries(filters).flatMap(([key, value]) =>
       value === undefined || value === "" ? [] : [[key, String(value)]],
     ),
   );
-  return requestJson<OverviewView>(`./api/overview?${query}`);
 }
-export async function getHistory(): Promise<UsageHistoryView> {
-  return requestJson<UsageHistoryView>("./api/history");
+export async function getOverview(filters: UsageFilters): Promise<OverviewView> {
+  return requestJson<OverviewView>(`./api/overview?${filterQuery(filters)}`);
+}
+/** Takes the same filters as the Overview, so both views answer for one selection. */
+export async function getHistory(filters: UsageFilters): Promise<UsageHistoryView> {
+  return requestJson<UsageHistoryView>(`./api/history?${filterQuery(filters)}`);
 }
 export async function getCatalog(): Promise<{
   prices: ModelPrice[];

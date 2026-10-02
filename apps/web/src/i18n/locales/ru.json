@@ -4,7 +4,11 @@
     "notReported": "Не сообщается",
     "unpriced": "Без тарифа",
     "sourceHostFallback": "Исходный хост {{index}}",
-    "untitledTask": "Задача без названия"
+    "untitledTask": "Задача без названия",
+    "accountCount_one": "{{accounts}} аккаунт",
+    "accountCount_few": "{{accounts}} аккаунта",
+    "accountCount_many": "{{accounts}} аккаунтов",
+    "accountCount_other": "{{accounts}} аккаунта"
   },
   "credential": {
     "mode": {
@@ -21,8 +25,14 @@
   "headline": {
     "coverage": {
       "none": "Нет записей за этот период",
-      "all": "Записей с тарифом: {{records}}",
-      "partial": "С тарифом: {{priced}} из {{records}}"
+      "all_one": "Записей с тарифом: {{records}}",
+      "all_few": "Записей с тарифом: {{records}}",
+      "all_many": "Записей с тарифом: {{records}}",
+      "all_other": "Записей с тарифом: {{records}}",
+      "partial_one": "С тарифом: {{priced}} из {{records}}",
+      "partial_few": "С тарифом: {{priced}} из {{records}}",
+      "partial_many": "С тарифом: {{priced}} из {{records}}",
+      "partial_other": "С тарифом: {{priced}} из {{records}}"
     },
     "title": "API-эквивалентная стоимость работы · {{period}}",
     "disclaimer": "{{coverage}} · оценка по вашим настроенным тарифам API, не счёт",
@@ -60,11 +70,14 @@
     },
     "rates": {
       "heading": "Тарифы моделей",
-      "subtitle": "USD за миллион токенов · настроенных моделей: {{models}}",
+      "subtitle_one": "USD за миллион токенов · настроенных моделей: {{models}}",
+      "subtitle_few": "USD за миллион токенов · настроенных моделей: {{models}}",
+      "subtitle_many": "USD за миллион токенов · настроенных моделей: {{models}}",
+      "subtitle_other": "USD за миллион токенов · настроенных моделей: {{models}}",
       "caption": "Настроенные цены моделей в USD за миллион токенов",
       "saving": "Сохранение…",
       "save": "Сохранить изменения",
-      "saved": "Цены сохранены",
+      "saved": "Сохранено",
       "provider": "Провайдер",
       "model": "Модель",
       "input": "Ввод",
@@ -109,7 +122,7 @@
   "filters": {
     "period": "Период",
     "host": "Хост",
-    "allHosts": "Все",
+    "allHosts": "Все хосты",
     "searchTasks": "Фильтр задач",
     "refresh": "Обновить источники",
     "refreshing": "Обновление…",
@@ -150,20 +163,20 @@
     "cacheCoverage": "из {{tokens}} токенов с отчётом",
     "tasks": "Задачи",
     "models": "Модели",
-    "costTotal": "Оценка затрат",
     "costInput": "Ввод без кеша",
     "costCacheRead": "Чтение кеша",
     "costCacheWrite": "Запись кеша",
     "costOutput": "Вывод",
-    "costCacheSavings": "Экономия на кеше"
+    "costCacheSavings": "Экономия на кеше",
+    "costSavingsNote": "не входит в итог"
   },
   "tokenMix": {
     "composition": "Структура токенов",
     "empty": "Нет токенов за этот период",
     "fresh": "Новый ввод",
-    "cached": "Из кэша",
     "output": "Вывод",
-    "unreported": "Кэш не сообщается"
+    "unreported": "Кэш не сообщается",
+    "excludesCached": "Без учёта {{tokens}} токенов ввода из кэша"
   },
   "quota": {
     "used": "использовано {{percent}}",
@@ -179,7 +192,9 @@
       "hours": "Окно {{n}} ч",
       "minutes": "Окно {{n}} мин",
       "extraUsage": "Дополнительное использование"
-    }
+    },
+    "stale": "не обновлялось больше суток",
+    "noWindows": "Нет текущих окон лимитов"
   },
   "rank": {
     "empty": "Нет использования за этот период",
@@ -188,14 +203,14 @@
   },
   "breakdown": {
     "groupBy": "Группировать по",
-    "byHarness": "Среда",
+    "byHarness": "Среда → Учётные данные",
     "byModel": "Модель → Рассуждение",
     "byTask": "Задача → Сессия",
     "bySourceHost": "Хост",
     "byHostGroup": "Группа хостов",
     "byCredential": "Учётные данные",
-    "treeView": "⊟ Дерево",
-    "tableView": "⊞ Таблица",
+    "treeView": "Дерево",
+    "tableView": "Таблица",
     "empty": "Нет использования, соответствующего текущим фильтрам."
   },
   "table": {
@@ -206,7 +221,14 @@
   },
   "history": {
     "empty": "Нет истории использования, соответствующей фильтрам.",
-    "summary": "Задач: {{tasks}} · Сессий: {{sessions}} · Записей: {{records}}",
+    "taskCount_one": "{{tasks}} задача",
+    "taskCount_few": "{{tasks}} задачи",
+    "taskCount_many": "{{tasks}} задач",
+    "taskCount_other": "{{tasks}} задачи",
+    "recordCount_one": "{{records}} запись",
+    "recordCount_few": "{{records}} записи",
+    "recordCount_many": "{{records}} записей",
+    "recordCount_other": "{{records}} записи",
     "lastActive": "Последняя активность",
     "harness": "Среда",
     "model": "Модель",
@@ -215,11 +237,20 @@
     "agent": "Агент",
     "conversation": "Разговор",
     "sessions": "Сессии",
-    "sessionCount": "Сессий: {{sessions}}",
-    "sessionAndAgentCount": "Сессий: {{sessions}} · агентов: {{agents}}",
+    "sessionCount_one": "{{sessions}} сессия",
+    "sessionCount_few": "{{sessions}} сессии",
+    "sessionCount_many": "{{sessions}} сессий",
+    "sessionCount_other": "{{sessions}} сессии",
+    "agentCount_one": "{{agents}} агент",
+    "agentCount_few": "{{agents}} агента",
+    "agentCount_many": "{{agents}} агентов",
+    "agentCount_other": "{{agents}} агента",
     "started": "Начало",
     "duration": "Длительность",
-    "agentsSummary": "Агентов: {{agents}}, потрачено {{tokens}} · {{cost}}",
+    "agentsSummary_one": "{{agents}} агент потратил {{tokens}} · {{cost}}",
+    "agentsSummary_few": "{{agents}} агента потратили {{tokens}} · {{cost}}",
+    "agentsSummary_many": "{{agents}} агентов потратили {{tokens}} · {{cost}}",
+    "agentsSummary_other": "{{agents}} агента потратили {{tokens}} · {{cost}}",
     "columns": {
       "ascending": "Сортировать {{column}} по возрастанию",
       "descending": "Сортировать {{column}} по убыванию",

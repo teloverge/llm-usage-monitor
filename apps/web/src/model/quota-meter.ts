@@ -60,3 +60,17 @@ export function quotaMeterView(window: UsageQuotaWindow): QuotaMeterView {
     width: Math.min(100, Math.max(0, shown)),
   };
 }
+
+/** How old a quota reading may be before the panel flags it. */
+export const QUOTA_STALE_AFTER_MS = 24 * 60 * 60 * 1_000;
+
+/**
+ * Whether a reading is old enough to say so. Quota figures are caches a harness
+ * refreshes only while it runs, so a reading from days ago is a claim about a
+ * window that has likely moved since. An unparseable instant is not flagged:
+ * nothing is known about its age.
+ */
+export function isStaleReading(observedAt: string, now: Date): boolean {
+  const at = Date.parse(observedAt);
+  return Number.isFinite(at) && now.getTime() - at > QUOTA_STALE_AFTER_MS;
+}

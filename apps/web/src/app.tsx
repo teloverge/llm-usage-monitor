@@ -11,7 +11,9 @@ import type {
 } from "@llm-usage-monitor/contracts";
 import { useTranslation } from "react-i18next";
 import { SearchChip, SelectChip } from "./components/chip.tsx";
+import { GearIcon } from "./components/icons.tsx";
 import { credentialOptions } from "./model/credential.ts";
+import { usageSourceLabel } from "./model/harness.ts";
 import { sourceHostLabel, sourceHostLabels } from "./model/source-host.ts";
 import { executeAction, getCatalog, getHistory, getOverview } from "./api.ts";
 import { History } from "./views/history.tsx";
@@ -68,7 +70,7 @@ export function App() {
       setError("");
       const [nextOverview, nextHistory, catalog] = await Promise.all([
         getOverview(filters),
-        getHistory(),
+        getHistory(filters),
         getCatalog(),
       ]);
       if (id !== requestId.current) return;
@@ -158,40 +160,57 @@ export function App() {
             })}
           </nav>
           <div className="chips">
-            <SelectChip
-              label={t("filters.period")}
-              value={filters.timeframe}
-              options={TIMEFRAMES.map((value) => ({ value, label: t(`period.select.${value}`) }))}
-              onChange={(value) => change("timeframe", value)}
-            />
-            <SelectChip
-              label={t("filters.host")}
-              value={filters.sourceHostId ?? ""}
-              options={[
-                { value: "", label: t("filters.allHosts") },
-                ...sourceHosts.map((host, index) => ({
-                  value: host.id,
-                  // Must go through sourceHostLabel, not host.hostname directly —
-                  // some machines report a MAC address as their hostname.
-                  label: sourceHostLabel(
-                    host,
-                    t("common.sourceHostFallback", { index: index + 1 }),
-                  ),
-                })),
-              ]}
-              onChange={(value) => change("sourceHostId", value)}
-            />
-            <SelectChip
-              label={t("filters.credential")}
-              value={filters.credentialId ?? ""}
-              options={credentialOptions(overview?.credentials ?? [], t)}
-              onChange={(value) => change("credentialId", value)}
-            />
-            <SearchChip
-              value={filters.query ?? ""}
-              placeholder={t("filters.searchTasks")}
-              onChange={(value) => change("query", value)}
-            />
+            {/*
+              The filters only scope the three data views. Settings edits the
+              ledger's configuration, which no filter touches, so offering them
+              there would be controls that visibly do nothing.
+            */}
+            {!settingsOpen && (
+              <>
+                <SelectChip
+                  label={t("filters.period")}
+                  value={filters.timeframe}
+                  options={TIMEFRAMES.map((value) => ({
+                    value,
+                    label: t(`period.select.${value}`),
+                  }))}
+                  onChange={(value) => change("timeframe", value)}
+                />
+                <SelectChip
+                  label={t("filters.host")}
+                  value={filters.sourceHostId ?? ""}
+                  options={[
+                    { value: "", label: t("filters.allHosts") },
+                    ...sourceHosts.map((host, index) => ({
+                      value: host.id,
+                      // Must go through sourceHostLabel, not host.hostname directly —
+                      // some machines report a MAC address as their hostname.
+                      label: sourceHostLabel(
+                        host,
+                        t("common.sourceHostFallback", { index: index + 1 }),
+                      ),
+                    })),
+                  ]}
+                  onChange={(value) => change("sourceHostId", value)}
+                />
+                <SelectChip
+                  label={t("filters.credential")}
+                  value={filters.credentialId ?? ""}
+                  options={credentialOptions(
+                    overview?.credentials ?? [],
+                    t,
+                    usageSourceLabel,
+                    overview?.quotaSnapshots ?? [],
+                  )}
+                  onChange={(value) => change("credentialId", value)}
+                />
+                <SearchChip
+                  value={filters.query ?? ""}
+                  placeholder={t("filters.searchTasks")}
+                  onChange={(value) => change("query", value)}
+                />
+              </>
+            )}
             <button type="button" className="primary" disabled={busy} onClick={refreshSources}>
               {busy ? t("filters.refreshing") : t("filters.refresh")}
             </button>
@@ -202,7 +221,7 @@ export function App() {
               aria-expanded={settingsOpen ? "true" : "false"}
               onClick={() => setSettingsOpen(!settingsOpen)}
             >
-              ⚙
+              <GearIcon />
             </button>
           </div>
         </header>
@@ -218,8 +237,14 @@ export function App() {
             It names the CURRENT VIEW rather than the product, because switching views
             re-renders without a navigation, so there is no page-load announcement.
             This heading changing is what tells an assistive-tech user the view changed.
+            Settings replaces the view while it is open, so it names Settings then —
+            naming the view underneath would announce a page that is not on screen.
           */}
-          <h1 className="sr-only">{t("app.viewHeading", { view: t(`nav.${view}`) })}</h1>
+          <h1 className="sr-only">
+            {t("app.viewHeading", {
+              view: settingsOpen ? t("filters.settings") : t(`nav.${view}`),
+            })}
+          </h1>
           {error && (
             <p role="alert" className="error">
               {error}

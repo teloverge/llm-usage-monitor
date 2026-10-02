@@ -4,7 +4,10 @@
     "notReported": "No informado",
     "unpriced": "Sin tarifa",
     "sourceHostFallback": "Host de origen {{index}}",
-    "untitledTask": "Tarea sin título"
+    "untitledTask": "Tarea sin título",
+    "accountCount_one": "{{accounts}} cuenta",
+    "accountCount_many": "{{accounts}} cuentas",
+    "accountCount_other": "{{accounts}} cuentas"
   },
   "credential": {
     "mode": {
@@ -21,8 +24,12 @@
   "headline": {
     "coverage": {
       "none": "No hay registros en este periodo",
-      "all": "{{records}} registros con tarifa",
-      "partial": "{{priced}} de {{records}} registros con tarifa"
+      "all_one": "{{records}} registro con tarifa",
+      "all_many": "{{records}} registros con tarifa",
+      "all_other": "{{records}} registros con tarifa",
+      "partial_one": "{{priced}} de {{records}} registro con tarifa",
+      "partial_many": "{{priced}} de {{records}} registros con tarifa",
+      "partial_other": "{{priced}} de {{records}} registros con tarifa"
     },
     "title": "Coste equivalente de API del trabajo · {{period}}",
     "disclaimer": "{{coverage}} · estimado según tus tarifas de API configuradas, no es una factura",
@@ -60,11 +67,13 @@
     },
     "rates": {
       "heading": "Tarifas de modelo",
-      "subtitle": "USD por millón de tokens · {{models}} modelos configurados",
+      "subtitle_one": "USD por millón de tokens · {{models}} modelo configurado",
+      "subtitle_many": "USD por millón de tokens · {{models}} modelos configurados",
+      "subtitle_other": "USD por millón de tokens · {{models}} modelos configurados",
       "caption": "Precios de modelo configurados en USD por millón de tokens",
       "saving": "Guardando…",
       "save": "Guardar cambios",
-      "saved": "Precios guardados",
+      "saved": "Guardado",
       "provider": "Proveedor",
       "model": "Modelo",
       "input": "Entrada",
@@ -109,7 +118,7 @@
   "filters": {
     "period": "Periodo",
     "host": "Host",
-    "allHosts": "Todos",
+    "allHosts": "Todos los hosts",
     "searchTasks": "Filtrar tareas",
     "refresh": "Actualizar fuentes",
     "refreshing": "Actualizando…",
@@ -150,20 +159,20 @@
     "cacheCoverage": "de {{tokens}} tokens que informan",
     "tasks": "Tareas",
     "models": "Modelos",
-    "costTotal": "Costo estimado",
     "costInput": "Entrada sin caché",
     "costCacheRead": "Lecturas de caché",
     "costCacheWrite": "Escrituras de caché",
     "costOutput": "Salida",
-    "costCacheSavings": "Ahorro por caché"
+    "costCacheSavings": "Ahorro por caché",
+    "costSavingsNote": "no incluido en el total"
   },
   "tokenMix": {
     "composition": "Composición de tokens",
     "empty": "No hay tokens en este periodo",
     "fresh": "Entrada nueva",
-    "cached": "En caché",
     "output": "Salida",
-    "unreported": "Caché no informada"
+    "unreported": "Caché no informada",
+    "excludesCached": "Excluye {{tokens}} tokens de entrada en caché"
   },
   "quota": {
     "used": "{{percent}} usado",
@@ -179,7 +188,9 @@
       "hours": "Ventana de {{n}} horas",
       "minutes": "Ventana de {{n}} minutos",
       "extraUsage": "Uso adicional"
-    }
+    },
+    "stale": "sin actualizar desde hace más de un día",
+    "noWindows": "Sin ventanas de límite vigentes"
   },
   "rank": {
     "empty": "No hay uso en este periodo",
@@ -188,14 +199,14 @@
   },
   "breakdown": {
     "groupBy": "Agrupar por",
-    "byHarness": "Entorno",
+    "byHarness": "Entorno → Credencial",
     "byModel": "Modelo → Razonamiento",
     "byTask": "Tarea → Sesión",
     "bySourceHost": "Host",
     "byHostGroup": "Grupo de hosts",
     "byCredential": "Credencial",
-    "treeView": "⊟ Vista de árbol",
-    "tableView": "⊞ Vista de tabla",
+    "treeView": "Vista de árbol",
+    "tableView": "Vista de tabla",
     "empty": "Ningún uso coincide con los filtros actuales."
   },
   "table": {
@@ -206,7 +217,12 @@
   },
   "history": {
     "empty": "Ningún historial de uso coincide con los filtros.",
-    "summary": "{{tasks}} tareas · {{sessions}} sesiones · {{records}} registros",
+    "taskCount_one": "{{tasks}} tarea",
+    "taskCount_many": "{{tasks}} tareas",
+    "taskCount_other": "{{tasks}} tareas",
+    "recordCount_one": "{{records}} registro",
+    "recordCount_many": "{{records}} registros",
+    "recordCount_other": "{{records}} registros",
     "lastActive": "Última actividad",
     "harness": "Entorno",
     "model": "Modelo",
@@ -215,11 +231,17 @@
     "agent": "Agente",
     "conversation": "Conversación",
     "sessions": "Sesiones",
-    "sessionCount": "{{sessions}} sesiones",
-    "sessionAndAgentCount": "{{sessions}} sesiones · {{agents}} agentes",
+    "sessionCount_one": "{{sessions}} sesión",
+    "sessionCount_many": "{{sessions}} sesiones",
+    "sessionCount_other": "{{sessions}} sesiones",
+    "agentCount_one": "{{agents}} agente",
+    "agentCount_many": "{{agents}} agentes",
+    "agentCount_other": "{{agents}} agentes",
     "started": "Inicio",
     "duration": "Duración",
-    "agentsSummary": "{{agents}} agentes gastaron {{tokens}} · {{cost}}",
+    "agentsSummary_one": "{{agents}} agente gastó {{tokens}} · {{cost}}",
+    "agentsSummary_many": "{{agents}} agentes gastaron {{tokens}} · {{cost}}",
+    "agentsSummary_other": "{{agents}} agentes gastaron {{tokens}} · {{cost}}",
     "columns": {
       "ascending": "Ordenar {{column}} de forma ascendente",
       "descending": "Ordenar {{column}} de forma descendente",

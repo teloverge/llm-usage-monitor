@@ -9,7 +9,11 @@ import {
   type UsageFilters,
 } from "@llm-usage-monitor/contracts";
 import { createDashboardActions } from "@llm-usage-monitor/dashboard-actions";
-import { analyzeHistory, analyzeUsage } from "@llm-usage-monitor/usage-analysis";
+import {
+  analyzeHistory,
+  analyzeUsage,
+  filterUsageRecords,
+} from "@llm-usage-monitor/usage-analysis";
 import { UsageLedger } from "@llm-usage-monitor/usage-ledger";
 import { ClaudeSessionProvider } from "./claude-importer.ts";
 import { claudeCredentialSighting } from "./claude-credential.ts";
@@ -151,8 +155,20 @@ export async function startUsageMonitorServer(options: {
         }),
       );
     }
-    if (request.method === "GET" && resource === "api/history")
-      return sendJson(response, 200, analyzeHistory(ledger.records(), ledger.prices()));
+    if (request.method === "GET" && resource === "api/history") {
+      // The same filters the Overview takes, applied the same way, so the
+      // History table answers for the period, host, and credential the top bar
+      // shows rather than for the whole ledger.
+      const filters = parseFilters(url.searchParams);
+      const records = filterUsageRecords(
+        ledger.records(),
+        filters,
+        ledger.memberships(),
+        new Date(),
+        ledger.credentialObservations(),
+      );
+      return sendJson(response, 200, analyzeHistory(records, ledger.prices()));
+    }
     if (request.method === "GET" && resource === "api/catalog")
       return sendJson(response, 200, {
         prices: ledger.prices(),

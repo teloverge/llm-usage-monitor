@@ -3,6 +3,7 @@
  * ../../test/token-agreement.test.ts. If you are changing --page, --panel, --accent,
  * --series-1/2/3, --status-good/warning/critical, --grid, --axis, --muted, or --track,
  * update the matching value in palette.ts too, or the test will fail and name the token.
+ * The light block at the end is twinned the same way with LIGHT_PALETTE.
  */
 :root {
   color-scheme: dark;
@@ -46,6 +47,8 @@
   --status-good: #0ca30c;
   --status-warning: #fab219;
   --status-critical: #d03b3b;
+  /* Error text. UI-only: no chart mark uses it. */
+  --error: #ff8aa3;
 
   --size-hero: 44px;
   --size-stat: 20px;
@@ -65,4 +68,45 @@
   color: var(--ink);
   background: var(--page);
   font-synthesis: none;
+}
+
+/*
+ * The light scheme, for readers whose system prefers it. Same roles, re-stepped:
+ * the series and status colours are LIGHT_PALETTE in palette.ts (validated
+ * against the white chart surface — see the comment there) and are guarded by
+ * ../../test/token-agreement.test.ts exactly as the dark values are.
+ */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+
+    --page: #f4f5f6;
+    --panel: #ffffff;
+    --raised: #eceef0;
+    --sunken: #f7f8f9;
+    --field: #ffffff;
+    --line: #d9dcdf;
+    --grid: #e6e8ea;
+    --axis: #c3c8cc;
+    --track: #e6e8ea;
+
+    --ink: #1d2420;
+    --ink-strong: #0b0f0d;
+    --muted: #5f6b66;
+
+    --accent: #0a7d5d;
+    --accent-ink: #ffffff;
+    --accent-line: #7cc4ab;
+    --accent-fill: #e3f4ee;
+
+    --series-1: #0b8f6b;
+    --series-2: #2f73d1;
+    --series-3: #c4501f;
+
+    --status-good: #138a13;
+    --status-warning: #a86e00;
+    --status-critical: #c62f2f;
+
+    --error: #c0263f;
+  }
 }
