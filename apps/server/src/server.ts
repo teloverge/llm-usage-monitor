@@ -24,6 +24,7 @@ import { GrokSessionProvider } from "./grok-importer.ts";
 import { grokCredentialSighting } from "./grok-credential.ts";
 import { refreshManagedSources } from "./fleet-inspection.ts";
 import { mergeDefaultPrices } from "./default-prices.ts";
+import { createMissingPriceDownloader } from "./download-missing-prices.ts";
 import { resolveLocalSourceHost } from "./local-source-host.ts";
 import { runProviderImport } from "./run-import.ts";
 
@@ -55,6 +56,34 @@ export async function startUsageMonitorServer(options: {
   const configuredPrices = ledger.prices();
   const mergedPrices = mergeDefaultPrices(configuredPrices);
   if (mergedPrices.length !== configuredPrices.length) ledger.replacePrices(mergedPrices);
+  // A model released after the default rate cards were written would read
+  // "Unpriced" until someone typed its rates in. After every import — and once
+  // at startup, for usage imported before this existed — any model with usage
+  // but no card is looked up in OpenRouter's catalog.
+  //
+  // Never allowed to fail the import it follows: the records are already in
+  // the ledger, and an offline machine or a catalog outage should cost an
+  // estimate, not the refresh. The next import tries again.
+  const priceDownloader = createMissingPriceDownloader();
+  const priceMissingModels = () =>
+    priceDownloader.run(ledger).then(
+      (added) => {
+        if (added) console.log(`priced ${added} new model(s) from the OpenRouter catalog`);
+      },
+      (error: unknown) => {
+        console.warn(
+          "missing-price download skipped:",
+          error instanceof Error ? error.message : error,
+        );
+      },
+    );
+  void priceMissingModels();
+  /** Runs an import, then prices any model it brought in, before reporting back. */
+  const thenPrice = async <T>(work: Promise<T>): Promise<T> => {
+    const result = await work;
+    await priceMissingModels();
+    return result;
+  };
   const importer = new CodexSessionProvider();
   const claudeImporter = new ClaudeSessionProvider();
   const grokImporter = new GrokSessionProvider();
@@ -81,29 +110,38 @@ export async function startUsageMonitorServer(options: {
   const actions = createDashboardActions({
     localSourceHostId: local.host.id,
     refreshSources: () =>
-      refreshManagedSources({
-        computeFile: options.computeFile ?? join(process.cwd(), ".armadai", "COMPUTE.md"),
-        agentPath:
-          options.agentPath ?? join(process.cwd(), "apps", "source-host-agent", "dist", "cli.mjs"),
-        localSourceHostId: local.host.id,
-        ledger,
-      }),
+      thenPrice(
+        refreshManagedSources({
+          computeFile: options.computeFile ?? join(process.cwd(), ".armadai", "COMPUTE.md"),
+          agentPath:
+            options.agentPath ??
+            join(process.cwd(), "apps", "source-host-agent", "dist", "cli.mjs"),
+          localSourceHostId: local.host.id,
+          ledger,
+        }),
+      ),
     importCodex: (codexHome) =>
-      runImport(importer, codexHome, (home, observedAt) =>
-        codexCredentialSighting(home, local.host.id, observedAt),
+      thenPrice(
+        runImport(importer, codexHome, (home, observedAt) =>
+          codexCredentialSighting(home, local.host.id, observedAt),
+        ),
       ),
     importClaude: (claudeHome) =>
-      runImport(claudeImporter, claudeHome, async (home, observedAt) =>
-        claudeCredentialSighting(
-          await readClaudeConfig(home),
-          process.env,
-          local.host.id,
-          observedAt,
+      thenPrice(
+        runImport(claudeImporter, claudeHome, async (home, observedAt) =>
+          claudeCredentialSighting(
+            await readClaudeConfig(home),
+            process.env,
+            local.host.id,
+            observedAt,
+          ),
         ),
       ),
     importGrok: (grokHome) =>
-      runImport(grokImporter, grokHome, (home, observedAt) =>
-        grokCredentialSighting(home, local.host.id, observedAt),
+      thenPrice(
+        runImport(grokImporter, grokHome, (home, observedAt) =>
+          grokCredentialSighting(home, local.host.id, observedAt),
+        ),
       ),
     migrateLegacy: (id, records) => ledger.applyMigration(id, records),
     replacePrices: (prices) => ledger.replacePrices(prices),

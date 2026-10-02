@@ -258,7 +258,7 @@ function addBreakdown(sum: UsageCostBreakdown, part: UsageCostBreakdown): UsageC
  * `claude-haiku-4-5-20251001`. Version dots become dashes and a trailing
  * eight-digit date is dropped, so one card prices every spelling.
  */
-function normalizeModel(value: string): string {
+export function normalizeModel(value: string): string {
   return value
     .trim()
     .toLocaleLowerCase()
@@ -627,7 +627,14 @@ function timelineBucket(timestamp: string, timeframe: UsageFilters["timeframe"])
     ? new Date(timestamp).toISOString().slice(0, 13) + ":00:00.000Z"
     : new Date(timestamp).toISOString().slice(0, 10);
 }
-function normalize(value: string): string {
+/**
+ * A provider as prices are matched on it: trimmed, lowercased, and with the
+ * aliases Codex records have used folded into `openai`. Exported so anything
+ * deciding whether a record is priced — the missing-price downloader — asks
+ * the same question `costComponents` does.
+ */
+export function normalizeProvider(value: string): string {
   const normalized = value.trim().toLocaleLowerCase();
   return normalized === "codex" || normalized === "openai-api" ? "openai" : normalized;
 }
+const normalize = normalizeProvider;
