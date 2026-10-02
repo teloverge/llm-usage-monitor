@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 import {
   CHART_INK,
   CHART_SURFACE,
+  LIGHT_PALETTE,
+  LIGHT_UI_ACCENT,
   PAGE_SURFACE,
   SERIES,
   STATUS,
@@ -41,9 +43,29 @@ const TWINNED: Array<[string, string]> = [
   ["--track", CHART_INK.track],
 ];
 
-function declaredValue(token: string): string {
+const LIGHT_TWINNED: Array<[string, string]> = [
+  ["--page", LIGHT_PALETTE.page],
+  ["--panel", LIGHT_PALETTE.surface],
+  ["--accent", LIGHT_UI_ACCENT],
+  ["--series-1", LIGHT_PALETTE.series.teal],
+  ["--series-2", LIGHT_PALETTE.series.blue],
+  ["--series-3", LIGHT_PALETTE.series.orange],
+  ["--status-good", LIGHT_PALETTE.status.good],
+  ["--status-warning", LIGHT_PALETTE.status.warning],
+  ["--status-critical", LIGHT_PALETTE.status.critical],
+  ["--grid", LIGHT_PALETTE.ink.grid],
+  ["--axis", LIGHT_PALETTE.ink.axis],
+  ["--muted", LIGHT_PALETTE.ink.muted],
+  ["--track", LIGHT_PALETTE.ink.track],
+];
+
+/** The dark tokens are declared first; the light ones live in the media block after them. */
+const LIGHT_MARKER = "@media (prefers-color-scheme: light)";
+const lightSource = source.slice(source.indexOf(LIGHT_MARKER));
+
+function declaredValue(token: string, from = source): string {
   // Anchored to line start so `--panel` cannot match inside `--pad-panel`.
-  const match = source.match(new RegExp(`^\\s*${token}:\\s*(#[0-9a-fA-F]{3,8})\\s*;`, "m"));
+  const match = from.match(new RegExp(`^\\s*${token}:\\s*(#[0-9a-fA-F]{3,8})\\s*;`, "m"));
   assert.ok(match, `${token} is not declared in tokens.css`);
   return match[1]!.toLowerCase();
 }
@@ -52,6 +74,18 @@ describe("Token and palette agreement", () => {
   for (const [token, expected] of TWINNED) {
     it(`${token} matches its palette.ts twin`, () => {
       assert.equal(declaredValue(token), expected.toLowerCase());
+    });
+  }
+});
+
+describe("Light token and palette agreement", () => {
+  it("declares a light scheme block", () => {
+    assert.ok(source.includes(LIGHT_MARKER));
+  });
+
+  for (const [token, expected] of LIGHT_TWINNED) {
+    it(`light ${token} matches its LIGHT_PALETTE twin`, () => {
+      assert.equal(declaredValue(token, lightSource), expected.toLowerCase());
     });
   }
 });

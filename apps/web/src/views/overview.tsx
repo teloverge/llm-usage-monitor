@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { OverviewView } from "@llm-usage-monitor/contracts";
-import { formatTokens } from "../model/format.ts";
+import { credentialLabeler } from "../model/credential.ts";
 import { harnessLabel, usageSourceLabel } from "../model/harness.ts";
 import { Headline } from "../components/headline.tsx";
 import { Panel, Zone } from "../components/panel.tsx";
@@ -21,10 +21,31 @@ export function Overview({
   const { t } = useTranslation();
   // Relabelled here rather than inside RankList: the list ranks rows by cost and
   // knows nothing about harnesses, and a `byHarness` row's key IS its harness id.
-  const harnessRows = data.byHarness.map((row) => ({
-    ...row,
-    key: harnessLabel(row.key, t("common.unknownHarness")),
-  }));
+  // Its children are credential ids, named the way the filter chip names them.
+  const credentialName = credentialLabeler(
+    data.credentials,
+    t,
+    usageSourceLabel,
+    data.quotaSnapshots,
+  );
+  // Under its harness an account drops the harness's own name — "Pro · …7053"
+  // beneath "Codex" — keeping the full name for its tooltip.
+  const harnessRows = data.byHarness.map((row) => {
+    const name = harnessLabel(row.key, t("common.unknownHarness"));
+    return {
+      ...row,
+      key: name,
+      children: row.children?.map((child) => {
+        const full = credentialName(child.key);
+        const prefix = `${name} · `;
+        return {
+          ...child,
+          key: full.startsWith(prefix) ? full.slice(prefix.length) : full,
+          title: full,
+        };
+      }),
+    };
+  });
   // Same treatment, same reason: a `bySourceHost` row's key IS its host id, and
   // naming an unnamed host needs translated positional wording the analysis
   // layer cannot supply.
@@ -34,11 +55,11 @@ export function Overview({
       <div className="cockpit-main">
         <Headline data={data} hostLabel={hostLabel} />
         <StatStrip totals={data.totals} />
-        <CostStrip total={data.totals.estimatedCost} breakdown={data.totals.costBreakdown} />
+        <CostStrip breakdown={data.totals.costBreakdown} />
         <Zone>{t("overview.drivers")}</Zone>
         <div className="drivers">
           <Panel label={t("overview.byHarness")}>
-            <RankList rows={harnessRows} onMore={() => onDrillDown("byHarness")} />
+            <RankList rows={harnessRows} onMore={() => onDrillDown("byHarness")} expandChildren />
           </Panel>
           <Panel label={t("overview.byModel")}>
             <RankList rows={data.byModel} onMore={() => onDrillDown("byModel")} />
@@ -50,7 +71,8 @@ export function Overview({
       </div>
       <div className="cockpit-rail">
         <Zone>{t("overview.context")}</Zone>
-        <Panel label={t("overview.tokenMix")} meta={formatTokens(data.totals.totalTokens)}>
+        {/* No total in the title: the stat strip's "Tokens" already states it. */}
+        <Panel label={t("overview.tokenMix")}>
           <TokenMix totals={data.totals} />
         </Panel>
         <Panel label={t("overview.planLimits")}>

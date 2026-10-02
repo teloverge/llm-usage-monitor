@@ -4,7 +4,10 @@
     "notReported": "Non renseigné",
     "unpriced": "Sans tarif",
     "sourceHostFallback": "Hôte source {{index}}",
-    "untitledTask": "Tâche sans titre"
+    "untitledTask": "Tâche sans titre",
+    "accountCount_one": "{{accounts}} compte",
+    "accountCount_many": "{{accounts}} comptes",
+    "accountCount_other": "{{accounts}} comptes"
   },
   "credential": {
     "mode": {
@@ -21,8 +24,12 @@
   "headline": {
     "coverage": {
       "none": "Aucun enregistrement sur cette période",
-      "all": "{{records}} enregistrements tarifés",
-      "partial": "{{priced}} enregistrements tarifés sur {{records}}"
+      "all_one": "{{records}} enregistrement tarifé",
+      "all_many": "{{records}} enregistrements tarifés",
+      "all_other": "{{records}} enregistrements tarifés",
+      "partial_one": "{{priced}} enregistrement tarifé sur {{records}}",
+      "partial_many": "{{priced}} enregistrements tarifés sur {{records}}",
+      "partial_other": "{{priced}} enregistrements tarifés sur {{records}}"
     },
     "title": "Coût équivalent API du travail · {{period}}",
     "disclaimer": "{{coverage}} · estimé selon vos tarifs API configurés, pas une facture",
@@ -60,11 +67,13 @@
     },
     "rates": {
       "heading": "Tarifs des modèles",
-      "subtitle": "USD par million de tokens · {{models}} modèles configurés",
+      "subtitle_one": "USD par million de tokens · {{models}} modèle configuré",
+      "subtitle_many": "USD par million de tokens · {{models}} modèles configurés",
+      "subtitle_other": "USD par million de tokens · {{models}} modèles configurés",
       "caption": "Prix des modèles configurés en USD par million de tokens",
       "saving": "Enregistrement…",
       "save": "Enregistrer les modifications",
-      "saved": "Prix enregistrés",
+      "saved": "Enregistré",
       "provider": "Fournisseur",
       "model": "Modèle",
       "input": "Entrée",
@@ -109,7 +118,7 @@
   "filters": {
     "period": "Période",
     "host": "Hôte",
-    "allHosts": "Tous",
+    "allHosts": "Tous les hôtes",
     "searchTasks": "Filtrer les tâches",
     "refresh": "Actualiser les sources",
     "refreshing": "Actualisation…",
@@ -150,20 +159,20 @@
     "cacheCoverage": "sur {{tokens}} tokens déclarés",
     "tasks": "Tâches",
     "models": "Modèles",
-    "costTotal": "Coût estimé",
     "costInput": "Entrée sans cache",
     "costCacheRead": "Lectures du cache",
     "costCacheWrite": "Écritures du cache",
     "costOutput": "Sortie",
-    "costCacheSavings": "Économies de cache"
+    "costCacheSavings": "Économies de cache",
+    "costSavingsNote": "non inclus dans le total"
   },
   "tokenMix": {
     "composition": "Composition des tokens",
     "empty": "Aucun token sur cette période",
     "fresh": "Nouvelle entrée",
-    "cached": "En cache",
     "output": "Sortie",
-    "unreported": "Cache non renseigné"
+    "unreported": "Cache non renseigné",
+    "excludesCached": "Hors {{tokens}} tokens d’entrée en cache"
   },
   "quota": {
     "used": "{{percent}} utilisé",
@@ -179,7 +188,9 @@
       "hours": "Fenêtre de {{n}} heures",
       "minutes": "Fenêtre de {{n}} minutes",
       "extraUsage": "Utilisation supplémentaire"
-    }
+    },
+    "stale": "non actualisé depuis plus d’un jour",
+    "noWindows": "Aucune fenêtre de limite en cours"
   },
   "rank": {
     "empty": "Aucune utilisation sur cette période",
@@ -188,14 +199,14 @@
   },
   "breakdown": {
     "groupBy": "Regrouper par",
-    "byHarness": "Environnement",
+    "byHarness": "Environnement → Identifiant",
     "byModel": "Modèle → Raisonnement",
     "byTask": "Tâche → Session",
     "bySourceHost": "Hôte",
     "byHostGroup": "Groupe d'hôtes",
     "byCredential": "Identifiant",
-    "treeView": "⊟ Vue arborescente",
-    "tableView": "⊞ Vue tableau",
+    "treeView": "Vue arborescente",
+    "tableView": "Vue tableau",
     "empty": "Aucune utilisation ne correspond aux filtres actuels."
   },
   "table": {
@@ -206,7 +217,12 @@
   },
   "history": {
     "empty": "Aucun historique d'utilisation ne correspond aux filtres.",
-    "summary": "{{tasks}} tâches · {{sessions}} sessions · {{records}} enregistrements",
+    "taskCount_one": "{{tasks}} tâche",
+    "taskCount_many": "{{tasks}} tâches",
+    "taskCount_other": "{{tasks}} tâches",
+    "recordCount_one": "{{records}} enregistrement",
+    "recordCount_many": "{{records}} enregistrements",
+    "recordCount_other": "{{records}} enregistrements",
     "lastActive": "Dernière activité",
     "harness": "Environnement",
     "model": "Modèle",
@@ -215,11 +231,17 @@
     "agent": "Agent",
     "conversation": "Conversation",
     "sessions": "Sessions",
-    "sessionCount": "{{sessions}} sessions",
-    "sessionAndAgentCount": "{{sessions}} sessions · {{agents}} agents",
+    "sessionCount_one": "{{sessions}} session",
+    "sessionCount_many": "{{sessions}} sessions",
+    "sessionCount_other": "{{sessions}} sessions",
+    "agentCount_one": "{{agents}} agent",
+    "agentCount_many": "{{agents}} agents",
+    "agentCount_other": "{{agents}} agents",
     "started": "Début",
     "duration": "Durée",
-    "agentsSummary": "{{agents}} agents ont consommé {{tokens}} · {{cost}}",
+    "agentsSummary_one": "{{agents}} agent a consommé {{tokens}} · {{cost}}",
+    "agentsSummary_many": "{{agents}} agents ont consommé {{tokens}} · {{cost}}",
+    "agentsSummary_other": "{{agents}} agents ont consommé {{tokens}} · {{cost}}",
     "columns": {
       "ascending": "Trier {{column}} par ordre croissant",
       "descending": "Trier {{column}} par ordre décroissant",

@@ -17,10 +17,30 @@ export interface TokenMixSegment {
   tokens: number;
   /** Whole percent of the bar. Segments always sum to exactly 100. */
   percent: number;
+  /**
+   * True when the segment has tokens but rounds to 0%. It must then read as
+   * "<1%": a bare "0%" beside a non-zero token count says the opposite of the
+   * count.
+   */
+  belowOnePercent: boolean;
+}
+
+export interface TokenMix {
+  /** Uncached input, output, and unreported input — what the bar draws. */
+  segments: TokenMixSegment[];
+  /** Input tokens served from cache, stated beside the bar rather than in it. */
+  cached: number;
 }
 
 /**
  * Splits a period's tokens into bar segments.
+ *
+ * Cached input is kept OUT of the bar. With caching on, it is routinely 95%+ of
+ * all tokens, which drew a single-colour bar with output at "0%" — the mix the
+ * panel exists to show was invisible. The reader's question here is how the
+ * work divides between input the model read fresh and output it wrote; the
+ * cache's share is the stat strip's "Cached input" figure, and its volume is
+ * returned separately for the note under the bar.
  *
  * The subtraction that matters is `cacheReportingInputTokens - cachedInputTokens`,
  * NOT `inputTokens - cachedInputTokens`. `summarize` accumulates
@@ -30,25 +50,24 @@ export interface TokenMixSegment {
  * it was not cached. That is the same unavailable-is-not-zero mistake
  * `cacheEfficiency` was fixed for, and it is more damaging here because a chart
  * segment reads as a measurement rather than a ratio.
- *
- * Today Codex reports caching on every record, so `unreported` is 0 and the bar
- * has three segments. It becomes non-zero the moment a source that does not
- * report caching lands, which is the entire point of the multi-harness work.
  */
-export function tokenMixSegments(totals: UsageTotals): TokenMixSegment[] {
+export function tokenMix(totals: UsageTotals): TokenMix {
   const reportingInput = Math.min(totals.cacheReportingInputTokens, totals.inputTokens);
   const tokens: Record<TokenMixKey, number> = {
     fresh: Math.max(0, reportingInput - totals.cachedInputTokens),
-    cached: Math.max(0, totals.cachedInputTokens),
     output: Math.max(0, totals.outputTokens),
     unreported: Math.max(0, totals.inputTokens - reportingInput),
   };
   const percents = allocatePercents(SEGMENT_ORDER.map((key) => tokens[key]));
-  return SEGMENT_ORDER.map((key, index) => ({
-    key,
-    tokens: tokens[key],
-    percent: percents[index]!,
-  }));
+  return {
+    segments: SEGMENT_ORDER.map((key, index) => ({
+      key,
+      tokens: tokens[key],
+      percent: percents[index]!,
+      belowOnePercent: tokens[key] > 0 && percents[index] === 0,
+    })),
+    cached: Math.max(0, totals.cachedInputTokens),
+  };
 }
 
 /**

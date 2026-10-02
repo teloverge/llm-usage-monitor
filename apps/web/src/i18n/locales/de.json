@@ -4,7 +4,9 @@
     "notReported": "Nicht gemeldet",
     "unpriced": "Ohne Tarif",
     "sourceHostFallback": "Quell-Host {{index}}",
-    "untitledTask": "Unbenannte Aufgabe"
+    "untitledTask": "Unbenannte Aufgabe",
+    "accountCount_one": "{{accounts}} Konto",
+    "accountCount_other": "{{accounts}} Konten"
   },
   "credential": {
     "mode": {
@@ -21,8 +23,10 @@
   "headline": {
     "coverage": {
       "none": "Keine Datensätze in diesem Zeitraum",
-      "all": "{{records}} Datensätze mit Tarif",
-      "partial": "{{priced}} von {{records}} Datensätzen mit Tarif"
+      "all_one": "{{records}} Datensatz mit Tarif",
+      "all_other": "{{records}} Datensätze mit Tarif",
+      "partial_one": "{{priced}} von {{records}} Datensatz mit Tarif",
+      "partial_other": "{{priced}} von {{records}} Datensätzen mit Tarif"
     },
     "title": "API-äquivalente Kosten der Arbeit · {{period}}",
     "disclaimer": "{{coverage}} · geschätzt nach deinen konfigurierten API-Tarifen, keine Rechnung",
@@ -60,11 +64,12 @@
     },
     "rates": {
       "heading": "Modelltarife",
-      "subtitle": "USD pro Million Tokens · {{models}} konfigurierte Modelle",
+      "subtitle_one": "USD pro Million Tokens · {{models}} konfiguriertes Modell",
+      "subtitle_other": "USD pro Million Tokens · {{models}} konfigurierte Modelle",
       "caption": "Konfigurierte Modellpreise in USD pro Million Tokens",
       "saving": "Wird gespeichert…",
       "save": "Änderungen speichern",
-      "saved": "Preise gespeichert",
+      "saved": "Gespeichert",
       "provider": "Anbieter",
       "model": "Modell",
       "input": "Eingabe",
@@ -109,7 +114,7 @@
   "filters": {
     "period": "Zeitraum",
     "host": "Host",
-    "allHosts": "Alle",
+    "allHosts": "Alle Hosts",
     "searchTasks": "Aufgaben filtern",
     "refresh": "Quellen aktualisieren",
     "refreshing": "Wird aktualisiert…",
@@ -150,20 +155,20 @@
     "cacheCoverage": "von {{tokens}} meldenden Tokens",
     "tasks": "Aufgaben",
     "models": "Modelle",
-    "costTotal": "Geschätzte Kosten",
     "costInput": "Eingabe ohne Cache",
     "costCacheRead": "Cache-Lesevorgänge",
     "costCacheWrite": "Cache-Schreibvorgänge",
     "costOutput": "Ausgabe",
-    "costCacheSavings": "Cache-Ersparnis"
+    "costCacheSavings": "Cache-Ersparnis",
+    "costSavingsNote": "nicht in der Summe"
   },
   "tokenMix": {
     "composition": "Token-Zusammensetzung",
     "empty": "Keine Tokens in diesem Zeitraum",
     "fresh": "Neue Eingabe",
-    "cached": "Aus dem Cache",
     "output": "Ausgabe",
-    "unreported": "Cache nicht gemeldet"
+    "unreported": "Cache nicht gemeldet",
+    "excludesCached": "Ohne {{tokens}} Eingabe-Tokens aus dem Cache"
   },
   "quota": {
     "used": "{{percent}} verbraucht",
@@ -179,7 +184,9 @@
       "hours": "{{n}}-Stunden-Fenster",
       "minutes": "{{n}}-Minuten-Fenster",
       "extraUsage": "Zusätzliche Nutzung"
-    }
+    },
+    "stale": "seit über einem Tag nicht aktualisiert",
+    "noWindows": "Keine aktuellen Limitfenster"
   },
   "rank": {
     "empty": "Keine Nutzung in diesem Zeitraum",
@@ -188,14 +195,14 @@
   },
   "breakdown": {
     "groupBy": "Gruppieren nach",
-    "byHarness": "Umgebung",
+    "byHarness": "Umgebung → Zugangsdaten",
     "byModel": "Modell → Reasoning",
     "byTask": "Aufgabe → Sitzung",
     "bySourceHost": "Host",
     "byHostGroup": "Host-Gruppe",
     "byCredential": "Zugangsdaten",
-    "treeView": "⊟ Baumansicht",
-    "tableView": "⊞ Tabellenansicht",
+    "treeView": "Baumansicht",
+    "tableView": "Tabellenansicht",
     "empty": "Keine Nutzung entspricht den aktuellen Filtern."
   },
   "table": {
@@ -206,7 +213,10 @@
   },
   "history": {
     "empty": "Kein Nutzungsverlauf entspricht den Filtern.",
-    "summary": "{{tasks}} Aufgaben · {{sessions}} Sitzungen · {{records}} Datensätze",
+    "taskCount_one": "{{tasks}} Aufgabe",
+    "taskCount_other": "{{tasks}} Aufgaben",
+    "recordCount_one": "{{records}} Datensatz",
+    "recordCount_other": "{{records}} Datensätze",
     "lastActive": "Zuletzt aktiv",
     "harness": "Umgebung",
     "model": "Modell",
@@ -215,11 +225,14 @@
     "agent": "Agent",
     "conversation": "Unterhaltung",
     "sessions": "Sitzungen",
-    "sessionCount": "{{sessions}} Sitzungen",
-    "sessionAndAgentCount": "{{sessions}} Sitzungen · {{agents}} Agenten",
+    "sessionCount_one": "{{sessions}} Sitzung",
+    "sessionCount_other": "{{sessions}} Sitzungen",
+    "agentCount_one": "{{agents}} Agent",
+    "agentCount_other": "{{agents}} Agenten",
     "started": "Gestartet",
     "duration": "Dauer",
-    "agentsSummary": "{{agents}} Agenten verbrauchten {{tokens}} · {{cost}}",
+    "agentsSummary_one": "{{agents}} Agent verbrauchte {{tokens}} · {{cost}}",
+    "agentsSummary_other": "{{agents}} Agenten verbrauchten {{tokens}} · {{cost}}",
     "columns": {
       "ascending": "{{column}} aufsteigend sortieren",
       "descending": "{{column}} absteigend sortieren",

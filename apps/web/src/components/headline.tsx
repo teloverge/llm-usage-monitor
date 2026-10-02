@@ -10,7 +10,8 @@ import {
   YAxis,
 } from "recharts";
 import type { HostTimelinePoint, OverviewView } from "@llm-usage-monitor/contracts";
-import { CHART_INK, CHART_SURFACE, PAGE_SURFACE, SERIES } from "../theme/palette.ts";
+import type { ChartPalette } from "../theme/palette.ts";
+import { useChartPalette, usePrefersReducedMotion } from "../theme/use-media-query.ts";
 import {
   formatBucketLabel,
   formatCount,
@@ -20,6 +21,7 @@ import {
   formatWholePercent,
 } from "../model/format.ts";
 import { coverageMessage } from "../model/coverage.ts";
+import { timelineBuckets } from "../model/timeline.ts";
 
 type Measure = "cost" | "tokens";
 
@@ -32,7 +34,9 @@ const MEASURES = ["cost", "tokens"] as const;
  * it is a deliberate de-emphasis, and inventing a hue would silently change
  * the validated set (see theme/palette.ts).
  */
-const HOST_SLOTS = [SERIES.teal, SERIES.blue, SERIES.orange] as const;
+const hostSlots = (palette: ChartPalette) =>
+  [palette.series.teal, palette.series.blue, palette.series.orange] as const;
+const HOST_SLOT_COUNT = 3;
 
 /**
  * The inline period labels are a SEPARATE key set from the Period dropdown's,
@@ -91,6 +95,10 @@ export function Headline({
   hostLabel: (sourceHostId: string) => string;
 }) {
   const { t } = useTranslation();
+  const palette = useChartPalette();
+  const animate = !usePrefersReducedMotion();
+  const { ink } = palette;
+  const slots = hostSlots(palette);
   const [measure, setMeasure] = useState<Measure>("cost");
   const period = t(inlinePeriodKey(data.filters.timeframe));
   const key = measure === "cost" ? "estimatedCost" : "totalTokens";
@@ -119,12 +127,12 @@ export function Headline({
   // the stack builds biggest-first from the baseline. The trade-off: changing
   // the period can re-rank hosts and move one across a slot boundary, so the
   // legend — not colour memory — is the identity channel.
-  const named = stacked ? data.bySourceHost.slice(0, HOST_SLOTS.length) : [];
-  const folded = stacked ? data.bySourceHost.slice(HOST_SLOTS.length) : [];
+  const named = stacked ? data.bySourceHost.slice(0, HOST_SLOT_COUNT) : [];
+  const folded = stacked ? data.bySourceHost.slice(HOST_SLOT_COUNT) : [];
   const series = [
     ...named.map((row, index) => ({
       key: `host-${index}`,
-      color: HOST_SLOTS[index] as string,
+      color: slots[index] as string,
       label: hostLabel(row.key),
       total: row[key],
     })),
@@ -132,7 +140,7 @@ export function Headline({
       ? [
           {
             key: "other",
-            color: CHART_INK.muted,
+            color: ink.muted,
             label: t("headline.otherHosts"),
             total: folded.reduce((sum, row) => sum + row[key], 0),
           },
@@ -143,7 +151,7 @@ export function Headline({
   // Both branches produce the same plain-row shape so the chart's data prop
   // keeps one type; handing it the TimelinePoint[] directly would make the
   // union unassignable to recharts' inferred generic.
-  const rows: Array<Record<string, number | string>> = stacked
+  const present: Array<Record<string, number | string>> = stacked
     ? stackRows(
         data.timelineBySourceHost,
         key,
@@ -155,6 +163,14 @@ export function Headline({
         estimatedCost,
         totalTokens,
       }));
+  // Empty days get a zero row of the same shape, so the gap plots as a gap.
+  const zero = stacked
+    ? Object.fromEntries(series.map((item) => [item.key, 0]))
+    : { estimatedCost: 0, totalTokens: 0 };
+  const byBucket = new Map(present.map((row) => [String(row.bucket), row]));
+  const rows = timelineBuckets([...byBucket.keys()], data.filters.timeframe, new Date()).map(
+    (bucket) => byBucket.get(bucket) ?? { bucket, ...zero },
+  );
   const grandTotal = data.totals[key];
   return (
     <section className="panel headline">
@@ -168,6 +184,7 @@ export function Headline({
               // path, and "4,900" beside the hero's "USD 8,947.32" rather than a
               // bare "4900".
               coverage: t(coverage.key, {
+                count: coverage.params.records,
                 records: formatCount(coverage.params.records),
                 priced: formatCount(coverage.params.priced),
               }),
@@ -198,21 +215,21 @@ export function Headline({
         <>
           <ResponsiveContainer width="100%" height={168}>
             <AreaChart data={rows} margin={{ top: 10, right: 4, bottom: 0, left: 4 }}>
-              <CartesianGrid stroke={CHART_INK.grid} vertical={false} />
+              <CartesianGrid stroke={ink.grid} vertical={false} />
               <XAxis
                 dataKey="bucket"
                 // Wrapped, not passed by reference: recharts calls tickFormatter
                 // with (value, index), and the index would land in the timeZone
                 // parameter.
                 tickFormatter={(value) => formatBucketLabel(String(value))}
-                stroke={CHART_INK.axis}
-                tick={{ fill: CHART_INK.muted, fontSize: 11 }}
+                stroke={ink.axis}
+                tick={{ fill: ink.muted, fontSize: 11 }}
                 tickLine={false}
               />
               <YAxis
                 tickFormatter={(value) => axisFormat(Number(value))}
-                stroke={CHART_INK.axis}
-                tick={{ fill: CHART_INK.muted, fontSize: 11 }}
+                stroke={ink.axis}
+                tick={{ fill: ink.muted, fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
                 // Sized from the widest tick this axis can actually produce, not
@@ -228,8 +245,8 @@ export function Headline({
                   typeof label === "string" ? formatBucketLabel(label) : null
                 }
                 contentStyle={{
-                  background: PAGE_SURFACE,
-                  border: `1px solid ${CHART_INK.grid}`,
+                  background: palette.page,
+                  border: `1px solid ${ink.grid}`,
                   borderRadius: 7,
                   fontSize: 11,
                 }}
@@ -248,20 +265,22 @@ export function Headline({
                     // side by side and must read as fills, not tints, while the
                     // 2px stroke stays the separator between neighbours.
                     fillOpacity={0.3}
+                    isAnimationActive={animate}
                     name={item.label}
-                    activeDot={{ r: 4.5, strokeWidth: 2, stroke: CHART_SURFACE }}
+                    activeDot={{ r: 4.5, strokeWidth: 2, stroke: palette.surface }}
                   />
                 ))
               ) : (
                 <Area
                   type="monotone"
                   dataKey={key}
-                  stroke={SERIES.teal}
+                  stroke={palette.series.teal}
                   strokeWidth={2}
-                  fill={SERIES.teal}
+                  fill={palette.series.teal}
                   fillOpacity={0.13}
+                  isAnimationActive={animate}
                   name={measure === "cost" ? t("headline.seriesCost") : t("headline.tokens")}
-                  activeDot={{ r: 4.5, strokeWidth: 2, stroke: CHART_SURFACE }}
+                  activeDot={{ r: 4.5, strokeWidth: 2, stroke: palette.surface }}
                 />
               )}
             </AreaChart>

@@ -24,6 +24,10 @@ export function Pricing({
   const { t } = useTranslation();
   const [draft, setDraft] = useState(prices);
   const [saving, setSaving] = useState(false);
+  // Confirms a save that just happened. The button itself always names the
+  // action — a disabled button reading "Prices saved" looked like a status and
+  // left nothing that said how to save.
+  const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => setDraft(prices), [prices]);
   const dirty = JSON.stringify(draft) !== JSON.stringify(prices);
@@ -33,9 +37,10 @@ export function Pricing({
     try {
       await executeAction({ version: 1, type: "replace-prices", prices: draft });
       await onSaved();
+      setJustSaved(true);
     } catch (reason) {
       // Without this the rejection is unhandled, onSaved never runs, and the
-      // button returns to "Prices saved" as though nothing went wrong.
+      // button settles back to disabled as though nothing went wrong.
       setError(reason instanceof Error ? reason.message : String(reason));
     } finally {
       setSaving(false);
@@ -46,15 +51,21 @@ export function Pricing({
       <div className="pricing-toolbar">
         <div>
           <h2 id="pricing-table-title">{t("settings.rates.heading")}</h2>
-          <p>{t("settings.rates.subtitle", { models: formatCount(draft.length) })}</p>
+          <p>
+            {t("settings.rates.subtitle", {
+              count: draft.length,
+              models: formatCount(draft.length),
+            })}
+          </p>
         </div>
-        <button type="button" className="primary" disabled={!dirty || saving} onClick={save}>
-          {saving
-            ? t("settings.rates.saving")
-            : dirty
-              ? t("settings.rates.save")
-              : t("settings.rates.saved")}
-        </button>
+        <div className="save-group">
+          <span role="status" className="save-status">
+            {justSaved && !dirty ? `✓ ${t("settings.rates.saved")}` : ""}
+          </span>
+          <button type="button" className="primary" disabled={!dirty || saving} onClick={save}>
+            {saving ? t("settings.rates.saving") : t("settings.rates.save")}
+          </button>
+        </div>
       </div>
       {error && (
         <p role="alert" className="error settings-error">
@@ -93,15 +104,16 @@ export function Pricing({
                         // cell shows "this card does not surcharge writes" instead of
                         // claiming writes are free — the two price very differently.
                         value={price[key] ?? ""}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          setJustSaved(false);
                           setDraft((current) =>
                             current.map((item, itemIndex) =>
                               itemIndex === index
                                 ? { ...item, [key]: rateFromInput(event.target.value, key) }
                                 : item,
                             ),
-                          )
-                        }
+                          );
+                        }}
                       />
                     </td>
                   ))}

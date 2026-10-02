@@ -4,7 +4,8 @@
     "notReported": "未報告",
     "unpriced": "料金未設定",
     "sourceHostFallback": "ソースホスト {{index}}",
-    "untitledTask": "無題のタスク"
+    "untitledTask": "無題のタスク",
+    "accountCount_other": "アカウント {{accounts}} 件"
   },
   "credential": {
     "mode": {
@@ -21,8 +22,8 @@
   "headline": {
     "coverage": {
       "none": "この期間にレコードはありません",
-      "all": "{{records}} 件のレコードを料金換算済み",
-      "partial": "{{records}} 件中 {{priced}} 件を料金換算済み"
+      "all_other": "{{records}} 件のレコードを料金換算済み",
+      "partial_other": "{{records}} 件中 {{priced}} 件を料金換算済み"
     },
     "title": "作業のAPI換算コスト · {{period}}",
     "disclaimer": "{{coverage}} · 設定したAPI料金に基づく推定値であり、請求額ではありません",
@@ -60,11 +61,11 @@
     },
     "rates": {
       "heading": "モデル料金",
-      "subtitle": "100万トークンあたりのUSD · 設定済みモデル {{models}} 件",
+      "subtitle_other": "100万トークンあたりのUSD · 設定済みモデル {{models}} 件",
       "caption": "設定済みモデル価格（100万トークンあたりのUSD）",
       "saving": "保存中…",
       "save": "変更を保存",
-      "saved": "価格を保存しました",
+      "saved": "保存済み",
       "provider": "プロバイダー",
       "model": "モデル",
       "input": "入力",
@@ -109,7 +110,7 @@
   "filters": {
     "period": "期間",
     "host": "ホスト",
-    "allHosts": "すべて",
+    "allHosts": "すべてのホスト",
     "searchTasks": "タスクを絞り込む",
     "refresh": "ソースを更新",
     "refreshing": "更新中…",
@@ -150,20 +151,20 @@
     "cacheCoverage": "報告している {{tokens}} トークンのうち",
     "tasks": "タスク",
     "models": "モデル",
-    "costTotal": "推定コスト",
     "costInput": "キャッシュなし入力",
     "costCacheRead": "キャッシュ読み取り",
     "costCacheWrite": "キャッシュ書き込み",
     "costOutput": "出力",
-    "costCacheSavings": "キャッシュ節約額"
+    "costCacheSavings": "キャッシュ節約額",
+    "costSavingsNote": "合計には含まれません"
   },
   "tokenMix": {
     "composition": "トークンの構成",
     "empty": "この期間にトークンはありません",
     "fresh": "新規入力",
-    "cached": "キャッシュ済み",
     "output": "出力",
-    "unreported": "キャッシュ未報告"
+    "unreported": "キャッシュ未報告",
+    "excludesCached": "キャッシュ済み入力 {{tokens}} トークンを除く"
   },
   "quota": {
     "used": "{{percent}} 使用済み",
@@ -179,7 +180,9 @@
       "hours": "{{n}}時間ウィンドウ",
       "minutes": "{{n}}分間ウィンドウ",
       "extraUsage": "追加使用量"
-    }
+    },
+    "stale": "1日以上更新されていません",
+    "noWindows": "現在の制限ウィンドウはありません"
   },
   "rank": {
     "empty": "この期間に使用はありません",
@@ -188,14 +191,14 @@
   },
   "breakdown": {
     "groupBy": "グループ化",
-    "byHarness": "環境",
+    "byHarness": "環境 → 認証情報",
     "byModel": "モデル → 推論",
     "byTask": "タスク → セッション",
     "bySourceHost": "ホスト",
     "byHostGroup": "ホストグループ",
     "byCredential": "認証情報",
-    "treeView": "⊟ ツリー表示",
-    "tableView": "⊞ テーブル表示",
+    "treeView": "ツリー表示",
+    "tableView": "テーブル表示",
     "empty": "現在のフィルターに一致する使用はありません。"
   },
   "table": {
@@ -206,7 +209,8 @@
   },
   "history": {
     "empty": "フィルターに一致する使用履歴はありません。",
-    "summary": "タスク {{tasks}} 件 · セッション {{sessions}} 件 · レコード {{records}} 件",
+    "taskCount_other": "タスク {{tasks}} 件",
+    "recordCount_other": "レコード {{records}} 件",
     "lastActive": "最終アクティブ",
     "harness": "環境",
     "model": "モデル",
@@ -215,11 +219,11 @@
     "agent": "エージェント",
     "conversation": "会話",
     "sessions": "セッション",
-    "sessionCount": "セッション {{sessions}}",
-    "sessionAndAgentCount": "セッション {{sessions}} · エージェント {{agents}}",
+    "sessionCount_other": "セッション {{sessions}} 件",
+    "agentCount_other": "エージェント {{agents}}",
     "started": "開始",
     "duration": "所要時間",
-    "agentsSummary": "エージェント {{agents}} が {{tokens}} を使用 · {{cost}}",
+    "agentsSummary_other": "エージェント {{agents}} が {{tokens}} を使用 · {{cost}}",
     "columns": {
       "ascending": "{{column}}を昇順で並べ替え",
       "descending": "{{column}}を降順で並べ替え",

@@ -86,15 +86,16 @@ export function History({
       return next;
     });
   const sessions = groups.reduce((sum, group) => sum + group.sessions.length, 0);
+  const records = groups.reduce((sum, group) => sum + group.records, 0);
   if (!data.groups.length) return <p className="empty-state">{t("history.empty")}</p>;
   return (
     <section className="history">
       <Zone>
-        {t("history.summary", {
-          tasks: formatCount(groups.length),
-          sessions: formatCount(sessions),
-          records: formatCount(groups.reduce((sum, group) => sum + group.records, 0)),
-        })}
+        {[
+          t("history.taskCount", { count: groups.length, tasks: formatCount(groups.length) }),
+          t("history.sessionCount", { count: sessions, sessions: formatCount(sessions) }),
+          t("history.recordCount", { count: records, records: formatCount(records) }),
+        ].join(" · ")}
       </Zone>
       {table.controls}
       <div className="history-scroll">
@@ -118,12 +119,25 @@ export function History({
                   {group.taskName || t("common.untitledTask")}
                 </span>
                 <span className="history-meta">
-                  {group.agents.sessions
-                    ? t("history.sessionAndAgentCount", {
-                        sessions: formatCount(group.sessions.length),
-                        agents: formatCount(group.agents.sessions),
-                      })
-                    : t("history.sessionCount", { sessions: formatCount(group.sessions.length) })}
+                  {/*
+                    `count` picks the plural form; the formatted figure is a
+                    separate parameter so it keeps the locale's digit grouping,
+                    which i18next's own interpolation of `count` would drop.
+                  */}
+                  {[
+                    t("history.sessionCount", {
+                      count: group.sessions.length,
+                      sessions: formatCount(group.sessions.length),
+                    }),
+                    ...(group.agents.sessions
+                      ? [
+                          t("history.agentCount", {
+                            count: group.agents.sessions,
+                            agents: formatCount(group.agents.sessions),
+                          }),
+                        ]
+                      : []),
+                  ].join(" · ")}
                 </span>
                 <span className="history-when">{formatDateTime(group.firstActiveAt)}</span>
                 <span className="history-when">{formatDateTime(group.lastActiveAt)}</span>
@@ -136,11 +150,7 @@ export function History({
                 </span>
               </summary>
               {group.costBreakdown && group.estimatedCost !== null && (
-                <CostStrip
-                  total={group.estimatedCost}
-                  breakdown={group.costBreakdown}
-                  className="strip cost history-costs"
-                />
+                <CostStrip breakdown={group.costBreakdown} className="strip cost history-costs" />
               )}
               <AgentsSummary group={group} />
               <SessionTable sessions={group.sessions} hostLabel={hostLabel} />
@@ -158,6 +168,7 @@ function AgentsSummary({ group }: { group: UsageHistoryGroup }) {
   return (
     <p className="history-agents">
       {t("history.agentsSummary", {
+        count: group.agents.sessions,
         agents: formatCount(group.agents.sessions),
         tokens: formatTokens(group.agents.totalTokens),
         cost: cost(group.agents.estimatedCost, t("common.unpriced")),

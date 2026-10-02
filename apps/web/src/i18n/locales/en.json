@@ -4,7 +4,9 @@
     "notReported": "Not reported",
     "unpriced": "Unpriced",
     "sourceHostFallback": "Source Host {{index}}",
-    "untitledTask": "Untitled task"
+    "untitledTask": "Untitled task",
+    "accountCount_one": "{{accounts}} account",
+    "accountCount_other": "{{accounts}} accounts"
   },
   "credential": {
     "mode": {
@@ -21,8 +23,10 @@
   "headline": {
     "coverage": {
       "none": "No records in this period",
-      "all": "{{records}} records priced",
-      "partial": "{{priced}} of {{records}} records priced"
+      "all_one": "{{records}} record priced",
+      "all_other": "{{records}} records priced",
+      "partial_one": "{{priced}} of {{records}} record priced",
+      "partial_other": "{{priced}} of {{records}} records priced"
     },
     "title": "API-equivalent cost of work · {{period}}",
     "disclaimer": "{{coverage}} · estimated at your configured API rates, not a bill",
@@ -60,11 +64,12 @@
     },
     "rates": {
       "heading": "Model rates",
-      "subtitle": "USD per one million tokens · {{models}} configured models",
+      "subtitle_one": "USD per one million tokens · {{models}} configured model",
+      "subtitle_other": "USD per one million tokens · {{models}} configured models",
       "caption": "Configured model prices in USD per one million tokens",
       "saving": "Saving…",
       "save": "Save changes",
-      "saved": "Prices saved",
+      "saved": "Saved",
       "provider": "Provider",
       "model": "Model",
       "input": "Input",
@@ -109,7 +114,7 @@
   "filters": {
     "period": "Period",
     "host": "Host",
-    "allHosts": "All",
+    "allHosts": "All hosts",
     "searchTasks": "Filter tasks",
     "refresh": "Refresh sources",
     "refreshing": "Refreshing…",
@@ -150,20 +155,20 @@
     "cacheCoverage": "of {{tokens}} reporting tokens",
     "tasks": "Tasks",
     "models": "Models",
-    "costTotal": "Estimated cost",
     "costInput": "Uncached input",
     "costCacheRead": "Cache reads",
     "costCacheWrite": "Cache writes",
     "costOutput": "Output",
-    "costCacheSavings": "Cache savings"
+    "costCacheSavings": "Cache savings",
+    "costSavingsNote": "not in the total"
   },
   "tokenMix": {
     "composition": "Token composition",
     "empty": "No tokens in this period",
     "fresh": "Fresh input",
-    "cached": "Cached",
     "output": "Output",
-    "unreported": "Cache not reported"
+    "unreported": "Cache not reported",
+    "excludesCached": "Excludes {{tokens}} cached input tokens"
   },
   "quota": {
     "used": "{{percent}} used",
@@ -179,7 +184,9 @@
       "hours": "{{n}}-hour window",
       "minutes": "{{n}}-minute window",
       "extraUsage": "Extra usage"
-    }
+    },
+    "stale": "not refreshed in over a day",
+    "noWindows": "No current limit windows"
   },
   "rank": {
     "empty": "No usage in this period",
@@ -188,14 +195,14 @@
   },
   "breakdown": {
     "groupBy": "Group by",
-    "byHarness": "Harness",
+    "byHarness": "Harness → Credential",
     "byModel": "Model → Reasoning",
     "byTask": "Task → Session",
     "bySourceHost": "Host",
     "byHostGroup": "Host Group",
     "byCredential": "Credential",
-    "treeView": "⊟ Tree view",
-    "tableView": "⊞ Table view",
+    "treeView": "Tree view",
+    "tableView": "Table view",
     "empty": "No usage matches the current filters."
   },
   "table": {
@@ -206,7 +213,10 @@
   },
   "history": {
     "empty": "No usage history matches the filters.",
-    "summary": "{{tasks}} tasks · {{sessions}} sessions · {{records}} records",
+    "taskCount_one": "{{tasks}} task",
+    "taskCount_other": "{{tasks}} tasks",
+    "recordCount_one": "{{records}} record",
+    "recordCount_other": "{{records}} records",
     "lastActive": "Last active",
     "harness": "Harness",
     "model": "Model",
@@ -215,11 +225,14 @@
     "agent": "Agent",
     "conversation": "Conversation",
     "sessions": "Sessions",
-    "sessionCount": "{{sessions}} sessions",
-    "sessionAndAgentCount": "{{sessions}} sessions · {{agents}} agents",
+    "sessionCount_one": "{{sessions}} session",
+    "sessionCount_other": "{{sessions}} sessions",
+    "agentCount_one": "{{agents}} agent",
+    "agentCount_other": "{{agents}} agents",
     "started": "Started",
     "duration": "Duration",
-    "agentsSummary": "{{agents}} agents spent {{tokens}} · {{cost}}",
+    "agentsSummary_one": "{{agents}} agent spent {{tokens}} · {{cost}}",
+    "agentsSummary_other": "{{agents}} agents spent {{tokens}} · {{cost}}",
     "columns": {
       "ascending": "Sort {{column}} ascending",
       "descending": "Sort {{column}} descending",

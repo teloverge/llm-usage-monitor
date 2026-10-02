@@ -51,3 +51,25 @@ export function quotaAccounts(
   }
   return [...accounts.values()];
 }
+
+export interface QuotaProvider {
+  usageSourceId: string;
+  accounts: QuotaAccount[];
+}
+
+/**
+ * Gathers accounts under the usage source they belong to, so two Codex
+ * subscriptions sit together under one "Codex" heading instead of reading as
+ * two unrelated meters. Providers keep the order their first account arrived
+ * in, and accounts keep theirs within it.
+ */
+export function quotaProviders(accounts: QuotaAccount[]): QuotaProvider[] {
+  const providers = new Map<string, QuotaAccount[]>();
+  for (const account of accounts) {
+    const id = account.snapshot.usageSourceId;
+    const list = providers.get(id);
+    if (list) list.push(account);
+    else providers.set(id, [account]);
+  }
+  return [...providers].map(([usageSourceId, list]) => ({ usageSourceId, accounts: list }));
+}
