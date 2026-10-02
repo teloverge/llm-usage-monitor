@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- A model with usage but no rate card — one released after the default cards were written — is now priced from OpenRouter's public catalog automatically, at startup and after every refresh or import, instead of reading "Unpriced" until its rates are typed into Settings. Only missing cards are added; a configured or edited price is never replaced. Local runtimes and models recorded as `unknown` are never looked up, a model the catalog does not list is retried after an hour, and an offline machine or catalog outage is logged without failing the refresh.
 - History now answers for the Period, Host, Credential, and task filters in the top bar, as the Overview and Breakdown already did; it used to list the whole ledger whatever was selected. Settings hides those filters, since none of them apply there, and the page heading names Settings while it is open.
 - The trend chart gives every day (or hour, for the last 24 hours) of the period its own slot, so a quiet stretch plots as zero instead of vanishing and joining its neighbours.
 - The cost row lists the four shares that add up to the estimate, without repeating the headline total, and sets the cache savings apart as not part of the total. Token mix now splits uncached input from output, with cached input stated under the bar; a share that rounds to nothing reads "<1%" rather than "0%".
